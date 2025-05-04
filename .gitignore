@@ -1,0 +1,157 @@
+brainstorm/
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+package-lock.json
+yarn.lock
+yarn-error.log
+.pnp/
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.egg-info/
+.eggs/
+*.egg
+venv/
+env/
+ENV/
+.venv/
+.env/
+.python-version
+
+# Jekyll / Documentation
+docs/_site/
+docs/.sass-cache/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/Gemfile.lock
+.jekyll-cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+api_server.log
+
+# Cache files
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+.yarn-integrity
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.docusaurus
+.umi
+.umi-production
+.umi-test
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+*.launch
+*.tmproj
+.history/
+
+# Build outputs
+dist/
+build/
+out/
+docs/_site
+.output/
+coverage/
+*.tsbuildinfo
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Local database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Testing
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite3
+
+# FAISS indexes
+*.index
+
+# Playwright
+.playwright-cache/
+.specstory/
+.specstory/
