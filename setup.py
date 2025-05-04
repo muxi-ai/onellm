@@ -10,5 +10,5 @@ setup(
     install_requires=[
         # Add CLI-specific dependencies here
     ],
-    python_requires=">=3.8"
+    python_requires=">=3.10"
 )
