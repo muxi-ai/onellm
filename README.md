@@ -1,2 +1,2 @@
 # llm
-Inified interface for LLM providers using OpenAI format
+Unified interface for LLM providers using OpenAI format
