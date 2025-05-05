@@ -44,14 +44,26 @@ class ChatCompletionsResource:
         model: str,
         messages: List[Dict[str, Any]],
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create a chat completion using ChatCompletion.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
         return ChatCompletion.create(
-            model=model, messages=messages, stream=stream, **kwargs
+            model=model,
+            messages=messages,
+            stream=stream,
+            fallback_models=fallback_models,
+            **kwargs
         )
 
     async def acreate(
@@ -59,14 +71,26 @@ class ChatCompletionsResource:
         model: str,
         messages: List[Dict[str, Any]],
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create a chat completion asynchronously using ChatCompletion.acreate()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
         return await ChatCompletion.acreate(
-            model=model, messages=messages, stream=stream, **kwargs
+            model=model,
+            messages=messages,
+            stream=stream,
+            fallback_models=fallback_models,
+            **kwargs
         )
 
 
@@ -85,26 +109,54 @@ class CompletionsResource:
         model: str,
         prompt: str,
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create a completion using Completion.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return Completion.create(model=model, prompt=prompt, stream=stream, **kwargs)
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
+        return Completion.create(
+            model=model,
+            prompt=prompt,
+            stream=stream,
+            fallback_models=fallback_models,
+            **kwargs
+        )
 
     async def acreate(
         self,
         model: str,
         prompt: str,
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create a completion asynchronously using Completion.acreate()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await Completion.acreate(model=model, prompt=prompt, stream=stream, **kwargs)
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
+        return await Completion.acreate(
+            model=model,
+            prompt=prompt,
+            stream=stream,
+            fallback_models=fallback_models,
+            **kwargs
+        )
 
 
 class EmbeddingsResource:
@@ -114,25 +166,51 @@ class EmbeddingsResource:
         self,
         model: str,
         input: Union[str, List[str]],
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create embeddings using Embedding.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return Embedding.create(model=model, input=input, **kwargs)
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
+        return Embedding.create(
+            model=model,
+            input=input,
+            fallback_models=fallback_models,
+            **kwargs
+        )
 
     async def acreate(
         self,
         model: str,
         input: Union[str, List[str]],
+        fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
         """Create embeddings asynchronously using Embedding.acreate()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await Embedding.acreate(model=model, input=input, **kwargs)
+
+        # Add provider prefix to fallback models if needed
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                if "/" not in fallback_model:
+                    fallback_models[i] = f"openai/{fallback_model}"
+
+        return await Embedding.acreate(
+            model=model,
+            input=input,
+            fallback_models=fallback_models,
+            **kwargs
+        )
 
 
 class ImagesResource:
