@@ -48,4 +48,4 @@ __all__ = [
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:
-# e.g., from muxi.llm import openai_api_key, anthropic_api_key
+# e.g., from muxi_llm import openai_api_key, anthropic_api_key

@@ -32,7 +32,7 @@ class FallbackProviderProxy(Provider):
         self.models = models
         self.providers: Dict[str, Provider] = {}  # Lazy-loaded providers
         self.fallback_config = fallback_config or FallbackConfig()
-        self.logger = logging.getLogger("muxi.llm.fallback")
+        self.logger = logging.getLogger("muxi_llm.fallback")
 
     async def _try_with_fallbacks(
         self,
