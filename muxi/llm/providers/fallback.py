@@ -192,20 +192,8 @@ class FallbackProviderProxy(Provider):
                         )
                     )
 
-                # Create a wrapper generator that yields from the provider's generator
-                async def generate_from_provider():
-                    try:
-                        async for chunk in generator:
-                            yield chunk
-                    except Exception as e:
-                        # If streaming fails midway, treat it as a regular error
-                        raise e
-
-                # Return the wrapper generator
-                gen = generate_from_provider()
-                async for chunk in gen:
-                    yield chunk
-                return
+                # Simply forward the generator from the provider without wrapping it
+                return generator
 
             except Exception as e:
                 last_error = e
@@ -247,12 +235,19 @@ class FallbackProviderProxy(Provider):
         """Create a chat completion with fallback support."""
         # Special handling for streaming
         if stream:
-            return await self._try_streaming_with_fallbacks(
-                "create_chat_completion",
-                messages=messages,
-                stream=stream,
-                **kwargs
-            )
+            # Need to create a wrapper that awaits the coroutine and then yields from the generator
+            async def stream_generator():
+                generator = await self._try_streaming_with_fallbacks(
+                    "create_chat_completion",
+                    messages=messages,
+                    stream=stream,
+                    **kwargs
+                )
+                async for chunk in generator:
+                    yield chunk
+
+            # Return the async generator
+            return stream_generator()
         else:
             return await self._try_with_fallbacks(
                 "create_chat_completion",
@@ -271,12 +266,19 @@ class FallbackProviderProxy(Provider):
         """Create a text completion with fallback support."""
         # Special handling for streaming
         if stream:
-            return await self._try_streaming_with_fallbacks(
-                "create_completion",
-                prompt=prompt,
-                stream=stream,
-                **kwargs
-            )
+            # Need to create a wrapper that awaits the coroutine and then yields from the generator
+            async def stream_generator():
+                generator = await self._try_streaming_with_fallbacks(
+                    "create_completion",
+                    prompt=prompt,
+                    stream=stream,
+                    **kwargs
+                )
+                async for chunk in generator:
+                    yield chunk
+
+            # Return the async generator
+            return stream_generator()
         else:
             return await self._try_with_fallbacks(
                 "create_completion",
