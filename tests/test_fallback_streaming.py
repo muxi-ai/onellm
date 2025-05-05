@@ -6,11 +6,12 @@ import pytest
 import mock
 import asyncio
 
-from muxi.llm.utils.fallback import FallbackConfig
-from muxi.llm.providers.fallback import FallbackProviderProxy
-from muxi.llm.errors import (
+from muxi_llm.utils.fallback import FallbackConfig
+from muxi_llm.providers.fallback import FallbackProviderProxy
+from muxi_llm.errors import (
     APIError, AuthenticationError, RateLimitError, FallbackExhaustionError
 )
+from muxi_llm.providers.base import Provider
 
 # Mock streaming response chunks for testing
 mock_chat_completion_chunks = [
@@ -152,10 +153,107 @@ class MockStreamingProvider:
             await asyncio.sleep(0.01)
 
 
-class TestFallbackStreaming:
-    """Tests for the fallback mechanism with streaming responses."""
+class StreamFailProvider(Provider):
+    """Provider that always fails for streaming requests."""
 
-    # Let's patch the _try_streaming_with_fallbacks method to work with our tests
+    def __init__(self, name="test"):
+        self.name = name
+        self.calls = []
+
+    async def create_chat_completion(self, messages, model, stream=False, **kwargs):
+        self.calls.append(("create_chat_completion", model, stream))
+        # Special behavior for streaming vs non-streaming
+        if stream:
+            # For streaming, return an immediate error
+            raise APIError(f"{self.name} streaming error")
+        else:
+            # For non-streaming, return normal response
+            return {
+                "choices": [{"message": {"content": "Regular response"}}]
+            }
+
+    # Implement other required abstract methods
+    async def create_completion(self, prompt, model, stream=False, **kwargs):
+        self.calls.append(("create_completion", model, stream))
+        if stream:
+            raise APIError(f"{self.name} streaming error")
+        return {"choices": [{"text": "Regular response"}]}
+
+    async def create_embedding(self, input, model, **kwargs):
+        self.calls.append(("create_embedding", model))
+        return {"data": [{"embedding": [0.1, 0.2, 0.3]}]}
+
+    async def upload_file(self, file, purpose, **kwargs):
+        self.calls.append(("upload_file", None))
+        return {"id": "file-123"}
+
+    async def download_file(self, file_id, **kwargs):
+        self.calls.append(("download_file", None))
+        return b"content"
+
+    async def create_speech(self, input, model, **kwargs):
+        self.calls.append(("create_speech", model))
+        return b"audio"
+
+    async def create_image(self, prompt, model, **kwargs):
+        self.calls.append(("create_image", model))
+        return {"data": [{"url": "http://example.com/img.png"}]}
+
+
+class TestStreamingFallbacks:
+    """Tests specifically targeting streaming with exhausted fallbacks."""
+
+    def setup_method(self):
+        """Set up test environment."""
+        # Patch the get_provider function
+        self.mock_get_provider = mock.patch("muxi_llm.providers.fallback.get_provider").start()
+
+    def teardown_method(self):
+        """Clean up test environment."""
+        mock.patch.stopall()
+
+    @pytest.mark.asyncio
+    async def test_streaming_exhaustion(self):
+        """Test streaming with exhausted fallbacks.
+
+        This targets line 178 - FallbackExhaustionError during streaming.
+        """
+        # Create providers
+        provider1 = StreamFailProvider("provider1")
+        provider2 = StreamFailProvider("provider2")
+
+        # Configure get_provider
+        def get_provider_side_effect(provider_name):
+            if provider_name == "provider1":
+                return provider1
+            elif provider_name == "provider2":
+                return provider2
+            raise ValueError(f"Unknown provider: {provider_name}")
+
+        self.mock_get_provider.side_effect = get_provider_side_effect
+
+        # Create fallback proxy
+        proxy = FallbackProviderProxy(
+            ["provider1/model1", "provider2/model2"],
+            FallbackConfig(retriable_errors=[APIError])
+        )
+
+        # Should raise FallbackExhaustionError
+        with pytest.raises(FallbackExhaustionError) as excinfo:
+            await proxy.create_chat_completion(
+                messages=[{"role": "user", "content": "Hello"}],
+                stream=True
+            )
+
+        # Verify error and call counts
+        assert "All models failed" in str(excinfo.value)
+        assert len(provider1.calls) == 1
+        assert len(provider2.calls) == 1
+
+        # Verify providers were called with stream=True
+        assert provider1.calls[0][2] is True
+        assert provider2.calls[0][2] is True
+
     @pytest.mark.asyncio
     async def test_fallback_streaming_success(self):
         """Test successful fallback with streaming."""
@@ -164,13 +262,13 @@ class TestFallbackStreaming:
         fallback_provider = MockStreamingProvider(should_fail=False)
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi.llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
 
             # Patch _try_streaming_with_fallbacks to directly yield from our mock provider
-            with mock.patch("muxi.llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
+            with mock.patch("muxi_llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
                 # Make it call fallback_provider directly
                 async def mock_stream_impl(*args, **kwargs):
                     # Simulate fallback logic
@@ -243,13 +341,13 @@ class TestFallbackStreaming:
         fallback_provider = MockStreamingProvider(should_fail=False)
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi.llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
 
             # Patch _try_streaming_with_fallbacks to directly yield from our mock provider
-            with mock.patch("muxi.llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
+            with mock.patch("muxi_llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
                 # Make it call fallback_provider directly after mid-stream failure
                 async def mock_stream_impl(*args, **kwargs):
                     try:
@@ -307,13 +405,13 @@ class TestFallbackStreaming:
         fallback_provider = MockStreamingProvider(should_fail=True, error_type="rate_limit")
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi.llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
 
             # Patch _try_streaming_with_fallbacks to handle errors correctly
-            with mock.patch("muxi.llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
+            with mock.patch("muxi_llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
                 # Create a generator that immediately raises an exception when iterating
                 async def failing_generator():
                     # Will raise when someone tries to iterate
@@ -362,13 +460,13 @@ class TestFallbackStreaming:
         primary_provider.call_count = 1
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi.llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
 
             # Patch _try_streaming_with_fallbacks to handle errors correctly
-            with mock.patch("muxi.llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
+            with mock.patch("muxi_llm.providers.fallback.FallbackProviderProxy._try_streaming_with_fallbacks") as mock_stream:
                 # Create a generator that immediately raises an exception when iterating
                 async def failing_generator():
                     # Will raise when someone tries to iterate

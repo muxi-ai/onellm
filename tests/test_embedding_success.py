@@ -6,8 +6,8 @@ These tests verify that embeddings are properly created when valid inputs are pr
 
 from unittest import mock
 
-from muxi.llm import Embedding
-from muxi.llm.models import EmbeddingResponse, EmbeddingData, UsageInfo
+from muxi_llm import Embedding
+from muxi_llm.models import EmbeddingResponse, EmbeddingData, UsageInfo
 
 
 # Helper to create async return values for mocks
@@ -19,8 +19,8 @@ async def async_return(value):
 class TestEmbeddingSuccess:
     """Tests for successful embedding creation."""
 
-    @mock.patch('muxi.llm.embedding.asyncio.run')
-    @mock.patch('muxi.llm.embedding.get_provider_with_fallbacks')
+    @mock.patch('muxi_llm.embedding.asyncio.run')
+    @mock.patch('muxi_llm.embedding.get_provider_with_fallbacks')
     def test_embedding_create_with_valid_input(self, mock_get_provider, mock_asyncio_run):
         """Test embedding creation with valid input."""
         # Setup mock provider

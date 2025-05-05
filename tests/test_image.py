@@ -11,9 +11,9 @@ import os
 import tempfile
 import base64
 
-from muxi.llm.providers.openai import OpenAIProvider
-from muxi.llm import Image
-from muxi.llm.errors import InvalidRequestError
+from muxi_llm.providers.openai import OpenAIProvider
+from muxi_llm import Image
+from muxi_llm.errors import InvalidRequestError
 
 
 class TestImageCapabilities(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.api_key = "test-api-key"
         self.provider = OpenAIProvider(api_key=self.api_key)
 
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image(self, mock_make_request):
         """Test creating images with OpenAI's DALL-E."""
         # Mock response from the API
@@ -62,7 +62,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(result["data"][0]["url"], "https://example.com/image1.png")
         self.assertEqual(result["data"][0]["revised_prompt"], "A detailed prompt with revisions")
 
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image_dall_e_2(self, mock_make_request):
         """Test creating images with DALL-E 2."""
         # Mock response
@@ -93,7 +93,7 @@ class TestImageCapabilities(unittest.TestCase):
         # Verify the response
         self.assertEqual(len(result["data"]), 2)
 
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image_with_options(self, mock_make_request):
         """Test creating images with additional options."""
         # Mock response
@@ -150,8 +150,8 @@ class TestImageCapabilities(unittest.TestCase):
             )
         self.assertIn("only supports generating one image", str(context.exception))
 
-    @mock.patch("muxi.llm.providers.get_provider")
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider.create_image")
+    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider.create_image")
     async def test_image_api_class(self, mock_create_image, mock_get_provider):
         """Test the Image API class."""
         # Set up mocks
@@ -180,8 +180,8 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(len(result["data"]), 1)
         self.assertEqual(result["data"][0]["url"], "https://example.com/image1.png")
 
-    @mock.patch("muxi.llm.providers.get_provider")
-    @mock.patch("muxi.llm.image.Image._download_image")
+    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("muxi_llm.image.Image._download_image")
     async def test_image_save_to_file(self, mock_download_image, mock_get_provider):
         """Test saving generated images to files."""
         # Create a temporary directory for the test

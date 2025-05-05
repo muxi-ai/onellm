@@ -5,8 +5,8 @@ Tests for the fallback mechanism at the API level in muxi-llm.
 import pytest
 from unittest.mock import MagicMock, patch
 
-from muxi.llm import ChatCompletion, Completion, Embedding
-from muxi.llm.errors import RateLimitError
+from muxi_llm import ChatCompletion, Completion, Embedding
+from muxi_llm.errors import RateLimitError
 
 
 async def async_return(value):
@@ -23,7 +23,7 @@ class TestFallbackAPI:
         mock_provider = MagicMock()
         mock_provider.create_chat_completion.return_value = async_return({"result": "success"})
 
-        with patch("muxi.llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
+        with patch("muxi_llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
             # Return a mocked provider and a model name
             mock_get_provider.return_value = (mock_provider, "gpt-4")
 
@@ -55,7 +55,7 @@ class TestFallbackAPI:
         # Create an awaitable mock result
         mock_provider.create_chat_completion.return_value = async_return({"result": "success"})
 
-        with patch("muxi.llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
+        with patch("muxi_llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
             # Return a mocked provider and a model name
             mock_get_provider.return_value = (mock_provider, "gpt-4")
 
@@ -86,7 +86,7 @@ class TestFallbackAPI:
         mock_provider = MagicMock()
         mock_provider.create_completion.return_value = async_return({"result": "success"})
 
-        with patch("muxi.llm.completion.get_provider_with_fallbacks") as mock_get_provider:
+        with patch("muxi_llm.completion.get_provider_with_fallbacks") as mock_get_provider:
             # Return a mocked provider and a model name
             mock_get_provider.return_value = (mock_provider, "text-davinci-003")
 
@@ -118,7 +118,7 @@ class TestFallbackAPI:
         # Create an awaitable mock result
         mock_provider.create_embedding.return_value = async_return({"result": "success"})
 
-        with patch("muxi.llm.embedding.get_provider_with_fallbacks") as mock_get_provider:
+        with patch("muxi_llm.embedding.get_provider_with_fallbacks") as mock_get_provider:
             # Return a mocked provider and a model name
             mock_get_provider.return_value = (mock_provider, "text-embedding-ada-002")
 
@@ -148,7 +148,7 @@ class TestFallbackAPI:
         mock_provider = MagicMock()
         mock_provider.create_chat_completion.return_value = async_return({"result": "success"})
 
-        with patch("muxi.llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
+        with patch("muxi_llm.chat_completion.get_provider_with_fallbacks") as mock_get_provider:
             # Return a mocked provider and a model name
             mock_get_provider.return_value = (mock_provider, "gpt-4")
 

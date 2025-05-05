@@ -8,9 +8,9 @@ text-to-speech requests.
 import unittest
 from unittest import mock
 
-from muxi.llm.providers.openai import OpenAIProvider
-from muxi.llm import Speech
-from muxi.llm.errors import InvalidRequestError
+from muxi_llm.providers.openai import OpenAIProvider
+from muxi_llm import Speech
+from muxi_llm.errors import InvalidRequestError
 
 
 class TestSpeechCapabilities(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestSpeechCapabilities(unittest.TestCase):
         self.api_key = "test-api-key"
         self.provider = OpenAIProvider(api_key=self.api_key)
 
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider._make_request_raw")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request_raw")
     async def test_create_speech(self, mock_make_request_raw):
         """Test creating speech from text."""
         # Mock response from the API
@@ -101,8 +101,8 @@ class TestSpeechCapabilities(unittest.TestCase):
                 speed=5.0  # Maximum is 4.0
             ))
 
-    @mock.patch("muxi.llm.providers.get_provider")
-    @mock.patch("muxi.llm.speech.parse_model_name")
+    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("muxi_llm.speech.parse_model_name")
     async def test_speech_class(self, mock_parse_model_name, mock_get_provider):
         """Test the Speech class."""
         # Mock the provider and method
@@ -137,8 +137,8 @@ class TestSpeechCapabilities(unittest.TestCase):
             speed=1.0
         )
 
-    @mock.patch("muxi.llm.providers.get_provider")
-    @mock.patch("muxi.llm.speech.parse_model_name")
+    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("muxi_llm.speech.parse_model_name")
     @mock.patch("builtins.open", new_callable=mock.mock_open)
     async def test_speech_class_with_output_file(
         self, mock_open, mock_parse_model_name, mock_get_provider

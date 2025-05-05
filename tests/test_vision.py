@@ -8,8 +8,8 @@ content with images in chat completion requests.
 import unittest
 from unittest import mock
 
-from muxi.llm.providers.openai import OpenAIProvider
-from muxi.llm.errors import InvalidRequestError
+from muxi_llm.providers.openai import OpenAIProvider
+from muxi_llm.errors import InvalidRequestError
 
 
 class TestVisionCapabilities(unittest.TestCase):
@@ -131,7 +131,7 @@ class TestVisionCapabilities(unittest.TestCase):
             "auto"
         )
 
-    @mock.patch("muxi.llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_vision_request_formatting(self, mock_make_request):
         """Test that vision requests are formatted correctly for the API."""
         # Mock response from the API
