@@ -22,7 +22,8 @@ from ..errors import (
     InvalidRequestError, ServiceUnavailableError, TimeoutError,
     BadGatewayError, PermissionError, ResourceNotFoundError
 )
-from ..types import Message, TranscriptionResult, SpeechVoice, SpeechFormat
+from ..types import Message, TranscriptionResult
+from ..types import ImageGenerationResult
 from ..utils.retry import retry_async, RetryConfig
 
 from .base import Provider, register_provider
@@ -426,7 +427,7 @@ class OpenAIProvider(Provider):
 
                         # Ensure detail field is valid if present
                         if ("detail" in image_url and
-                            image_url["detail"] not in ["auto", "low", "high"]):
+                                image_url["detail"] not in ["auto", "low", "high"]):
                             image_url["detail"] = "auto"
 
                         processed_content.append(item)
@@ -675,7 +676,8 @@ class OpenAIProvider(Provider):
             **kwargs: Additional parameters:
                 - language: Optional language code (e.g., "en")
                 - prompt: Optional text to guide transcription
-                - response_format: Format of the response ("json", "text", "srt", "verbose_json", "vtt")
+                - response_format: Format of the response
+                  ("json", "text", "srt", "verbose_json", "vtt")
                 - temperature: Temperature for sampling
 
         Returns:
@@ -978,6 +980,119 @@ class OpenAIProvider(Provider):
             method="POST",
             path="/audio/speech",
             data=request_data
+        )
+
+    async def create_image(
+        self,
+        prompt: str,
+        model: str = "dall-e-3",
+        n: int = 1,
+        size: str = "1024x1024",
+        **kwargs
+    ) -> ImageGenerationResult:
+        """
+        Generate images from a text prompt using OpenAI's DALL-E models.
+
+        Args:
+            prompt: Text description of the desired image
+            model: Model to use (default: dall-e-3)
+            n: Number of images to generate (default: 1)
+            size: Size of the generated images (default: 1024x1024)
+            **kwargs: Additional parameters:
+                - quality: Quality of the image ("standard" or "hd"), for DALL-E 3
+                - style: Style of image ("natural" or "vivid"), for DALL-E 3
+                - response_format: Format of the response ("url" or "b64_json")
+                - user: End-user ID for tracking
+
+        Returns:
+            Image generation result
+        """
+        # Validate parameters
+        if not prompt or not isinstance(prompt, str):
+            raise InvalidRequestError("Prompt is required and must be a string")
+
+        # Check model
+        supported_models = {"dall-e-2", "dall-e-3"}
+        if model not in supported_models:
+            raise InvalidRequestError(
+                f"Model '{model}' is not a supported image generation model. "
+                f"Use one of: {', '.join(supported_models)}"
+            )
+
+        # Check size based on model
+        supported_sizes = {
+            "dall-e-2": {"256x256", "512x512", "1024x1024"},
+            "dall-e-3": {"1024x1024", "1792x1024", "1024x1792"}
+        }
+        if size not in supported_sizes[model]:
+            raise InvalidRequestError(
+                f"Size '{size}' is not supported for {model}. "
+                f"Use one of: {', '.join(supported_sizes[model])}"
+            )
+
+        # Check n (number of images)
+        # DALL-E 3 only supports n=1
+        if model == "dall-e-3" and n > 1:
+            raise InvalidRequestError(
+                "DALL-E 3 only supports generating one image at a time (n=1)"
+            )
+
+        # For DALL-E 2, n can be between 1 and 10
+        if model == "dall-e-2" and (not isinstance(n, int) or n < 1 or n > 10):
+            raise InvalidRequestError(
+                "For DALL-E 2, the number of images (n) must be between 1 and 10"
+            )
+
+        # Check quality (DALL-E 3 only)
+        quality = kwargs.get("quality")
+        if model == "dall-e-3" and quality is not None:
+            supported_qualities = {"standard", "hd"}
+            if quality not in supported_qualities:
+                raise InvalidRequestError(
+                    f"Quality '{quality}' is not supported. "
+                    f"Use one of: {', '.join(supported_qualities)}"
+                )
+
+        # Check style (DALL-E 3 only)
+        style = kwargs.get("style")
+        if model == "dall-e-3" and style is not None:
+            supported_styles = {"natural", "vivid"}
+            if style not in supported_styles:
+                raise InvalidRequestError(
+                    f"Style '{style}' is not supported. "
+                    f"Use one of: {', '.join(supported_styles)}"
+                )
+
+        # Check response format
+        response_format = kwargs.get("response_format", "url")
+        supported_formats = {"url", "b64_json"}
+        if response_format not in supported_formats:
+            raise InvalidRequestError(
+                f"Response format '{response_format}' is not supported. "
+                f"Use one of: {', '.join(supported_formats)}"
+            )
+
+        # Prepare request data
+        request_data = {
+            "prompt": prompt,
+            "model": model,
+            "n": n,
+            "size": size,
+            **{k: v for k, v in kwargs.items() if k in [
+                "quality", "style", "response_format", "user"
+            ]}
+        }
+
+        # Make the API request
+        response_data = await self._make_request(
+            method="POST",
+            path="/images/generations",
+            data=request_data
+        )
+
+        return ImageGenerationResult(
+            created=response_data.get("created", int(time.time())),
+            data=response_data.get("data", [])
         )
 
 

@@ -31,6 +31,18 @@ SpeechVoice = Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 # Text-to-speech output format types
 SpeechFormat = Literal["mp3", "opus", "aac", "flac"]
 
+# Image size types
+ImageSize = Literal["256x256", "512x512", "1024x1024", "1792x1024", "1024x1792"]
+
+# Image quality types (DALL-E 3)
+ImageQuality = Literal["standard", "hd"]
+
+# Image style types (DALL-E 3)
+ImageStyle = Literal["natural", "vivid"]
+
+# Image response format types
+ImageResponseFormat = Literal["url", "b64_json"]
+
 
 class ImageUrl(TypedDict, total=False):
     """Image URL details for vision models."""
@@ -119,6 +131,32 @@ class SpeechParams(TypedDict, total=False):
     speed: Optional[float]
 
 
+class ImageGenerationParams(TypedDict, total=False):
+    """Parameters for image generation requests."""
+    prompt: str
+    model: str
+    n: Optional[int]
+    size: Optional[ImageSize]
+    quality: Optional[ImageQuality]
+    style: Optional[ImageStyle]
+    response_format: Optional[ImageResponseFormat]
+    user: Optional[str]
+
+
+class ImageData(TypedDict, total=False):
+    """Generated image data."""
+    url: Optional[str]
+    b64_json: Optional[str]
+    revised_prompt: Optional[str]
+    filepath: Optional[str]  # Added locally when saving images
+
+
+class ImageGenerationResult(TypedDict, total=False):
+    """Result from image generation."""
+    created: int
+    data: List[ImageData]
+
+
 # Export everything for convenience
 __all__ = [
     "Role",
@@ -139,4 +177,11 @@ __all__ = [
     "SpeechVoice",
     "SpeechFormat",
     "SpeechParams",
+    "ImageSize",
+    "ImageQuality",
+    "ImageStyle",
+    "ImageResponseFormat",
+    "ImageGenerationParams",
+    "ImageData",
+    "ImageGenerationResult",
 ]

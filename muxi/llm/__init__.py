@@ -17,6 +17,11 @@ from .config import (
     set_api_key, get_api_key
 )
 from .audio import AudioTranscription, AudioTranslation
+from .speech import Speech
+from .image import Image
+from .providers import get_provider, list_providers, register_provider
+from .utils.model import parse_model_name
+from .config import get_config, get_provider_config
 
 # Module exports
 __all__ = [
@@ -33,6 +38,14 @@ __all__ = [
     "get_api_key",
     "AudioTranscription",
     "AudioTranslation",
+    "Speech",
+    "Image",
+    "get_provider",
+    "list_providers",
+    "register_provider",
+    "parse_model_name",
+    "get_config",
+    "get_provider_config",
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:
