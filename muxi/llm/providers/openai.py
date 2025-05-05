@@ -261,76 +261,80 @@ class OpenAIProvider(Provider):
         **kwargs
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
-        Create a chat completion.
+        Create a chat completion with OpenAI.
 
         Args:
             messages: List of messages in the conversation
-            model: Model name
+            model: Model name (without provider prefix)
             stream: Whether to stream the response
-            **kwargs: Additional parameters
+            **kwargs: Additional model parameters
 
         Returns:
-            ChatCompletionResponse or generator yielding ChatCompletionChunk objects
+            ChatCompletionResponse or a generator yielding ChatCompletionChunk objects
         """
-        # Prepare request data
-        request_data = {
+        # Validate messages for multi-modal content
+        processed_messages = self._process_messages_for_vision(messages, model)
+
+        # Set up the request
+        data = {
             "model": model,
-            "messages": messages,
+            "messages": processed_messages,
             "stream": stream,
             **kwargs
         }
 
+        # Make the request
         if stream:
-            # Use streaming API
-            raw_generator = await self._make_request(
-                method="POST",
-                path="/chat/completions",
-                data=request_data,
-                stream=True
-            )
-
-            # Convert raw generator to ChatCompletionChunk generator
             async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
-                async for chunk_data in raw_generator:
-                    # Create StreamingChoice objects
-                    choices = []
-                    for choice_data in chunk_data.get("choices", []):
-                        delta_data = choice_data.get("delta", {})
-                        delta = ChoiceDelta(
-                            content=delta_data.get("content"),
-                            role=delta_data.get("role"),
-                            function_call=delta_data.get("function_call"),
-                            tool_calls=delta_data.get("tool_calls")
-                        )
-                        choice = StreamingChoice(
-                            delta=delta,
-                            index=choice_data.get("index", 0),
-                            finish_reason=choice_data.get("finish_reason")
-                        )
-                        choices.append(choice)
+                async for chunk in await self._make_request(
+                    method="POST",
+                    path="chat/completions",
+                    data=data,
+                    stream=True
+                ):
+                    if chunk:
+                        # Skip empty chunks
+                        if "choices" not in chunk or not chunk["choices"]:
+                            continue
 
-                    # Create ChatCompletionChunk
-                    chunk = ChatCompletionChunk(
-                        id=chunk_data.get("id", ""),
-                        object=chunk_data.get("object", "chat.completion.chunk"),
-                        created=chunk_data.get("created", int(time.time())),
-                        model=chunk_data.get("model", model),
-                        choices=choices,
-                        system_fingerprint=chunk_data.get("system_fingerprint")
-                    )
+                        # Transform choices
+                        choices = []
+                        for choice_data in chunk["choices"]:
+                            delta_data = choice_data.get("delta", {})
+                            delta = ChoiceDelta(
+                                content=delta_data.get("content"),
+                                role=delta_data.get("role"),
+                                function_call=delta_data.get("function_call"),
+                                tool_calls=delta_data.get("tool_calls"),
+                                finish_reason=choice_data.get("finish_reason")
+                            )
+                            choice = StreamingChoice(
+                                delta=delta,
+                                finish_reason=choice_data.get("finish_reason"),
+                                index=choice_data.get("index", 0)
+                            )
+                            choices.append(choice)
 
-                    yield chunk
+                        # Create the chunk response
+                        chunk_resp = ChatCompletionChunk(
+                            id=chunk.get("id", ""),
+                            object=chunk.get("object", "chat.completion.chunk"),
+                            created=chunk.get("created", int(time.time())),
+                            model=chunk.get("model", model),
+                            choices=choices,
+                            system_fingerprint=chunk.get("system_fingerprint")
+                        )
+                        yield chunk_resp
 
             return chunk_generator()
         else:
-            # Use non-streaming API
             response_data = await self._make_request(
                 method="POST",
-                path="/chat/completions",
-                data=request_data
+                path="chat/completions",
+                data=data
             )
 
-            # Convert to ChatCompletionResponse
+            # Transform choices
             choices = []
             for choice_data in response_data.get("choices", []):
                 choice = Choice(
@@ -340,7 +344,8 @@ class OpenAIProvider(Provider):
                 )
                 choices.append(choice)
 
-            return ChatCompletionResponse(
+            # Create the response
+            response = ChatCompletionResponse(
                 id=response_data.get("id", ""),
                 object=response_data.get("object", "chat.completion"),
                 created=response_data.get("created", int(time.time())),
@@ -349,6 +354,91 @@ class OpenAIProvider(Provider):
                 usage=response_data.get("usage"),
                 system_fingerprint=response_data.get("system_fingerprint")
             )
+            return response
+
+    def _process_messages_for_vision(self, messages: List[Message], model: str) -> List[Message]:
+        """
+        Process messages to ensure they're compatible with vision models if needed.
+
+        This checks for image content items and formats them correctly for the OpenAI API.
+        Also validates that vision content is only sent to models that support it.
+
+        Args:
+            messages: Original messages
+            model: Model name to check for vision support
+
+        Returns:
+            Processed messages suitable for the API
+
+        Raises:
+            InvalidRequestError: If trying to send images to a non-vision model
+        """
+        # Check if any message contains images
+        has_images = False
+        for message in messages:
+            content = message.get("content", "")
+            # Check for image content in list format
+            if isinstance(content, list):
+                for item in content:
+                    if item.get("type") == "image_url" or item.get("type") == "image":
+                        has_images = True
+                        break
+                if has_images:
+                    break
+
+        # If no images found, return original messages
+        if not has_images:
+            return messages
+
+        # Check if model supports vision
+        vision_models = {
+            "gpt-4-vision-preview",
+            "gpt-4-turbo",
+            "gpt-4-turbo-2024-04-09",
+            "gpt-4o",
+            "gpt-4o-2024-05-13"
+        }
+        model_base = model.split("-")[0]
+        model_supports_vision = any(vm in model for vm in vision_models) or model_base == "gpt4o"
+
+        if not model_supports_vision:
+            raise InvalidRequestError(
+                f"Model '{model}' does not support vision inputs. "
+                f"Use a vision-capable model like 'gpt-4-vision-preview' or 'gpt-4o'."
+            )
+
+        # Process each message to ensure image_url formats are correct
+        processed_messages = []
+        for message in messages:
+            processed_message = dict(message)  # Create a copy
+            content = message.get("content", "")
+
+            # Only process if content is a list
+            if isinstance(content, list):
+                processed_content = []
+                for item in content:
+                    # Process image_url to ensure correct format
+                    if item.get("type") == "image_url" and isinstance(item.get("image_url"), dict):
+                        image_url = item["image_url"]
+                        # Ensure url field exists
+                        if "url" not in image_url:
+                            raise InvalidRequestError("Image URL must contain a 'url' field")
+
+                        # Ensure detail field is valid if present
+                        if ("detail" in image_url and
+                            image_url["detail"] not in ["auto", "low", "high"]):
+                            image_url["detail"] = "auto"
+
+                        processed_content.append(item)
+                    # Handle other content types
+                    else:
+                        processed_content.append(item)
+
+                processed_message["content"] = processed_content
+
+            processed_messages.append(processed_message)
+
+        return processed_messages
 
     async def create_completion(
         self,

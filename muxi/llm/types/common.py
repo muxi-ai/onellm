@@ -13,15 +13,24 @@ Role = Literal["system", "user", "assistant", "tool", "function"]
 # Content types for multi-modal messages
 ContentType = Literal["text", "image", "image_url"]
 
+# Image URL detail types
+ImageUrlDetail = Literal["auto", "low", "high"]
+
 # Provider types
 Provider = Literal["openai", "anthropic", "azure", "ollama", "together", "groq"]
+
+
+class ImageUrl(TypedDict, total=False):
+    """Image URL details for vision models."""
+    url: str
+    detail: Optional[ImageUrlDetail]
 
 
 class ContentItem(TypedDict, total=False):
     """A single content item in a chat message."""
     type: ContentType
     text: Optional[str]
-    image_url: Optional[Dict[str, str]]
+    image_url: Optional[ImageUrl]
 
 
 class Message(TypedDict, total=False):
@@ -65,6 +74,8 @@ __all__ = [
     "Role",
     "ContentType",
     "Provider",
+    "ImageUrlDetail",
+    "ImageUrl",
     "ContentItem",
     "Message",
     "UsageInfo",
