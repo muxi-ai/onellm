@@ -24,6 +24,9 @@ for interacting with large language models (LLMs) from various providers.
 """
 
 __version__ = "0.1.0"
+__author__ = "Ran Aroussi"
+__license__ = "AGPL-3.0"
+__url__ = "https://github.com/ranaroussi/muxi_llm"
 
 # Public API exports
 from .chat_completion import ChatCompletion
