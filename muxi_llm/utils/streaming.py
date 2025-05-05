@@ -1,12 +1,32 @@
-"""
-Utilities for handling streaming responses from LLM providers.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Unified interface for LLM providers using OpenAI format
+# https://github.com/ranaroussi/muxi_llm
+#
+# Copyright (C) 2025 Ran Aroussi
+#
+# This is free software: You can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License (V3),
+# published by the Free Software Foundation (the "License").
+# You may obtain a copy of the License at
+#
+#    https://www.gnu.org/licenses/agpl-3.0.en.html
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 
-This module provides utilities for working with streaming responses,
-including converting between different streaming formats and handling errors.
+"""
+Improved utilities for handling streaming responses from LLM providers.
+
+This module fixes the streaming utilities to properly handle async transform functions.
 """
 
 import asyncio
 import json
+import inspect
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 
 from ..errors import MuxiLLMError
@@ -17,7 +37,6 @@ T = TypeVar("T")
 
 class StreamingError(MuxiLLMError):
     """Error during streaming operation."""
-
     pass
 
 
@@ -31,7 +50,7 @@ async def stream_generator(
 
     Args:
         source_generator: The source async generator
-        transform_func: Optional function to transform each item
+        transform_func: Optional function to transform each item (can be sync or async)
         timeout: Optional timeout for each item
 
     Yields:
@@ -44,7 +63,14 @@ async def stream_generator(
         async for item in source_generator:
             if transform_func:
                 try:
+                    # Call the transform function
                     transformed = transform_func(item)
+
+                    # Check if the transform function returned a coroutine
+                    if inspect.iscoroutine(transformed):
+                        # Await the coroutine
+                        transformed = await transformed
+
                     if transformed is not None:
                         yield transformed
                 except Exception as e:
@@ -129,7 +155,7 @@ async def line_stream_generator(
                 ) from e
 
         line = line.rstrip("\r\n")
-        if not line:
+        if not line.strip():  # Check if the line is empty or contains only whitespace
             return None
 
         if prefix:
