@@ -21,15 +21,13 @@
 """
 Configuration system for muxi-llm.
 
-This module handles configuration from environment variables, configuration files,
-and runtime settings. It provides a centralized way to manage API keys, endpoints,
-and other settings for various LLM providers.
+This module handles configuration from environment variables and runtime settings.
+It provides a centralized way to manage API keys, endpoints, and other settings
+for various LLM providers.
 """
 
 import os
-import yaml
 from typing import Any, Dict, Optional
-from pathlib import Path
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -89,31 +87,6 @@ def _load_env_vars() -> None:
             config["providers"][provider]["api_key"] = os.environ[env_var]
 
 
-def _load_config_file() -> None:
-    """Load configuration from YAML file."""
-    config_paths = [
-        Path.home() / ".muxi" / "config.yaml",
-        Path.home() / ".muxi" / "config.yml",
-        Path(".muxi-config.yaml"),
-        Path(".muxi-config.yml"),
-    ]
-
-    for path in config_paths:
-        if path.exists():
-            with open(path, "r") as f:
-                try:
-                    file_config = yaml.safe_load(f)
-                    if file_config and isinstance(file_config, dict):
-                        if "llm" in file_config and isinstance(file_config["llm"], dict):
-                            _update_nested_dict(config, file_config["llm"])
-                        else:
-                            _update_nested_dict(config, file_config)
-                    break
-                except (yaml.YAMLError, TypeError, ValueError) as e:
-                    # Log the error but continue with default config
-                    print(f"Error loading config file {path}: {e}")
-
-
 def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
     """Update a nested dictionary with values from another dictionary."""
     for k, v in u.items():
@@ -124,9 +97,8 @@ def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
     return d
 
 
-# Load configuration from environment variables and config file
+# Load configuration from environment variables
 _load_env_vars()
-_load_config_file()
 
 
 # Public API for configuration
@@ -147,7 +119,7 @@ def set_api_key(api_key: str, provider: str) -> None:
     """
     if provider in config["providers"]:
         config["providers"][provider]["api_key"] = api_key
-        # Set global variable for backward compatibility and convenience
+        # Set global variable for convenience
         globals()[f"{provider}_api_key"] = api_key
 
 

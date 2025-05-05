@@ -60,15 +60,25 @@ class OpenAIProvider(Provider):
         Args:
             **kwargs: Additional configuration options
         """
-        # Get configuration with potential overrides
+        # Get configuration with potential overrides from global config only
+        # Don't allow direct API key parameters
         self.config = get_provider_config("openai")
-        self.config.update(kwargs)
+
+        # Remove ability to pass api_key and other credentials directly
+        # Filter out any credential parameters
+        filtered_kwargs = {
+            k: v for k, v in kwargs.items()
+            if k not in ["api_key", "organization_id"]
+        }
+
+        # Only update non-credential configuration
+        self.config.update(filtered_kwargs)
 
         # Check for required configuration
         if not self.config.get("api_key"):
             raise AuthenticationError(
                 "OpenAI API key is required. Set it via environment variable OPENAI_API_KEY "
-                "or pass it explicitly as api_key=<key> when creating the provider.",
+                "or with muxi_llm.openai_api_key = 'your-key'.",
                 provider="openai"
             )
 
