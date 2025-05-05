@@ -18,7 +18,7 @@ import asyncio
 import argparse
 
 # Import the Image class from muxi-llm
-from muxi.llm import Image
+from muxi_llm import Image
 
 
 async def generate_image_example(prompt, model="dall-e-3", size="1024x1024", output_dir=None):

@@ -9,8 +9,8 @@ import os
 import numpy as np
 from typing import List
 
-from muxi.llm import Embedding
-from muxi.llm.config import set_api_key
+from muxi_llm import Embedding
+from muxi_llm.config import set_api_key
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:

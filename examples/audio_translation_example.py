@@ -9,8 +9,8 @@ import os
 import sys
 from pathlib import Path
 
-from muxi.llm import AudioTranslation
-from muxi.llm.config import set_api_key
+from muxi_llm import AudioTranslation
+from muxi_llm.config import set_api_key
 
 
 def main():

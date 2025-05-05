@@ -9,8 +9,8 @@ import asyncio
 import os
 import logging
 
-from muxi.llm import ChatCompletion, Completion, Embedding
-from muxi.llm.errors import RateLimitError
+from muxi_llm import ChatCompletion, Completion, Embedding
+from muxi_llm.errors import RateLimitError
 
 # Set up logging to see fallback messages
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 def set_api_keys_from_env():
     """Set API keys from environment variables."""
-    from muxi.llm import set_api_key
+    from muxi_llm import set_api_key
 
     # Set API keys for different providers
     openai_key = os.environ.get("OPENAI_API_KEY")

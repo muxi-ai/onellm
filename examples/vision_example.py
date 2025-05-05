@@ -8,8 +8,8 @@ along with text using OpenAI's vision models.
 import os
 from typing import List, Dict, Any
 
-from muxi.llm import ChatCompletion
-from muxi.llm.config import set_api_key
+from muxi_llm import ChatCompletion
+from muxi_llm.config import set_api_key
 
 
 def create_message_with_image(image_url: str) -> List[Dict[str, Any]]:

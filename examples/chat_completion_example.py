@@ -9,9 +9,9 @@ import asyncio
 import os
 from typing import List, Dict, Any, Callable
 
-from muxi.llm import ChatCompletion
-from muxi.llm.models import ChatCompletionResponse, ChatCompletionChunk
-from muxi.llm.config import set_api_key
+from muxi_llm import ChatCompletion
+from muxi_llm.models import ChatCompletionResponse, ChatCompletionChunk
+from muxi_llm.config import set_api_key
 
 
 def print_chat_response(response: ChatCompletionResponse) -> None:

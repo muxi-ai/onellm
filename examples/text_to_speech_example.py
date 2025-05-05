@@ -19,7 +19,7 @@ import argparse
 from datetime import datetime
 
 # Import the Speech class from muxi-llm
-from muxi.llm import Speech
+from muxi_llm import Speech
 
 
 async def text_to_speech_example(text, voice, output_file=None, model="tts-1"):
