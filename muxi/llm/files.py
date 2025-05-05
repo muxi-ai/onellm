@@ -73,7 +73,7 @@ class File:
             FileObject representing the uploaded file
 
         Example:
-            >>> file_obj = await File.aupload("path/to/file.pdf", purpose="fine-tune", provider="openai")
+            >>> file_obj = await File.aupload("file.pdf", purpose="fine-tune", provider="openai")
             >>> print(f"Uploaded file ID: {file_obj.id}")
         """
         # Get provider instance
@@ -109,7 +109,7 @@ class File:
         Example:
             >>> file_bytes = File.download("file-abc123", provider="openai")
             >>> # or
-            >>> file_path = File.download("file-abc123", destination="downloaded_file.txt", provider="openai")
+            >>> file_path = File.download("file-abc123", destination="file.txt", provider="openai")
         """
         # Get provider instance
         provider_instance = get_provider(provider)
@@ -156,7 +156,7 @@ class File:
         Example:
             >>> file_bytes = await File.adownload("file-abc123", provider="openai")
             >>> # or
-            >>> file_path = await File.adownload("file-abc123", destination="downloaded_file.txt", provider="openai")
+            >>> file_path = await File.adownload("file-abc123", destination="file.txt", provider="openai")
         """
         # Get provider instance
         provider_instance = get_provider(provider)

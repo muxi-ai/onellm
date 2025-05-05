@@ -1,10 +1,10 @@
 """
-Tests for the OpenAI provider implementation.
+Tests for the OpenAI provider.
 """
 
 import os
 import pytest
-import unittest.mock as mock
+import mock
 from typing import Dict, Any
 
 import aiohttp
@@ -13,6 +13,7 @@ from aiohttp.test_utils import make_mocked_coro
 from muxi.llm.providers import get_provider
 from muxi.llm.providers.openai import OpenAIProvider
 from muxi.llm.errors import AuthenticationError
+from muxi.llm.config import get_provider_config
 
 
 class MockResponse:
@@ -45,44 +46,67 @@ def mock_env_api_key(monkeypatch):
 def mock_aiohttp_session():
     """Create a mock for aiohttp.ClientSession."""
     with mock.patch("aiohttp.ClientSession") as mock_session:
-        # Define return value for post method
-        mock_session.return_value.__aenter__.return_value.request = make_mocked_coro(
-            MockResponse(
-                status=200,
-                data={
-                    "id": "test-id",
-                    "object": "chat.completion",
-                    "created": 1677858242,
-                    "model": "gpt-3.5-turbo",
-                    "choices": [
-                        {
-                            "message": {
-                                "role": "assistant",
-                                "content": "This is a test response"
-                            },
-                            "finish_reason": "stop",
-                            "index": 0
-                        }
-                    ],
-                    "usage": {
-                        "prompt_tokens": 10,
-                        "completion_tokens": 20,
-                        "total_tokens": 30
+        # Setup the session to properly support context manager protocol with async
+        session_instance = mock.MagicMock()
+        mock_session.return_value.__aenter__.return_value = session_instance
+
+        # Add request method that returns a proper response
+        response = MockResponse(
+            status=200,
+            data={
+                "id": "test-id",
+                "object": "chat.completion",
+                "created": 1677858242,
+                "model": "gpt-3.5-turbo",
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "This is a test response"
+                        },
+                        "finish_reason": "stop",
+                        "index": 0
                     }
+                ],
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 20,
+                    "total_tokens": 30
                 }
-            )
+            }
         )
+        session_instance.request = make_mocked_coro(response)
         yield mock_session
 
 
 class TestOpenAIProvider:
     """Tests for the OpenAI provider."""
 
-    def test_init_no_api_key(self):
+    def test_init_no_api_key(self, monkeypatch):
         """Test initialization fails with no API key."""
-        # Test that initialization fails without an API key
-        with pytest.raises(AuthenticationError):
-            OpenAIProvider()
+        # Clear the environment variable to ensure no API key is present
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        # Directly patch the config module to remove any API key
+        with mock.patch("muxi.llm.config.config", {
+            "providers": {
+                "openai": {
+                    "api_key": None,
+                    "api_base": "https://api.openai.com/v1",
+                    "organization_id": None,
+                    "timeout": 60,
+                    "max_retries": 3
+                }
+            }
+        }):
+            # Verify the config no longer has an API key
+            from muxi.llm.config import get_provider_config
+            config = get_provider_config("openai")
+            print(f"DEBUG: OpenAI config after patch: {config}")
+
+            # Test that initialization fails without an API key
+            with pytest.raises(AuthenticationError):
+                OpenAIProvider()
 
     def test_init_with_api_key(self):
         """Test initialization with API key in kwargs."""

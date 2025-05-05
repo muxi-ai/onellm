@@ -6,10 +6,11 @@ completions from various providers in a manner compatible with OpenAI's API.
 """
 
 import asyncio
-from typing import Any, AsyncGenerator, Dict, List, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-from .providers.base import parse_model_name, get_provider
+from .providers.base import get_provider_with_fallbacks
 from .models import ChatCompletionResponse, ChatCompletionChunk
+from .utils.fallback import FallbackConfig
 
 
 class ChatCompletion:
@@ -21,6 +22,8 @@ class ChatCompletion:
         model: str,
         messages: List[Dict[str, Any]],
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
@@ -30,6 +33,8 @@ class ChatCompletion:
             model: Model name with provider prefix (e.g., 'openai/gpt-4')
             messages: List of messages in the conversation
             stream: Whether to stream the response
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -41,15 +46,22 @@ class ChatCompletion:
             ...     messages=[
             ...         {"role": "system", "content": "You are a helpful assistant."},
             ...         {"role": "user", "content": "Hello, how are you?"}
-            ...     ]
+            ...     ],
+            ...     fallback_models=["anthropic/claude-3-haiku", "openai/gpt-3.5-turbo"]
             ... )
             >>> print(response.choices[0].message["content"])
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method synchronously
         if stream:
@@ -81,6 +93,8 @@ class ChatCompletion:
         model: str,
         messages: List[Dict[str, Any]],
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
@@ -90,6 +104,8 @@ class ChatCompletion:
             model: Model name with provider prefix (e.g., 'openai/gpt-4')
             messages: List of messages in the conversation
             stream: Whether to stream the response
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -101,15 +117,22 @@ class ChatCompletion:
             ...     messages=[
             ...         {"role": "system", "content": "You are a helpful assistant."},
             ...         {"role": "user", "content": "Hello, how are you?"}
-            ...     ]
+            ...     ],
+            ...     fallback_models=["anthropic/claude-3-haiku", "openai/gpt-3.5-turbo"]
             ... )
             >>> print(response.choices[0].message["content"])
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method asynchronously
         return await provider.create_chat_completion(

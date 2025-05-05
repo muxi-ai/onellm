@@ -6,10 +6,11 @@ completions from various providers in a manner compatible with OpenAI's API.
 """
 
 import asyncio
-from typing import Any, AsyncGenerator, Union
+from typing import Any, AsyncGenerator, List, Optional, Union
 
-from .providers.base import parse_model_name, get_provider
+from .providers.base import get_provider_with_fallbacks
 from .models import CompletionResponse
+from .utils.fallback import FallbackConfig
 
 
 class Completion:
@@ -21,6 +22,8 @@ class Completion:
         model: str,
         prompt: str,
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
@@ -30,6 +33,8 @@ class Completion:
             model: Model name with provider prefix (e.g., 'openai/text-davinci-003')
             prompt: Text prompt to complete
             stream: Whether to stream the response
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -39,15 +44,22 @@ class Completion:
             >>> response = Completion.create(
             ...     model="openai/text-davinci-003",
             ...     prompt="Once upon a time",
-            ...     max_tokens=50
+            ...     max_tokens=50,
+            ...     fallback_models=["anthropic/claude-instant-1", "openai/gpt-3.5-turbo-instruct"]
             ... )
             >>> print(response.choices[0].text)
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method synchronously
         if stream:
@@ -79,6 +91,8 @@ class Completion:
         model: str,
         prompt: str,
         stream: bool = False,
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
@@ -88,6 +102,8 @@ class Completion:
             model: Model name with provider prefix (e.g., 'openai/text-davinci-003')
             prompt: Text prompt to complete
             stream: Whether to stream the response
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -97,15 +113,22 @@ class Completion:
             >>> response = await Completion.acreate(
             ...     model="openai/text-davinci-003",
             ...     prompt="Once upon a time",
-            ...     max_tokens=50
+            ...     max_tokens=50,
+            ...     fallback_models=["anthropic/claude-instant-1", "openai/gpt-3.5-turbo-instruct"]
             ... )
             >>> print(response.choices[0].text)
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method asynchronously
         return await provider.create_completion(

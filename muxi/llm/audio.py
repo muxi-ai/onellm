@@ -5,10 +5,10 @@ This module provides a high-level API for OpenAI's audio capabilities.
 """
 
 import asyncio
-from typing import Any, Dict, IO, Union
+from typing import Any, Dict, IO, List, Optional, Union
 
-from .providers import get_provider
-from .utils.model import parse_model_name
+from .providers.base import get_provider_with_fallbacks
+from .utils.fallback import FallbackConfig
 
 
 class AudioTranscription:
@@ -19,6 +19,8 @@ class AudioTranscription:
         cls,
         file: Union[str, bytes, IO[bytes]],
         model: str = "openai/whisper-1",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -27,6 +29,8 @@ class AudioTranscription:
         Args:
             file: Audio file to transcribe (path, bytes, or file-like object)
             model: Model ID in format "provider/model" (default: "openai/whisper-1")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional parameters:
                 - language: Optional language code (e.g., "en")
                 - prompt: Optional text to guide transcription
@@ -37,14 +41,49 @@ class AudioTranscription:
         Returns:
             Transcription result
         """
-        provider_name, model_name = parse_model_name(model)
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
+
         return await provider.create_transcription(file, model_name, **kwargs)
 
     @classmethod
-    def create_sync(cls, *args, **kwargs) -> Dict[str, Any]:
-        """Synchronous version of create()."""
-        return asyncio.run(cls.create(*args, **kwargs))
+    def create_sync(
+        cls,
+        file: Union[str, bytes, IO[bytes]],
+        model: str = "openai/whisper-1",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Synchronous version of create().
+
+        Args:
+            file: Audio file to transcribe (path, bytes, or file-like object)
+            model: Model ID in format "provider/model" (default: "openai/whisper-1")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
+            **kwargs: Additional parameters as in create()
+
+        Returns:
+            Transcription result
+        """
+        return asyncio.run(cls.create(
+            file=file,
+            model=model,
+            fallback_models=fallback_models,
+            fallback_config=fallback_config,
+            **kwargs
+        ))
 
 
 class AudioTranslation:
@@ -55,6 +94,8 @@ class AudioTranslation:
         cls,
         file: Union[str, bytes, IO[bytes]],
         model: str = "openai/whisper-1",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -63,6 +104,8 @@ class AudioTranslation:
         Args:
             file: Audio file to translate (path, bytes, or file-like object)
             model: Model ID in format "provider/model" (default: "openai/whisper-1")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional parameters:
                 - prompt: Optional text to guide translation
                 - response_format: Format of the response ("json", "text", "srt",
@@ -72,11 +115,46 @@ class AudioTranslation:
         Returns:
             Translation result with text in English
         """
-        provider_name, model_name = parse_model_name(model)
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
+
         return await provider.create_translation(file, model_name, **kwargs)
 
     @classmethod
-    def create_sync(cls, *args, **kwargs) -> Dict[str, Any]:
-        """Synchronous version of create()."""
-        return asyncio.run(cls.create(*args, **kwargs))
+    def create_sync(
+        cls,
+        file: Union[str, bytes, IO[bytes]],
+        model: str = "openai/whisper-1",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Synchronous version of create().
+
+        Args:
+            file: Audio file to translate (path, bytes, or file-like object)
+            model: Model ID in format "provider/model" (default: "openai/whisper-1")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
+            **kwargs: Additional parameters as in create()
+
+        Returns:
+            Translation result with text in English
+        """
+        return asyncio.run(cls.create(
+            file=file,
+            model=model,
+            fallback_models=fallback_models,
+            fallback_config=fallback_config,
+            **kwargs
+        ))

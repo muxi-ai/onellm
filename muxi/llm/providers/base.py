@@ -7,13 +7,14 @@ working with providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Tuple, Type, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type, Union
 
 from ..models import (
     ChatCompletionResponse, ChatCompletionChunk,
     CompletionResponse, EmbeddingResponse, FileObject
 )
 from ..types import Message
+from ..utils.fallback import FallbackConfig
 
 
 def parse_model_name(model: str) -> Tuple[str, str]:
@@ -188,3 +189,44 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
         )
 
     return provider_class(**kwargs)
+
+
+def list_providers() -> List[str]:
+    """
+    Get a list of registered provider names.
+
+    Returns:
+        List of provider names
+    """
+    return list(_PROVIDER_REGISTRY.keys())
+
+
+def get_provider_with_fallbacks(
+    primary_model: str,
+    fallback_models: Optional[List[str]] = None,
+    fallback_config: Optional[FallbackConfig] = None
+) -> Tuple[Provider, str]:
+    """
+    Get a provider with fallback support.
+
+    Args:
+        primary_model: Primary model to use
+        fallback_models: Optional list of fallback models
+        fallback_config: Optional configuration for fallback behavior
+
+    Returns:
+        Tuple of (provider, model_name)
+    """
+    # Parse primary model name
+    provider_name, model_name = parse_model_name(primary_model)
+
+    # If no fallbacks specified, just return the normal provider
+    if not fallback_models:
+        return get_provider(provider_name), model_name
+
+    # Import here to avoid circular imports
+    from .fallback import FallbackProviderProxy
+
+    # Create a fallback provider with all models
+    all_models = [primary_model] + fallback_models
+    return FallbackProviderProxy(all_models, fallback_config), model_name

@@ -19,9 +19,9 @@ from .config import (
 from .audio import AudioTranscription, AudioTranslation
 from .speech import Speech
 from .image import Image
+from .providers.base import parse_model_name
 from .providers import get_provider, list_providers, register_provider
-from .utils.model import parse_model_name
-from .config import get_config, get_provider_config
+from .config import get_provider_config
 
 # Module exports
 __all__ = [
@@ -44,7 +44,6 @@ __all__ = [
     "list_providers",
     "register_provider",
     "parse_model_name",
-    "get_config",
     "get_provider_config",
 ]
 

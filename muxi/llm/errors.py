@@ -5,7 +5,7 @@ This module provides consistent error classes across different LLM providers
 to help with error handling in client code.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class MuxiLLMError(Exception):
@@ -86,3 +86,33 @@ class InvalidModelError(InvalidRequestError):
 class InvalidConfigurationError(MuxiLLMError):
     """Raised when the library is configured incorrectly."""
     pass
+
+
+class FallbackExhaustionError(MuxiLLMError):
+    """Error raised when all fallback models have been tried and failed."""
+
+    def __init__(
+        self,
+        message: str,
+        primary_model: str,
+        fallback_models: List[str],
+        models_tried: List[str],
+        original_error: Exception,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.primary_model = primary_model
+        self.fallback_models = fallback_models
+        self.models_tried = models_tried
+        self.original_error = original_error
+
+    def __str__(self) -> str:
+        base_str = super().__str__()
+        fallbacks = ', '.join(self.fallback_models)
+        tried = ', '.join(self.models_tried)
+        return (
+            f"{base_str}\n"
+            f"Primary model: {self.primary_model}\n"
+            f"Fallback models: {fallbacks}\n"
+            f"Models tried: {tried}"
+        )

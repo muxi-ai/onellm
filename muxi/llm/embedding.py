@@ -6,10 +6,30 @@ from various providers in a manner compatible with OpenAI's API.
 """
 
 import asyncio
-from typing import List, Union
+from typing import List, Optional, Union
 
-from .providers.base import parse_model_name, get_provider
+from .providers.base import get_provider_with_fallbacks
 from .models import EmbeddingResponse
+from .utils.fallback import FallbackConfig
+from .errors import InvalidRequestError
+
+
+def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
+    """
+    Validate the input for embedding.
+
+    Args:
+        input_data: Text or list of texts to validate
+
+    Raises:
+        InvalidRequestError: If the input is empty or invalid
+    """
+    if not input_data:
+        raise InvalidRequestError("Input cannot be empty")
+
+    if isinstance(input_data, list):
+        if not input_data or all(not text for text in input_data):
+            raise InvalidRequestError("Input cannot be empty")
 
 
 class Embedding:
@@ -20,6 +40,8 @@ class Embedding:
         cls,
         model: str,
         input: Union[str, List[str]],
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> EmbeddingResponse:
         """
@@ -28,6 +50,8 @@ class Embedding:
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-embedding-ada-002')
             input: Text or list of texts to embed
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -36,15 +60,25 @@ class Embedding:
         Example:
             >>> response = Embedding.create(
             ...     model="openai/text-embedding-ada-002",
-            ...     input="Hello, world!"
+            ...     input="Hello, world!",
+            ...     fallback_models=["openai/text-embedding-3-small"]
             ... )
             >>> print(len(response.data[0].embedding))
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Validate input before proceeding
+        validate_embedding_input(input)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method synchronously
         return asyncio.run(
@@ -60,6 +94,8 @@ class Embedding:
         cls,
         model: str,
         input: Union[str, List[str]],
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> EmbeddingResponse:
         """
@@ -68,6 +104,8 @@ class Embedding:
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-embedding-ada-002')
             input: Text or list of texts to embed
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional model parameters
 
         Returns:
@@ -76,15 +114,25 @@ class Embedding:
         Example:
             >>> response = await Embedding.acreate(
             ...     model="openai/text-embedding-ada-002",
-            ...     input="Hello, world!"
+            ...     input="Hello, world!",
+            ...     fallback_models=["openai/text-embedding-3-small"]
             ... )
             >>> print(len(response.data[0].embedding))
         """
-        # Parse model name to get provider and model
-        provider_name, model_name = parse_model_name(model)
+        # Validate input before proceeding
+        validate_embedding_input(input)
 
-        # Get provider instance
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Call the provider's method asynchronously
         return await provider.create_embedding(

@@ -5,11 +5,10 @@ This module provides a high-level API for OpenAI's text-to-speech capabilities.
 """
 
 import asyncio
-import os
-from typing import Any, Dict, Optional, Union
+from typing import List, Optional
 
-from .providers import get_provider
-from .utils.model import parse_model_name
+from .providers.base import get_provider_with_fallbacks
+from .utils.fallback import FallbackConfig
 
 
 class Speech:
@@ -21,6 +20,8 @@ class Speech:
         input: str,
         model: str = "openai/tts-1",
         voice: str = "alloy",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> bytes:
         """
@@ -30,6 +31,8 @@ class Speech:
             input: Text to convert to speech
             model: Model ID in format "provider/model" (default: "openai/tts-1")
             voice: Voice to use (default: "alloy")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional parameters:
                 - response_format: Format of the audio ("mp3", "opus", "aac", "flac")
                 - speed: Speed of the generated audio (0.25 to 4.0)
@@ -41,9 +44,17 @@ class Speech:
         # Extract output_file if provided
         output_file = kwargs.pop("output_file", None)
 
-        # Get provider and model name
-        provider_name, model_name = parse_model_name(model)
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Generate speech
         audio_data = await provider.create_speech(input, model_name, voice, **kwargs)
@@ -56,14 +67,34 @@ class Speech:
         return audio_data
 
     @classmethod
-    def create_sync(cls, *args, **kwargs) -> bytes:
+    def create_sync(
+        cls,
+        input: str,
+        model: str = "openai/tts-1",
+        voice: str = "alloy",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
+        **kwargs
+    ) -> bytes:
         """
         Synchronous version of create().
 
         Args:
-            Same arguments as create()
+            input: Text to convert to speech
+            model: Model ID in format "provider/model" (default: "openai/tts-1")
+            voice: Voice to use (default: "alloy")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
+            **kwargs: Additional parameters as in create()
 
         Returns:
             Audio data as bytes
         """
-        return asyncio.run(cls.create(*args, **kwargs))
+        return asyncio.run(cls.create(
+            input=input,
+            model=model,
+            voice=voice,
+            fallback_models=fallback_models,
+            fallback_config=fallback_config,
+            **kwargs
+        ))

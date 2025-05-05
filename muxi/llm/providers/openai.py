@@ -22,8 +22,8 @@ from ..errors import (
     InvalidRequestError, ServiceUnavailableError, TimeoutError,
     BadGatewayError, PermissionError, ResourceNotFoundError
 )
-from ..types import Message, TranscriptionResult
-from ..types import ImageGenerationResult
+from ..types import Message
+from ..types.common import TranscriptionResult, ImageGenerationResult
 from ..utils.retry import retry_async, RetryConfig
 
 from .base import Provider, register_provider
@@ -47,7 +47,8 @@ class OpenAIProvider(Provider):
         if not self.config.get("api_key"):
             raise AuthenticationError(
                 "OpenAI API key is required. Set it via environment variable OPENAI_API_KEY "
-                "or pass it explicitly as api_key=<key> when creating the provider."
+                "or pass it explicitly as api_key=<key> when creating the provider.",
+                provider="openai"
             )
 
         # Set up configuration

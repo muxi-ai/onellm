@@ -6,10 +6,10 @@ This module provides a high-level API for OpenAI's image generation capabilities
 
 import asyncio
 import os
-from typing import Dict
+from typing import Dict, List, Optional
 
-from .providers import get_provider
-from .utils.model import parse_model_name
+from .providers.base import get_provider_with_fallbacks
+from .utils.fallback import FallbackConfig
 
 
 class Image:
@@ -22,6 +22,8 @@ class Image:
         model: str = "openai/dall-e-3",
         n: int = 1,
         size: str = "1024x1024",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
         **kwargs
     ) -> Dict:
         """
@@ -32,6 +34,8 @@ class Image:
             model: Model ID in format "provider/model" (default: "openai/dall-e-3")
             n: Number of images to generate (default: 1)
             size: Size of the generated images (default: "1024x1024")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
             **kwargs: Additional parameters:
                 - quality: Quality of the image ("standard" or "hd"), for DALL-E 3
                 - style: Style of image ("natural" or "vivid"), for DALL-E 3
@@ -47,9 +51,17 @@ class Image:
         output_dir = kwargs.pop("output_dir", None)
         output_format = kwargs.pop("output_format", "png")
 
-        # Get provider and model name
-        provider_name, model_name = parse_model_name(model)
-        provider = get_provider(provider_name)
+        # Process fallback configuration
+        fb_config = None
+        if fallback_config:
+            fb_config = FallbackConfig(**fallback_config)
+
+        # Get provider with fallbacks or a regular provider
+        provider, model_name = get_provider_with_fallbacks(
+            primary_model=model,
+            fallback_models=fallback_models,
+            fallback_config=fb_config
+        )
 
         # Generate image
         result = await provider.create_image(
@@ -88,17 +100,40 @@ class Image:
         return result
 
     @classmethod
-    def create_sync(cls, *args, **kwargs) -> Dict:
+    def create_sync(
+        cls,
+        prompt: str,
+        model: str = "openai/dall-e-3",
+        n: int = 1,
+        size: str = "1024x1024",
+        fallback_models: Optional[List[str]] = None,
+        fallback_config: Optional[dict] = None,
+        **kwargs
+    ) -> Dict:
         """
         Synchronous version of create().
 
         Args:
-            Same arguments as create()
+            prompt: Text description of the desired image
+            model: Model ID in format "provider/model" (default: "openai/dall-e-3")
+            n: Number of images to generate (default: 1)
+            size: Size of the generated images (default: "1024x1024")
+            fallback_models: Optional list of models to try if the primary model fails
+            fallback_config: Optional configuration for fallback behavior
+            **kwargs: Additional parameters as in create()
 
         Returns:
             Dict with generated images data
         """
-        return asyncio.run(cls.create(*args, **kwargs))
+        return asyncio.run(cls.create(
+            prompt=prompt,
+            model=model,
+            n=n,
+            size=size,
+            fallback_models=fallback_models,
+            fallback_config=fallback_config,
+            **kwargs
+        ))
 
     @classmethod
     async def _download_image(cls, url: str) -> bytes:

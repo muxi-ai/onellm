@@ -1,16 +1,22 @@
 """
-Provider implementation package for muxi-llm.
+Provider implementations for muxi-llm.
 
-This package contains the adapters for various LLM providers,
-implementing the base provider interface for each supported service.
+This module imports all available provider implementations,
+ensuring they are registered with the provider registry.
 """
 
-from .base import Provider, get_provider, parse_model_name
-from .openai import OpenAIProvider
+from ..providers.base import get_provider, parse_model_name, register_provider, list_providers
+from ..providers.openai import OpenAIProvider
+from ..providers.fallback import FallbackProviderProxy
 
+# Register provider implementations
+register_provider("openai", OpenAIProvider)
+
+# Convenience export
 __all__ = [
-    "Provider",
     "get_provider",
     "parse_model_name",
-    "OpenAIProvider",
+    "register_provider",
+    "list_providers",
+    "FallbackProviderProxy"
 ]
