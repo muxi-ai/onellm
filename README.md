@@ -1,51 +1,70 @@
 # muxi-llm
 
-A unified interface for interacting with large language models from various providers.
+A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client with support for hundreds of models.
 
 ## Overview
 
 muxi-llm is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
 
-The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications.
+The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
 ## Key Features
 
-- **Provider-agnostic** - Support for multiple LLM providers through a single interface
+- **Drop-in replacement for OpenAI** - Use your existing OpenAI code with minimal changes
+- **Provider-agnostic** - Support for 100+ LLM providers through direct integration or via OpenRouter
+- **Automatic model fallback** - Seamlessly switch to alternative models when a provider is unavailable
 - **OpenAI-compatible API** - Familiar interface for developers accustomed to OpenAI's client library
 - **Streaming support** - Real-time streaming responses from supported providers
-- **Multi-modal capabilities** - Support for text, images, and other modalities when available
+- **Multi-modal capabilities** - Full support for text, images, audio, and video across compatible models
 - **Model naming convention** - Consistent `provider/model-name` format for clear attribution
-- **Apache 2.0 license** - Permissive open-source license for broad adoption
+- **Comprehensive test coverage** - Extensive test suite ensuring reliability and compatibility
+- **AGPL v3 license** - Open-source license that ensures all improvements remain available to the community
 
 ## Supported Providers
 
-### OpenAI-compatible API Providers
+muxi-llm supports hundreds of models through:
 
-1. **OpenAI** - Base implementation and reference API
-2. **Together AI** - Full compatibility for chat/completion/embedding
-3. **Anyscale** - OpenAI-compatible endpoints
-4. **Fireworks AI** - Drop-in replacement for OpenAI
-5. **Groq** - Compatible API format
-6. **Mistral AI** - La Plateforme offers OpenAI compatibility
-7. **Azure OpenAI** - Microsoft's hosted version of OpenAI
-8. **Perplexity AI** - Compatible chat completions
-9. **DeepInfra** - OpenAI-compatible API
-10. **Lepton AI** - Compatible endpoints
-11. **OctoAI** - OpenAI-compatible for selected models
-12. **Modal** - Hosts compatible endpoints
-13. **Replicate** - OpenAI compatibility layer for various models
-14. **NexusFlow** - OpenAI-compatible
-15. **Voyage AI** - Compatible for embeddings
-16. **Databricks** - MosaicML offers compatible endpoints
-17. **OpenRouter** - OpenAI-compatible API for multiple providers
+1. **Direct integration**
+2. **OpenRouter connectivity**
+3. **Local model support via Ollama**
 
-### Non-OpenAI-compatible Providers (Requiring Custom Adapters)
+### Notable Providers
 
-1. **Anthropic** - Has its own API structure (though moving closer to OpenAI compatibility)
-2. **Ollama** - Custom API for local models
-3. **HuggingFace** - Different API structure
-4. **Sagemaker** - Custom API for embeddings/completions
-5. **Cohere** - Unique API format
+* **OpenAI** - Base implementation and reference API
+* **Together AI** - Full compatibility for chat/completion/embedding
+* **Anyscale** - OpenAI-compatible endpoints
+* **Fireworks AI** - Drop-in replacement for OpenAI
+* **Groq** - Compatible API format
+* **Mistral AI** - La Plateforme offers OpenAI compatibility
+* **Azure OpenAI** - Microsoft's hosted version of OpenAI
+* **Perplexity AI** - Compatible chat completions
+* **DeepInfra** - OpenAI-compatible API
+* **Lepton AI** - Compatible endpoints
+* **OctoAI** - OpenAI-compatible for selected models
+* **Modal** - Hosts compatible endpoints
+* **Replicate** - OpenAI compatibility layer for various models
+* **NexusFlow** - OpenAI-compatible
+* **Voyage AI** - Compatible for embeddings
+* **Databricks** - MosaicML offers compatible endpoints
+* **OpenRouter** - OpenAI-compatible API for multiple providers
+* **Anthropic** - Has its own API structure
+* **Ollama** - Custom API for local models
+* **HuggingFace** - Different API structure
+* **Sagemaker** - Custom API for embeddings/completions
+* **Cohere** - Unique API format
+
+### Notable Models Available
+
+Through these providers, you gain access to hundreds of models, including:
+
+- **GPT Family**: GPT-4, GPT-4o, GPT-4 Turbo
+- **Claude Family**: Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
+- **Llama Family**: Llama 2, Llama 3, Code Llama
+- **Mistral Family**: Mistral 7B, Mistral Large
+- **Gemini Family**: Gemini Pro, Gemini Ultra
+- **Specialized Models**: Stable Diffusion XL, Command R, Phi-3, Mixtral
+- **Embeddings**: Ada-002, text-embedding-3-small/large, Cohere embeddings
+- **Multimodal Models**: GPT-4 Vision, Claude 3 Vision, Gemini Pro Vision
 
 ## Architecture
 
@@ -90,12 +109,16 @@ muxi_llm/
 
 3. **Configuration System**
    - Environment variable support
-   - Configuration file support
    - Runtime configuration options
 
 4. **Error Handling**
    - Standardized error types
    - Provider-specific error mapping
+
+5. **Fallback System**
+   - Automatic retries with alternative models
+   - Configurable fallback chains
+   - Graceful degradation options
 
 ## API Design
 
@@ -106,7 +129,7 @@ muxi-llm mirrors the OpenAI Python client library API for familiarity:
 ```python
 from muxi_llm import ChatCompletion
 
-# Basic usage
+# Basic usage (identical to OpenAI's client)
 response = ChatCompletion.create(
     model="openai/gpt-4",
     messages=[
@@ -123,13 +146,30 @@ for chunk in ChatCompletion.create(
 ):
     print(chunk.choices[0].delta.content, end="", flush=True)
 
-# With images (multi-modal)
+# With fallback options
+response = ChatCompletion.create(
+    model=["openai/gpt-4", "anthropic/claude-3-opus", "mistral/mistral-large"],
+    messages=[{"role": "user", "content": "Explain quantum computing"}]
+)
+
+# Multi-modal with images
 response = ChatCompletion.create(
     model="openai/gpt-4-vision",
     messages=[
         {"role": "user", "content": [
             {"type": "text", "text": "What's in this image?"},
             {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
+        ]}
+    ]
+)
+
+# Multi-modal with audio
+response = ChatCompletion.create(
+    model="anthropic/claude-3-sonnet",
+    messages=[
+        {"role": "user", "content": [
+            {"type": "text", "text": "Transcribe and analyze this audio clip"},
+            {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}}
         ]}
     ]
 )
@@ -158,6 +198,61 @@ response = Embedding.create(
 )
 ```
 
+## Migration from OpenAI
+
+muxi-llm provides multiple ways to migrate from the OpenAI client, including a fully compatible client interface:
+
+### Option 1: Complete Drop-in Replacement (Identical Interface)
+
+```python
+# Before
+from openai import OpenAI
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello world"}]
+)
+
+# After - 100% identical client interface
+from muxi_llm import OpenAI  # or MuxiLLM or Client
+client = OpenAI()            # completely compatible with OpenAI's client
+response = client.chat.completions.create(
+    model="gpt-4",  # automatically adds "openai/" prefix when needed
+    messages=[{"role": "user", "content": "Hello world"}]
+)
+```
+
+### Option 2: Streamlined Direct API (Fewer Lines)
+
+```python
+# Before
+from openai import OpenAI
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello world"}]
+)
+
+# After - more concise
+from muxi_llm import ChatCompletion
+response = ChatCompletion.create(
+    model="openai/gpt-4",  # explicitly using provider prefix
+    messages=[{"role": "user", "content": "Hello world"}]
+)
+```
+
+### Option 3: Model Fallback (Enhanced Reliability)
+
+```python
+# Adding fallback options with any approach
+from muxi_llm import OpenAI
+client = OpenAI()
+response = client.chat.completions.create(
+    model=["gpt-4", "gpt-4o", "claude-3-opus"],  # try multiple models in sequence
+    messages=[{"role": "user", "content": "Hello world"}]
+)
+```
+
 ## Model Naming Convention
 
 Models are specified using a provider prefix to clearly identify the source:
@@ -170,33 +265,29 @@ Models are specified using a provider prefix to clearly identify the source:
 
 ## Configuration
 
-muxi-llm can be configured through environment variables, a configuration file, or at runtime:
+muxi-llm can be configured through environment variables or at runtime:
 
 ```python
 # Environment variables
-# MUXI_LLM_OPENAI_API_KEY=sk-...
-# MUXI_LLM_ANTHROPIC_API_KEY=sk-...
-
-# Configuration file (~/.muxi/config.yaml)
-# llm:
-#   providers:
-#     openai:
-#       api_key: sk-...
-#     anthropic:
-#       api_key: sk-...
+# OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-...
 
 # Runtime configuration
 import muxi_llm
 
-muxi_llm.api_key = "sk-..."  # Default provider (OpenAI)
-muxi_llm.anthropic_api_key = "sk-..."  # Anthropic-specific
+muxi_llm.openai_api_key = "sk-..."  # OpenAI API key
+muxi_llm.anthropic_api_key = "sk-..."  # Anthropic API key
 
-# Per-request configuration
-response = ChatCompletion.create(
-    model="openai/gpt-4",
-    messages=[{"role": "user", "content": "Hello"}],
-    api_key="sk-..."  # Override for this request only
-)
+# Configure fallback behavior
+muxi_llm.config.fallback = {
+    "enabled": True,
+    "default_chains": {
+        "chat": ["openai/gpt-4", "anthropic/claude-3-opus", "groq/llama3-70b"],
+        "embedding": ["openai/text-embedding-3-small", "cohere/embed-english"]
+    },
+    "retry_delay": 1.0,
+    "max_retries": 3
+}
 ```
 
 ## Implementation Plan
@@ -224,22 +315,46 @@ The implementation will be phased to deliver value incrementally:
 - Add multi-modal capabilities
 - Further enhance documentation and examples
 
-### Phase 4: Advanced Features
+## Test Coverage
 
-- Token counting utilities
-- Cost estimation
-- Caching layer (optional)
-- Performance optimizations
+muxi-llm maintains comprehensive test coverage to ensure reliability and compatibility:
 
-## Integration with MUXI Framework
+- **Unit tests** for all core components and utilities
+- **Integration tests** with mock servers for each provider
+- **End-to-end tests** with actual API calls (using recorded responses)
+- **Compatibility tests** across different Python versions
+- **Performance benchmarks** for critical operations
 
-muxi-llm will serve as a dependency for the core MUXI framework, replacing the current direct implementation of model providers. This will:
+The CI pipeline ensures all tests pass before merging changes, maintaining a high standard of quality.
 
-1. Simplify the core codebase
-2. Provide more consistent model access
-3. Allow independent evolution of the LLM interface
-4. Make it easier to add support for new models
+## Contributing
+
+I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features, improving documentation, or supporting new providers, your help is appreciated.
+
+To get started:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add or update tests as necessary
+5. Submit a pull request
+
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines and my contributor license agreement.
 
 ## License
 
-muxi-llm is licensed under the Apache License 2.0 to encourage broad adoption and contributions.
+muxi-llm is licensed under the [GNU Affero General Public License V3 (AGPL-3.0)](./LICENSE).
+
+### Why AGPL?
+
+I chose the AGPL license to ensure that all improvements to muxi-llm remain available to the entire community. This license:
+
+- Ensures that modifications to this library, even when used in distributed software, are shared back with the community
+- Promotes collaborative development and prevents proprietary forks that don't contribute back
+- Creates a sustainable ecosystem where everyone benefits from improvements
+- Allows free usage while ensuring the open-source nature is preserved
+
+For individuals and organizations integrating muxi-llm into their applications, this means you can freely use, modify, and distribute the library, as long as you share your improvements with the community when you distribute your software.
+
+
+
