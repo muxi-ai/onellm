@@ -16,6 +16,7 @@ from .errors import (
 from .config import (
     set_api_key, get_api_key
 )
+from .audio import AudioTranscription, AudioTranslation
 
 # Module exports
 __all__ = [
@@ -30,6 +31,8 @@ __all__ = [
     "InvalidRequestError",
     "set_api_key",
     "get_api_key",
+    "AudioTranscription",
+    "AudioTranslation",
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:

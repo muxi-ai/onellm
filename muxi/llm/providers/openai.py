@@ -7,7 +7,7 @@ endpoints including chat completions, completions, embeddings, and file operatio
 
 import json
 import time
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union, IO
 
 import aiohttp
 
@@ -22,7 +22,7 @@ from ..errors import (
     InvalidRequestError, ServiceUnavailableError, TimeoutError,
     BadGatewayError, PermissionError, ResourceNotFoundError
 )
-from ..types import Message
+from ..types import Message, TranscriptionResult
 from ..utils.retry import retry_async, RetryConfig
 
 from .base import Provider, register_provider
@@ -659,6 +659,197 @@ class OpenAIProvider(Provider):
 
         # Use retry mechanism
         return await retry_async(execute_request, config=self.retry_config)
+
+    async def create_transcription(
+        self,
+        file: Union[str, bytes, IO[bytes]],
+        model: str = "whisper-1",
+        **kwargs
+    ) -> TranscriptionResult:
+        """
+        Transcribe audio to text using OpenAI's Whisper model.
+
+        Args:
+            file: Audio file to transcribe (path, bytes, or file-like object)
+            model: Model to use for transcription (default: whisper-1)
+            **kwargs: Additional parameters:
+                - language: Optional language code (e.g., "en")
+                - prompt: Optional text to guide transcription
+                - response_format: Format of the response ("json", "text", "srt", "verbose_json", "vtt")
+                - temperature: Temperature for sampling
+
+        Returns:
+            Transcription result
+        """
+        # Process the file
+        file_data, filename = self._process_audio_file(file, kwargs.get("filename"))
+
+        # Prepare the request data
+        request_data = {
+            "model": model,
+            **{k: v for k, v in kwargs.items() if k not in ["filename"]}
+        }
+
+        # Set up files dictionary
+        files = {
+            "file": {
+                "data": file_data,
+                "filename": filename,
+                "content_type": self._guess_audio_content_type(filename)
+            }
+        }
+
+        # Make the API request
+        response_data = await self._make_request(
+            method="POST",
+            path="/audio/transcriptions",
+            data=request_data,
+            files=files
+        )
+
+        # Process the response based on the response format
+        response_format = kwargs.get("response_format", "json")
+        if isinstance(response_format, str) and response_format != "json":
+            # For non-JSON formats, return a simplified result
+            return TranscriptionResult(text=response_data)
+
+        # For JSON or default format, parse the structured response
+        return TranscriptionResult(
+            text=response_data.get("text", ""),
+            task=response_data.get("task"),
+            language=response_data.get("language"),
+            duration=response_data.get("duration"),
+            segments=response_data.get("segments"),
+            words=response_data.get("words")
+        )
+
+    async def create_translation(
+        self,
+        file: Union[str, bytes, IO[bytes]],
+        model: str = "whisper-1",
+        **kwargs
+    ) -> TranscriptionResult:
+        """
+        Translate audio to English text using OpenAI's Whisper model.
+
+        Args:
+            file: Audio file to translate (path, bytes, or file-like object)
+            model: Model to use for translation (default: whisper-1)
+            **kwargs: Additional parameters:
+                - prompt: Optional text to guide translation
+                - response_format: Format of the response
+                  ("json", "text", "srt", "verbose_json", "vtt")
+                - temperature: Temperature for sampling
+
+        Returns:
+            Translation result
+        """
+        # Process the file
+        file_data, filename = self._process_audio_file(file, kwargs.get("filename"))
+
+        # Prepare the request data
+        request_data = {
+            "model": model,
+            **{k: v for k, v in kwargs.items() if k not in ["filename"]}
+        }
+
+        # Set up files dictionary
+        files = {
+            "file": {
+                "data": file_data,
+                "filename": filename,
+                "content_type": self._guess_audio_content_type(filename)
+            }
+        }
+
+        # Make the API request
+        response_data = await self._make_request(
+            method="POST",
+            path="/audio/translations",
+            data=request_data,
+            files=files
+        )
+
+        # Process the response based on the response format
+        response_format = kwargs.get("response_format", "json")
+        if isinstance(response_format, str) and response_format != "json":
+            # For non-JSON formats, return a simplified result
+            return TranscriptionResult(text=response_data)
+
+        # For JSON or default format, parse the structured response
+        return TranscriptionResult(
+            text=response_data.get("text", ""),
+            task="translation",
+            language="en",  # Translations are always to English
+            duration=response_data.get("duration"),
+            segments=response_data.get("segments"),
+            words=response_data.get("words")
+        )
+
+    def _process_audio_file(
+        self,
+        file: Union[str, bytes, IO[bytes]],
+        filename: Optional[str] = None
+    ) -> tuple:
+        """
+        Process an audio file for API requests.
+
+        Args:
+            file: Audio file (path, bytes, or file-like object)
+            filename: Optional filename override
+
+        Returns:
+            Tuple of (file_data, filename)
+
+        Raises:
+            InvalidRequestError: If file type is invalid
+        """
+        if isinstance(file, str):
+            # File path
+            with open(file, "rb") as f:
+                file_data = f.read()
+            filename = filename or file.split("/")[-1]
+        elif isinstance(file, bytes):
+            # Bytes data
+            file_data = file
+            filename = filename or "audio.mp3"
+        elif hasattr(file, "read"):
+            # File-like object
+            file_data = file.read() if callable(file.read) else file.read
+            filename = filename or getattr(file, "name", "audio.mp3")
+        else:
+            raise InvalidRequestError(
+                "Invalid file type. Expected file path, bytes, or file-like object."
+            )
+
+        return file_data, filename
+
+    def _guess_audio_content_type(self, filename: str) -> str:
+        """
+        Guess the content type based on the audio file extension.
+
+        Args:
+            filename: Name of the audio file
+
+        Returns:
+            MIME type for the audio file
+        """
+        # Map file extensions to MIME types
+        mime_types = {
+            ".mp3": "audio/mpeg",
+            ".mp4": "audio/mp4",
+            ".mpeg": "audio/mpeg",
+            ".mpga": "audio/mpeg",
+            ".m4a": "audio/mp4",
+            ".wav": "audio/wav",
+            ".webm": "audio/webm"
+        }
+
+        # Get the file extension
+        ext = "." + filename.split(".")[-1].lower() if "." in filename else ""
+
+        # Return the MIME type or a default
+        return mime_types.get(ext, "audio/mpeg")
 
 
 # Register the OpenAI provider

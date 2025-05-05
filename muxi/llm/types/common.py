@@ -4,7 +4,7 @@ Common type definitions for muxi-llm.
 This module contains standard type definitions used throughout the library.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union, TypedDict
+from typing import Any, Dict, List, Literal, Optional, Union, TypedDict, IO
 
 
 # Role types for chat messages
@@ -18,6 +18,12 @@ ImageUrlDetail = Literal["auto", "low", "high"]
 
 # Provider types
 Provider = Literal["openai", "anthropic", "azure", "ollama", "together", "groq"]
+
+# Audio format types
+AudioFormat = Literal["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"]
+
+# Audio response format types
+AudioResponseFormat = Literal["json", "text", "srt", "verbose_json", "vtt"]
 
 
 class ImageUrl(TypedDict, total=False):
@@ -69,6 +75,35 @@ class ResponseFormat(TypedDict, total=False):
     type: Literal["text", "json_object"]
 
 
+class AudioTranscriptionParams(TypedDict, total=False):
+    """Parameters for audio transcription requests."""
+    file: Union[str, bytes, IO[bytes]]
+    model: str
+    language: Optional[str]
+    prompt: Optional[str]
+    response_format: Optional[AudioResponseFormat]
+    temperature: Optional[float]
+
+
+class AudioTranslationParams(TypedDict, total=False):
+    """Parameters for audio translation requests."""
+    file: Union[str, bytes, IO[bytes]]
+    model: str
+    prompt: Optional[str]
+    response_format: Optional[AudioResponseFormat]
+    temperature: Optional[float]
+
+
+class TranscriptionResult(TypedDict, total=False):
+    """Result from audio transcription or translation."""
+    text: str
+    task: Optional[str]
+    language: Optional[str]
+    duration: Optional[float]
+    segments: Optional[List[Dict[str, Any]]]
+    words: Optional[List[Dict[str, Any]]]
+
+
 # Export everything for convenience
 __all__ = [
     "Role",
@@ -81,4 +116,9 @@ __all__ = [
     "UsageInfo",
     "ModelParams",
     "ResponseFormat",
+    "AudioFormat",
+    "AudioResponseFormat",
+    "AudioTranscriptionParams",
+    "AudioTranslationParams",
+    "TranscriptionResult",
 ]

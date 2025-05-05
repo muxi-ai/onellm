@@ -23,6 +23,7 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [x] Built embedding support
 - [x] Added file operations (upload/download)
 - [x] Added multi-modal support for vision (images in chat)
+- [x] Added multi-modal support for audio transcription/translation
 
 ### Utilities
 - [x] Created retry mechanism with exponential backoff
@@ -33,18 +34,20 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [x] Added comprehensive docstrings
 - [x] Created basic examples for chat completion and embedding
 - [x] Added example for vision capabilities
+- [x] Added examples for audio transcription/translation
 - [x] Documented public API
 
 ### Testing
 - [x] Implemented initial tests for OpenAI provider
+- [x] Added tests for vision capabilities
+- [x] Added tests for audio transcription/translation
 
 ## Remaining Work
 
 ### Phase 1 (continued): Complete OpenAI Provider
-- [ ] Add multi-modal support for audio transcription/translation
 - [ ] Add multi-modal support for text-to-speech (TTS)
 - [ ] Add multi-modal support for image generation (DALL-E)
-- [ ] Expand test coverage for multi-modal features
+- [ ] Expand test coverage for remaining multi-modal features
 - [ ] Add examples for remaining multi-modal functionality
 
 ### Phase 2: OpenAI-compatible Providers
@@ -63,6 +66,14 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [ ] Add HuggingFace compatibility
 - [ ] Create adapter layer for providers with unique APIs
 
+### Phase 4: Advanced Features
+- [ ] Implement abstraction layer for real-time audio/video API
+  - [ ] Frame sampling and batching from video streams
+  - [ ] Stateful context management between frames
+  - [ ] WebRTC integration interface
+  - [ ] Adaptive rate limiting based on provider capabilities
+  - [ ] Fallback mechanisms for service interruptions
+
 ### Documentation and Testing
 - [ ] Expand test coverage for all providers
 - [ ] Add integration tests
@@ -70,7 +81,7 @@ This document outlines what has been accomplished so far in the muxi-llm package
 
 ## Next Immediate Steps
 
-1. Complete remaining multi-modal support for OpenAI provider (audio, TTS, image generation)
+1. Complete remaining multi-modal support for OpenAI provider (TTS, image generation)
 2. Add examples for all multi-modal features
 3. Expand test coverage for OpenAI provider
 4. Begin implementation of additional OpenAI-compatible providers (Phase 2) only after OpenAI provider is fully complete
