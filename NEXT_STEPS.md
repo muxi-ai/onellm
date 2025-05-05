@@ -24,6 +24,7 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [x] Added file operations (upload/download)
 - [x] Added multi-modal support for vision (images in chat)
 - [x] Added multi-modal support for audio transcription/translation
+- [x] Added multi-modal support for text-to-speech (TTS)
 
 ### Utilities
 - [x] Created retry mechanism with exponential backoff
@@ -35,20 +36,20 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [x] Created basic examples for chat completion and embedding
 - [x] Added example for vision capabilities
 - [x] Added examples for audio transcription/translation
+- [x] Added example for text-to-speech
 - [x] Documented public API
 
 ### Testing
 - [x] Implemented initial tests for OpenAI provider
 - [x] Added tests for vision capabilities
 - [x] Added tests for audio transcription/translation
+- [x] Added tests for text-to-speech
 
 ## Remaining Work
 
 ### Phase 1 (continued): Complete OpenAI Provider
-- [ ] Add multi-modal support for text-to-speech (TTS)
 - [ ] Add multi-modal support for image generation (DALL-E)
-- [ ] Expand test coverage for remaining multi-modal features
-- [ ] Add examples for remaining multi-modal functionality
+- [ ] Add examples for image generation functionality
 
 ### Phase 2: OpenAI-compatible Providers
 - [ ] Add Together AI provider
@@ -81,7 +82,6 @@ This document outlines what has been accomplished so far in the muxi-llm package
 
 ## Next Immediate Steps
 
-1. Complete remaining multi-modal support for OpenAI provider (TTS, image generation)
-2. Add examples for all multi-modal features
-3. Expand test coverage for OpenAI provider
-4. Begin implementation of additional OpenAI-compatible providers (Phase 2) only after OpenAI provider is fully complete
+1. Add multi-modal support for image generation (DALL-E)
+2. Add examples for image generation
+3. Begin implementation of additional OpenAI-compatible providers (Phase 2) only after OpenAI provider is fully complete

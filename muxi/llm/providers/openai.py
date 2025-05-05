@@ -22,7 +22,7 @@ from ..errors import (
     InvalidRequestError, ServiceUnavailableError, TimeoutError,
     BadGatewayError, PermissionError, ResourceNotFoundError
 )
-from ..types import Message, TranscriptionResult
+from ..types import Message, TranscriptionResult, SpeechVoice, SpeechFormat
 from ..utils.retry import retry_async, RetryConfig
 
 from .base import Provider, register_provider
@@ -850,6 +850,135 @@ class OpenAIProvider(Provider):
 
         # Return the MIME type or a default
         return mime_types.get(ext, "audio/mpeg")
+
+    async def _make_request_raw(
+        self,
+        method: str,
+        path: str,
+        data: Optional[Dict[str, Any]] = None,
+        timeout: Optional[float] = None
+    ) -> bytes:
+        """
+        Make a request to the OpenAI API and return raw binary data.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            path: API path
+            data: Request data
+            timeout: Request timeout in seconds
+
+        Returns:
+            Raw binary response data
+
+        Raises:
+            MuxiLLMError: On API errors
+        """
+        url = f"{self.api_base}/{path.lstrip('/')}"
+        timeout = timeout or self.timeout
+        headers = self._get_headers()
+        body = json.dumps(data) if data else None
+
+        async def execute_request():
+            async with aiohttp.ClientSession() as session:
+                async with session.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    data=body,
+                    timeout=timeout,
+                    ssl=None  # Use default SSL settings
+                ) as response:
+                    if response.status != 200:
+                        # Handle error response as JSON
+                        try:
+                            error_data = await response.json()
+                            self._handle_error_response(response.status, error_data)
+                        except json.JSONDecodeError:
+                            # If not valid JSON, raise a generic error with the status code
+                            error_text = await response.text()
+                            raise APIError(
+                                f"OpenAI API error: {error_text} (status code: {response.status})",
+                                provider="openai",
+                                status_code=response.status
+                            )
+
+                    # Return the raw binary data
+                    return await response.read()
+
+        # Use retry mechanism
+        return await retry_async(execute_request, config=self.retry_config)
+
+    async def create_speech(
+        self,
+        input: str,
+        model: str = "tts-1",
+        voice: str = "alloy",
+        **kwargs
+    ) -> bytes:
+        """
+        Generate audio from text using OpenAI's text-to-speech models.
+
+        Args:
+            input: Text to convert to speech
+            model: Model to use (default: tts-1)
+            voice: Voice to use (default: alloy)
+            **kwargs: Additional parameters:
+                - response_format: Format of the response ("mp3", "opus", "aac", "flac")
+                - speed: Speed of the generated audio (0.25 to 4.0)
+
+        Returns:
+            Audio data as bytes
+        """
+        # Validate parameters
+        if not input or not isinstance(input, str):
+            raise InvalidRequestError("Input text is required and must be a string")
+
+        # Check model - supported models as of current version
+        supported_models = {"tts-1", "tts-1-hd"}
+        if model not in supported_models:
+            raise InvalidRequestError(
+                f"Model '{model}' is not a supported TTS model. "
+                f"Use one of: {', '.join(supported_models)}"
+            )
+
+        # Check voice
+        supported_voices = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
+        if voice not in supported_voices:
+            raise InvalidRequestError(
+                f"Voice '{voice}' is not supported. "
+                f"Use one of: {', '.join(supported_voices)}"
+            )
+
+        # Check response format if provided
+        response_format = kwargs.get("response_format", "mp3")
+        supported_formats = {"mp3", "opus", "aac", "flac"}
+        if response_format not in supported_formats:
+            raise InvalidRequestError(
+                f"Response format '{response_format}' is not supported. "
+                f"Use one of: {', '.join(supported_formats)}"
+            )
+
+        # Check speed if provided
+        speed = kwargs.get("speed", 1.0)
+        if not isinstance(speed, (int, float)) or speed < 0.25 or speed > 4.0:
+            raise InvalidRequestError(
+                "Speed must be a number between 0.25 and 4.0"
+            )
+
+        # Prepare request data
+        request_data = {
+            "input": input,
+            "model": model,
+            "voice": voice,
+            **{k: v for k, v in kwargs.items() if k in ["response_format", "speed"]}
+        }
+
+        # Make the API request with raw binary response
+        return await self._make_request_raw(
+            method="POST",
+            path="/audio/speech",
+            data=request_data
+        )
 
 
 # Register the OpenAI provider

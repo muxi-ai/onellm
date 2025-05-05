@@ -25,6 +25,12 @@ AudioFormat = Literal["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"]
 # Audio response format types
 AudioResponseFormat = Literal["json", "text", "srt", "verbose_json", "vtt"]
 
+# Text-to-speech voice types
+SpeechVoice = Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+# Text-to-speech output format types
+SpeechFormat = Literal["mp3", "opus", "aac", "flac"]
+
 
 class ImageUrl(TypedDict, total=False):
     """Image URL details for vision models."""
@@ -104,6 +110,15 @@ class TranscriptionResult(TypedDict, total=False):
     words: Optional[List[Dict[str, Any]]]
 
 
+class SpeechParams(TypedDict, total=False):
+    """Parameters for text-to-speech requests."""
+    input: str
+    model: str
+    voice: SpeechVoice
+    response_format: Optional[SpeechFormat]
+    speed: Optional[float]
+
+
 # Export everything for convenience
 __all__ = [
     "Role",
@@ -121,4 +136,7 @@ __all__ = [
     "AudioTranscriptionParams",
     "AudioTranslationParams",
     "TranscriptionResult",
+    "SpeechVoice",
+    "SpeechFormat",
+    "SpeechParams",
 ]
