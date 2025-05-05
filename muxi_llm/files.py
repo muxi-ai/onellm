@@ -174,9 +174,9 @@ class File:
             Bytes content of the file if destination is None, otherwise path to the saved file
 
         Example:
-            >>> file_bytes = await File.adownload("file-abc123", provider="openai")
+            >>> file_bytes = await File.adownload("file", provider="openai")
             >>> # or
-            >>> file_path = await File.adownload("file-abc123", destination="file.txt", provider="openai")
+            >>> file_path = await File.adownload("file", destination="file.txt", provider="openai")
         """
         # Get provider instance
         provider_instance = get_provider(provider)
