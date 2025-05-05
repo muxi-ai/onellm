@@ -214,7 +214,7 @@ response = client.chat.completions.create(
 )
 
 # After - 100% identical client interface
-from muxi_llm import OpenAI  # or MuxiLLM or Client
+from muxi_llm import OpenAI  # or Client
 client = OpenAI()            # completely compatible with OpenAI's client
 response = client.chat.completions.create(
     model="gpt-4",  # automatically adds "openai/" prefix when needed
@@ -244,12 +244,31 @@ response = ChatCompletion.create(
 ### Option 3: Model Fallback (Enhanced Reliability)
 
 ```python
-# Adding fallback options with any approach
+# Adding fallback options with ChatCompletion
+from muxi_llm import ChatCompletion
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello world"}],
+    fallback_models=[
+        "anthropic/claude-3-haiku",
+        "openai/gpt-3.5-turbo"
+    ],
+    # optional config
+    fallback_config={
+        "log_fallbacks": True
+    }
+)
+
+# Using fallback with the client interface
 from muxi_llm import OpenAI
 client = OpenAI()
 response = client.chat.completions.create(
-    model=["gpt-4", "gpt-4o", "claude-3-opus"],  # try multiple models in sequence
-    messages=[{"role": "user", "content": "Hello world"}]
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello world"}],
+    fallback_models=[
+    	"anthropic/claude-3-opus",
+    	"groq/llama3-70b"
+	]
 )
 ```
 
