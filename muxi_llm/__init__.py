@@ -41,6 +41,9 @@ from .config import get_api_key, get_provider_config, set_api_key
 from .providers import get_provider, list_providers, register_provider
 from .providers.base import parse_model_name
 
+# Client interface (OpenAI compatibility)
+from .client import Client, OpenAI
+
 # Error handling
 from .errors import (
     MuxiLLMError,
@@ -71,6 +74,10 @@ __all__ = [
     "AudioTranslation",
     "Speech",
     "Image",
+    # Client interface (OpenAI compatibility)
+    "Client",
+    "OpenAI",
+    "MuxiLLM",
     # Configuration and providers
     "set_api_key",
     "get_api_key",
