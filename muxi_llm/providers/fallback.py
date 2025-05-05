@@ -147,7 +147,7 @@ class FallbackProviderProxy(Provider):
             )
 
         # Should never reach here, but just in case
-        raise APIError(f"All models failed, but no error was recorded. Models tried: {models_tried}")
+        raise APIError(f"All models failed but no error was recorded. Models tried: {models_tried}")
 
     async def _try_streaming_with_fallbacks(
         self,
@@ -243,7 +243,7 @@ class FallbackProviderProxy(Provider):
             )
 
         # Should never reach here, but just in case
-        raise APIError(f"All models failed, but no error was recorded. Models tried: {models_tried}")
+        raise APIError(f"All models failed but no error was recorded. Models tried: {models_tried}")
 
     async def create_chat_completion(
         self,
