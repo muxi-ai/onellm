@@ -40,6 +40,9 @@ class Completion:
         Returns:
             CompletionResponse or a streaming generator
 
+        Raises:
+            ValueError: If prompt is empty
+
         Example:
             >>> response = Completion.create(
             ...     model="openai/text-davinci-003",
@@ -49,6 +52,10 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
+        # Validate prompt
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
@@ -109,6 +116,9 @@ class Completion:
         Returns:
             CompletionResponse or a streaming generator
 
+        Raises:
+            ValueError: If prompt is empty
+
         Example:
             >>> response = await Completion.acreate(
             ...     model="openai/text-davinci-003",
@@ -118,6 +128,10 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
+        # Validate prompt
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
