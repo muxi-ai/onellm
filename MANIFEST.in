@@ -1,0 +1,3 @@
+include muxi_llm/.version
+include README.md
+include LICENSE

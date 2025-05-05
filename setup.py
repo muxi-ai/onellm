@@ -19,11 +19,16 @@
 # GNU Affero General Public License for more details.
 #
 
+import os
 from setuptools import setup, find_packages
+
+# Read version from .version file in the muxi_llm package
+with open(os.path.join(os.path.dirname(__file__), 'muxi_llm', '.version'), 'r') as f:
+    version = f.read().strip()
 
 setup(
     name="muxi-llm",
-    version="0.1.0",
+    version=version,
     description="MUXI LLM provides a unified interface for LLM providers using OpenAI format",
     author="Ran Aroussi",
     author_email="ran@aroussi.com",

@@ -23,12 +23,9 @@ muxi-llm: A lightweight, provider-agnostic Python library that offers a unified 
 for interacting with large language models (LLMs) from various providers.
 """
 
-__version__ = "0.1.0"
-__author__ = "Ran Aroussi"
-__license__ = "AGPL-3.0"
-__url__ = "https://github.com/ranaroussi/muxi_llm"
+import os
 
-# Public API exports
+# Public API imports
 from .chat_completion import ChatCompletion
 from .completion import Completion
 from .embedding import Embedding
@@ -37,14 +34,22 @@ from .errors import (
     MuxiLLMError, APIError, AuthenticationError, RateLimitError, InvalidRequestError
 )
 from .config import (
-    set_api_key, get_api_key
+    set_api_key, get_api_key, get_provider_config
 )
 from .audio import AudioTranscription, AudioTranslation
 from .speech import Speech
 from .image import Image
 from .providers.base import parse_model_name
 from .providers import get_provider, list_providers, register_provider
-from .config import get_provider_config
+
+# Read version from .version file in the same directory as this file
+version_file = os.path.join(os.path.dirname(__file__), '.version')
+with open(version_file, 'r') as f:
+    __version__ = f.read().strip()
+
+__author__ = "Ran Aroussi"
+__license__ = "AGPL-3.0"
+__url__ = "https://github.com/ranaroussi/muxi_llm"
 
 # Module exports
 __all__ = [
