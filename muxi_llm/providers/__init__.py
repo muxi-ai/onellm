@@ -25,9 +25,9 @@ This module imports all available provider implementations,
 ensuring they are registered with the provider registry.
 """
 
-from ..providers.base import get_provider, parse_model_name, register_provider, list_providers
-from ..providers.openai import OpenAIProvider
-from ..providers.fallback import FallbackProviderProxy
+from .base import get_provider, list_providers, parse_model_name, register_provider
+from .fallback import FallbackProviderProxy
+from .openai import OpenAIProvider
 
 # Register provider implementations
 register_provider("openai", OpenAIProvider)

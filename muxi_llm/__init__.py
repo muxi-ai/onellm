@@ -25,26 +25,30 @@ for interacting with large language models (LLMs) from various providers.
 
 import os
 
-# Public API imports
+# Public API imports - core functionality
 from .chat_completion import ChatCompletion
 from .completion import Completion
 from .embedding import Embedding
+
+# Media handling
+from .audio import AudioTranscription, AudioTranslation
 from .files import File
+from .image import Image
+from .speech import Speech
+
+# Configuration and providers
+from .config import get_api_key, get_provider_config, set_api_key
+from .providers import get_provider, list_providers, register_provider
+from .providers.base import parse_model_name
+
+# Error handling
 from .errors import (
     MuxiLLMError, APIError, AuthenticationError, RateLimitError, InvalidRequestError
 )
-from .config import (
-    set_api_key, get_api_key, get_provider_config
-)
-from .audio import AudioTranscription, AudioTranslation
-from .speech import Speech
-from .image import Image
-from .providers.base import parse_model_name
-from .providers import get_provider, list_providers, register_provider
 
 # Read version from .version file in the same directory as this file
 version_file = os.path.join(os.path.dirname(__file__), '.version')
-with open(version_file, 'r') as f:
+with open(version_file, 'r', encoding='utf-8') as f:
     __version__ = f.read().strip()
 
 __author__ = "Ran Aroussi"
@@ -53,26 +57,33 @@ __url__ = "https://github.com/ranaroussi/muxi_llm"
 
 # Module exports
 __all__ = [
+    # Core functionality
     "ChatCompletion",
     "Completion",
     "Embedding",
+
+    # Media handling
     "File",
-    "MuxiLLMError",
-    "APIError",
-    "AuthenticationError",
-    "RateLimitError",
-    "InvalidRequestError",
-    "set_api_key",
-    "get_api_key",
     "AudioTranscription",
     "AudioTranslation",
     "Speech",
     "Image",
+
+    # Configuration and providers
+    "set_api_key",
+    "get_api_key",
     "get_provider",
     "list_providers",
     "register_provider",
     "parse_model_name",
     "get_provider_config",
+
+    # Error handling
+    "MuxiLLMError",
+    "APIError",
+    "AuthenticationError",
+    "RateLimitError",
+    "InvalidRequestError",
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:
