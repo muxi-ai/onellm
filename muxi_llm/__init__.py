@@ -77,7 +77,6 @@ __all__ = [
     # Client interface (OpenAI compatibility)
     "Client",
     "OpenAI",
-    "MuxiLLM",
     # Configuration and providers
     "set_api_key",
     "get_api_key",
