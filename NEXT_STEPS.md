@@ -38,6 +38,11 @@ This document outlines what has been accomplished so far in the muxi-llm package
 
 ## Remaining Work
 
+### Phase 1 (continued): Complete OpenAI Provider
+- [ ] Add multi-modal support for OpenAI (vision, audio, TTS, DALL-E)
+- [ ] Expand test coverage for multi-modal features
+- [ ] Add examples for multi-modal functionality
+
 ### Phase 2: OpenAI-compatible Providers
 - [ ] Add Together AI provider
 - [ ] Add Anyscale provider
@@ -52,7 +57,6 @@ This document outlines what has been accomplished so far in the muxi-llm package
 - [ ] Implement Anthropic provider
 - [ ] Implement Ollama provider
 - [ ] Add HuggingFace compatibility
-- [ ] Add multi-modal support
 - [ ] Create adapter layer for providers with unique APIs
 
 ### Documentation and Testing
@@ -62,6 +66,7 @@ This document outlines what has been accomplished so far in the muxi-llm package
 
 ## Next Immediate Steps
 
-1. Begin implementation of additional OpenAI-compatible providers (Phase 2)
-2. Expand test coverage for existing functionality
-3. Add more comprehensive examples
+1. Complete multi-modal support for OpenAI provider
+2. Add examples for multi-modal features
+3. Expand test coverage for OpenAI provider
+4. Begin implementation of additional OpenAI-compatible providers (Phase 2) only after OpenAI provider is fully complete
