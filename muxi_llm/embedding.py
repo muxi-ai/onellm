@@ -97,16 +97,12 @@ class Embedding:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method synchronously
         return asyncio.run(
-            provider.create_embedding(
-                input=input,
-                model=model_name,
-                **kwargs
-            )
+            provider.create_embedding(input=input, model=model_name, **kwargs)
         )
 
     @classmethod
@@ -151,12 +147,8 @@ class Embedding:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method asynchronously
-        return await provider.create_embedding(
-            input=input,
-            model=model_name,
-            **kwargs
-        )
+        return await provider.create_embedding(input=input, model=model_name, **kwargs)

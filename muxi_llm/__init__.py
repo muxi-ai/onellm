@@ -43,12 +43,16 @@ from .providers.base import parse_model_name
 
 # Error handling
 from .errors import (
-    MuxiLLMError, APIError, AuthenticationError, RateLimitError, InvalidRequestError
+    MuxiLLMError,
+    APIError,
+    AuthenticationError,
+    RateLimitError,
+    InvalidRequestError,
 )
 
 # Read version from .version file in the same directory as this file
-version_file = os.path.join(os.path.dirname(__file__), '.version')
-with open(version_file, 'r', encoding='utf-8') as f:
+version_file = os.path.join(os.path.dirname(__file__), ".version")
+with open(version_file, "r", encoding="utf-8") as f:
     __version__ = f.read().strip()
 
 __author__ = "Ran Aroussi"
@@ -61,14 +65,12 @@ __all__ = [
     "ChatCompletion",
     "Completion",
     "Embedding",
-
     # Media handling
     "File",
     "AudioTranscription",
     "AudioTranslation",
     "Speech",
     "Image",
-
     # Configuration and providers
     "set_api_key",
     "get_api_key",
@@ -77,7 +79,6 @@ __all__ = [
     "register_provider",
     "parse_model_name",
     "get_provider_config",
-
     # Error handling
     "MuxiLLMError",
     "APIError",

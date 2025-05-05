@@ -73,7 +73,7 @@ class Speech:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Generate speech
@@ -110,11 +110,13 @@ class Speech:
         Returns:
             Audio data as bytes
         """
-        return asyncio.run(cls.create(
-            input=input,
-            model=model,
-            voice=voice,
-            fallback_models=fallback_models,
-            fallback_config=fallback_config,
-            **kwargs
-        ))
+        return asyncio.run(
+            cls.create(
+                input=input,
+                model=model,
+                voice=voice,
+                fallback_models=fallback_models,
+                fallback_config=fallback_config,
+                **kwargs
+            )
+        )

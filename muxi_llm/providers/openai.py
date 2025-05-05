@@ -34,14 +34,27 @@ import aiohttp
 
 from ..config import get_provider_config
 from ..models import (
-    ChatCompletionResponse, ChatCompletionChunk, ChoiceDelta, StreamingChoice,
-    CompletionResponse, CompletionChoice, EmbeddingResponse, EmbeddingData, FileObject,
-    Choice
+    ChatCompletionResponse,
+    ChatCompletionChunk,
+    ChoiceDelta,
+    StreamingChoice,
+    CompletionResponse,
+    CompletionChoice,
+    EmbeddingResponse,
+    EmbeddingData,
+    FileObject,
+    Choice,
 )
 from ..errors import (
-    APIError, AuthenticationError, RateLimitError,
-    InvalidRequestError, ServiceUnavailableError, TimeoutError,
-    BadGatewayError, PermissionError, ResourceNotFoundError
+    APIError,
+    AuthenticationError,
+    RateLimitError,
+    InvalidRequestError,
+    ServiceUnavailableError,
+    TimeoutError,
+    BadGatewayError,
+    PermissionError,
+    ResourceNotFoundError,
 )
 from ..types import Message
 from ..types.common import TranscriptionResult, ImageGenerationResult
@@ -67,8 +80,7 @@ class OpenAIProvider(Provider):
         # Remove ability to pass api_key and other credentials directly
         # Filter out any credential parameters
         filtered_kwargs = {
-            k: v for k, v in kwargs.items()
-            if k not in ["api_key", "organization_id"]
+            k: v for k, v in kwargs.items() if k not in ["api_key", "organization_id"]
         }
 
         # Only update non-credential configuration
@@ -79,7 +91,7 @@ class OpenAIProvider(Provider):
             raise AuthenticationError(
                 "OpenAI API key is required. Set it via environment variable OPENAI_API_KEY "
                 "or with muxi_llm.openai_api_key = 'your-key'.",
-                provider="openai"
+                provider="openai",
             )
 
         # Set up configuration
@@ -91,9 +103,7 @@ class OpenAIProvider(Provider):
 
         # Create retry configuration
         self.retry_config = RetryConfig(
-            max_retries=self.max_retries,
-            initial_backoff=1.0,
-            max_backoff=60.0
+            max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
 
     def _get_headers(self) -> Dict[str, str]:
@@ -105,7 +115,7 @@ class OpenAIProvider(Provider):
         """
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
         }
 
         if self.organization_id:
@@ -120,7 +130,7 @@ class OpenAIProvider(Provider):
         data: Optional[Dict[str, Any]] = None,
         stream: bool = False,
         timeout: Optional[float] = None,
-        files: Optional[Dict[str, Any]] = None
+        files: Optional[Dict[str, Any]] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
         """
         Make a request to the OpenAI API.
@@ -155,14 +165,18 @@ class OpenAIProvider(Provider):
                     key,
                     file_info["data"],
                     filename=file_info.get("filename", "file"),
-                    content_type=file_info.get("content_type", "application/octet-stream")
+                    content_type=file_info.get(
+                        "content_type", "application/octet-stream"
+                    ),
                 )
 
             # Add other fields
             if data:
                 for key, value in data.items():
                     if isinstance(value, (dict, list)):
-                        form_data.add_field(key, json.dumps(value), content_type="application/json")
+                        form_data.add_field(
+                            key, json.dumps(value), content_type="application/json"
+                        )
                     else:
                         form_data.add_field(key, str(value))
 
@@ -178,7 +192,7 @@ class OpenAIProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None  # Use default SSL settings
+                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if stream:
                         return self._handle_streaming_response(response)
@@ -191,7 +205,9 @@ class OpenAIProvider(Provider):
         else:
             return await execute_request()
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> Dict[str, Any]:
+    async def _handle_response(
+        self, response: aiohttp.ClientResponse
+    ) -> Dict[str, Any]:
         """
         Handle an API response.
 
@@ -232,12 +248,12 @@ class OpenAIProvider(Provider):
 
         # Process the stream line by line
         async for line in response.content:
-            line = line.decode('utf-8').strip()
-            if line.startswith('data: '):
+            line = line.decode("utf-8").strip()
+            if line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
 
                 # Check for the stream end marker
-                if line == '[DONE]':
+                if line == "[DONE]":
                     break
 
                 try:
@@ -263,17 +279,25 @@ class OpenAIProvider(Provider):
         message = error.get("message", "Unknown error")
 
         if status_code == 401:
-            raise AuthenticationError(message, provider="openai", status_code=status_code)
+            raise AuthenticationError(
+                message, provider="openai", status_code=status_code
+            )
         elif status_code == 403:
             raise PermissionError(message, provider="openai", status_code=status_code)
         elif status_code == 404:
-            raise ResourceNotFoundError(message, provider="openai", status_code=status_code)
+            raise ResourceNotFoundError(
+                message, provider="openai", status_code=status_code
+            )
         elif status_code == 429:
             raise RateLimitError(message, provider="openai", status_code=status_code)
         elif status_code == 400:
-            raise InvalidRequestError(message, provider="openai", status_code=status_code)
+            raise InvalidRequestError(
+                message, provider="openai", status_code=status_code
+            )
         elif status_code == 500:
-            raise ServiceUnavailableError(message, provider="openai", status_code=status_code)
+            raise ServiceUnavailableError(
+                message, provider="openai", status_code=status_code
+            )
         elif status_code == 502:
             raise BadGatewayError(message, provider="openai", status_code=status_code)
         elif status_code == 504:
@@ -283,15 +307,11 @@ class OpenAIProvider(Provider):
                 f"OpenAI API error: {message} (status code: {status_code})",
                 provider="openai",
                 status_code=status_code,
-                error_data=error
+                error_data=error,
             )
 
     async def create_chat_completion(
-        self,
-        messages: List[Message],
-        model: str,
-        stream: bool = False,
-        **kwargs
+        self, messages: List[Message], model: str, stream: bool = False, **kwargs
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
         Create a chat completion with OpenAI.
@@ -313,17 +333,15 @@ class OpenAIProvider(Provider):
             "model": model,
             "messages": processed_messages,
             "stream": stream,
-            **kwargs
+            **kwargs,
         }
 
         # Make the request
         if stream:
+
             async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                 async for chunk in await self._make_request(
-                    method="POST",
-                    path="chat/completions",
-                    data=data,
-                    stream=True
+                    method="POST", path="chat/completions", data=data, stream=True
                 ):
                     if chunk:
                         # Skip empty chunks
@@ -339,12 +357,12 @@ class OpenAIProvider(Provider):
                                 role=delta_data.get("role"),
                                 function_call=delta_data.get("function_call"),
                                 tool_calls=delta_data.get("tool_calls"),
-                                finish_reason=choice_data.get("finish_reason")
+                                finish_reason=choice_data.get("finish_reason"),
                             )
                             choice = StreamingChoice(
                                 delta=delta,
                                 finish_reason=choice_data.get("finish_reason"),
-                                index=choice_data.get("index", 0)
+                                index=choice_data.get("index", 0),
                             )
                             choices.append(choice)
 
@@ -355,16 +373,14 @@ class OpenAIProvider(Provider):
                             created=chunk.get("created", int(time.time())),
                             model=chunk.get("model", model),
                             choices=choices,
-                            system_fingerprint=chunk.get("system_fingerprint")
+                            system_fingerprint=chunk.get("system_fingerprint"),
                         )
                         yield chunk_resp
 
             return chunk_generator()
         else:
             response_data = await self._make_request(
-                method="POST",
-                path="chat/completions",
-                data=data
+                method="POST", path="chat/completions", data=data
             )
 
             # Transform choices
@@ -373,7 +389,7 @@ class OpenAIProvider(Provider):
                 choice = Choice(
                     message=choice_data.get("message", {}),
                     finish_reason=choice_data.get("finish_reason"),
-                    index=choice_data.get("index", 0)
+                    index=choice_data.get("index", 0),
                 )
                 choices.append(choice)
 
@@ -385,11 +401,13 @@ class OpenAIProvider(Provider):
                 model=response_data.get("model", model),
                 choices=choices,
                 usage=response_data.get("usage"),
-                system_fingerprint=response_data.get("system_fingerprint")
+                system_fingerprint=response_data.get("system_fingerprint"),
             )
             return response
 
-    def _process_messages_for_vision(self, messages: List[Message], model: str) -> List[Message]:
+    def _process_messages_for_vision(
+        self, messages: List[Message], model: str
+    ) -> List[Message]:
         """
         Process messages to ensure they're compatible with vision models if needed.
 
@@ -429,10 +447,12 @@ class OpenAIProvider(Provider):
             "gpt-4-turbo",
             "gpt-4-turbo-2024-04-09",
             "gpt-4o",
-            "gpt-4o-2024-05-13"
+            "gpt-4o-2024-05-13",
         }
         model_base = model.split("-")[0]
-        model_supports_vision = any(vm in model for vm in vision_models) or model_base == "gpt4o"
+        model_supports_vision = (
+            any(vm in model for vm in vision_models) or model_base == "gpt4o"
+        )
 
         if not model_supports_vision:
             raise InvalidRequestError(
@@ -451,15 +471,22 @@ class OpenAIProvider(Provider):
                 processed_content = []
                 for item in content:
                     # Process image_url to ensure correct format
-                    if item.get("type") == "image_url" and isinstance(item.get("image_url"), dict):
+                    if item.get("type") == "image_url" and isinstance(
+                        item.get("image_url"), dict
+                    ):
                         image_url = item["image_url"]
                         # Ensure url field exists
                         if "url" not in image_url:
-                            raise InvalidRequestError("Image URL must contain a 'url' field")
+                            raise InvalidRequestError(
+                                "Image URL must contain a 'url' field"
+                            )
 
                         # Ensure detail field is valid if present
-                        if ("detail" in image_url and
-                                image_url["detail"] not in ["auto", "low", "high"]):
+                        if "detail" in image_url and image_url["detail"] not in [
+                            "auto",
+                            "low",
+                            "high",
+                        ]:
                             image_url["detail"] = "auto"
 
                         processed_content.append(item)
@@ -474,11 +501,7 @@ class OpenAIProvider(Provider):
         return processed_messages
 
     async def create_completion(
-        self,
-        prompt: str,
-        model: str,
-        stream: bool = False,
-        **kwargs
+        self, prompt: str, model: str, stream: bool = False, **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
         Create a text completion.
@@ -493,20 +516,12 @@ class OpenAIProvider(Provider):
             CompletionResponse or generator yielding completion chunks
         """
         # Prepare request data
-        request_data = {
-            "model": model,
-            "prompt": prompt,
-            "stream": stream,
-            **kwargs
-        }
+        request_data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
 
         if stream:
             # Use streaming API
             raw_generator = await self._make_request(
-                method="POST",
-                path="/completions",
-                data=request_data,
-                stream=True
+                method="POST", path="/completions", data=request_data, stream=True
             )
 
             # Just return the raw chunks for now - further processing can be added as needed
@@ -514,9 +529,7 @@ class OpenAIProvider(Provider):
         else:
             # Use non-streaming API
             response_data = await self._make_request(
-                method="POST",
-                path="/completions",
-                data=request_data
+                method="POST", path="/completions", data=request_data
             )
 
             # Convert to CompletionResponse
@@ -526,7 +539,7 @@ class OpenAIProvider(Provider):
                     text=choice_data.get("text", ""),
                     index=choice_data.get("index", 0),
                     logprobs=choice_data.get("logprobs"),
-                    finish_reason=choice_data.get("finish_reason")
+                    finish_reason=choice_data.get("finish_reason"),
                 )
                 choices.append(choice)
 
@@ -537,14 +550,11 @@ class OpenAIProvider(Provider):
                 model=response_data.get("model", model),
                 choices=choices,
                 usage=response_data.get("usage"),
-                system_fingerprint=response_data.get("system_fingerprint")
+                system_fingerprint=response_data.get("system_fingerprint"),
             )
 
     async def create_embedding(
-        self,
-        input: Union[str, List[str]],
-        model: str,
-        **kwargs
+        self, input: Union[str, List[str]], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
@@ -558,17 +568,11 @@ class OpenAIProvider(Provider):
             EmbeddingResponse containing the generated embeddings
         """
         # Prepare request data
-        request_data = {
-            "model": model,
-            "input": input,
-            **kwargs
-        }
+        request_data = {"model": model, "input": input, **kwargs}
 
         # Make API request
         response_data = await self._make_request(
-            method="POST",
-            path="/embeddings",
-            data=request_data
+            method="POST", path="/embeddings", data=request_data
         )
 
         # Convert to EmbeddingResponse
@@ -577,7 +581,7 @@ class OpenAIProvider(Provider):
             embedding = EmbeddingData(
                 embedding=data.get("embedding", []),
                 index=data.get("index", 0),
-                object=data.get("object", "embedding")
+                object=data.get("object", "embedding"),
             )
             embedding_data.append(embedding)
 
@@ -585,15 +589,10 @@ class OpenAIProvider(Provider):
             object=response_data.get("object", "list"),
             data=embedding_data,
             model=response_data.get("model", model),
-            usage=response_data.get("usage")
+            usage=response_data.get("usage"),
         )
 
-    async def upload_file(
-        self,
-        file: Any,
-        purpose: str,
-        **kwargs
-    ) -> FileObject:
+    async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
         """
         Upload a file to OpenAI.
 
@@ -620,29 +619,28 @@ class OpenAIProvider(Provider):
             file_data = file.read()
             filename = getattr(file, "name", "file.dat")
         else:
-            error_msg = "Invalid file type. Expected file path, bytes, or file-like object."
+            error_msg = (
+                "Invalid file type. Expected file path, bytes, or file-like object."
+            )
             raise InvalidRequestError(error_msg)
 
         # Prepare request data
         request_data = {
             "purpose": purpose,
-            **{k: v for k, v in kwargs.items() if k != "filename"}
+            **{k: v for k, v in kwargs.items() if k != "filename"},
         }
 
         files = {
             "file": {
                 "data": file_data,
                 "filename": filename,
-                "content_type": "application/octet-stream"
+                "content_type": "application/octet-stream",
             }
         }
 
         # Make API request
         response_data = await self._make_request(
-            method="POST",
-            path="/files",
-            data=request_data,
-            files=files
+            method="POST", path="/files", data=request_data, files=files
         )
 
         # Convert to FileObject
@@ -654,14 +652,10 @@ class OpenAIProvider(Provider):
             filename=response_data.get("filename", filename),
             purpose=response_data.get("purpose", purpose),
             status=response_data.get("status"),
-            status_details=response_data.get("status_details")
+            status_details=response_data.get("status_details"),
         )
 
-    async def download_file(
-        self,
-        file_id: str,
-        **kwargs
-    ) -> bytes:
+    async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
         Download a file from OpenAI.
 
@@ -682,7 +676,7 @@ class OpenAIProvider(Provider):
                     url=url,
                     headers=headers,
                     timeout=timeout,
-                    ssl=None  # Use default SSL settings
+                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if response.status != 200:
                         error_data = await response.json()
@@ -694,10 +688,7 @@ class OpenAIProvider(Provider):
         return await retry_async(execute_request, config=self.retry_config)
 
     async def create_transcription(
-        self,
-        file: Union[str, bytes, IO[bytes]],
-        model: str = "whisper-1",
-        **kwargs
+        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Transcribe audio to text using OpenAI's Whisper model.
@@ -721,7 +712,7 @@ class OpenAIProvider(Provider):
         # Prepare the request data
         request_data = {
             "model": model,
-            **{k: v for k, v in kwargs.items() if k not in ["filename"]}
+            **{k: v for k, v in kwargs.items() if k not in ["filename"]},
         }
 
         # Set up files dictionary
@@ -729,16 +720,13 @@ class OpenAIProvider(Provider):
             "file": {
                 "data": file_data,
                 "filename": filename,
-                "content_type": self._guess_audio_content_type(filename)
+                "content_type": self._guess_audio_content_type(filename),
             }
         }
 
         # Make the API request
         response_data = await self._make_request(
-            method="POST",
-            path="/audio/transcriptions",
-            data=request_data,
-            files=files
+            method="POST", path="/audio/transcriptions", data=request_data, files=files
         )
 
         # Process the response based on the response format
@@ -754,14 +742,11 @@ class OpenAIProvider(Provider):
             language=response_data.get("language"),
             duration=response_data.get("duration"),
             segments=response_data.get("segments"),
-            words=response_data.get("words")
+            words=response_data.get("words"),
         )
 
     async def create_translation(
-        self,
-        file: Union[str, bytes, IO[bytes]],
-        model: str = "whisper-1",
-        **kwargs
+        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Translate audio to English text using OpenAI's Whisper model.
@@ -784,7 +769,7 @@ class OpenAIProvider(Provider):
         # Prepare the request data
         request_data = {
             "model": model,
-            **{k: v for k, v in kwargs.items() if k not in ["filename"]}
+            **{k: v for k, v in kwargs.items() if k not in ["filename"]},
         }
 
         # Set up files dictionary
@@ -792,16 +777,13 @@ class OpenAIProvider(Provider):
             "file": {
                 "data": file_data,
                 "filename": filename,
-                "content_type": self._guess_audio_content_type(filename)
+                "content_type": self._guess_audio_content_type(filename),
             }
         }
 
         # Make the API request
         response_data = await self._make_request(
-            method="POST",
-            path="/audio/translations",
-            data=request_data,
-            files=files
+            method="POST", path="/audio/translations", data=request_data, files=files
         )
 
         # Process the response based on the response format
@@ -817,13 +799,11 @@ class OpenAIProvider(Provider):
             language="en",  # Translations are always to English
             duration=response_data.get("duration"),
             segments=response_data.get("segments"),
-            words=response_data.get("words")
+            words=response_data.get("words"),
         )
 
     def _process_audio_file(
-        self,
-        file: Union[str, bytes, IO[bytes]],
-        filename: Optional[str] = None
+        self, file: Union[str, bytes, IO[bytes]], filename: Optional[str] = None
     ) -> tuple:
         """
         Process an audio file for API requests.
@@ -876,7 +856,7 @@ class OpenAIProvider(Provider):
             ".mpga": "audio/mpeg",
             ".m4a": "audio/mp4",
             ".wav": "audio/wav",
-            ".webm": "audio/webm"
+            ".webm": "audio/webm",
         }
 
         # Get the file extension
@@ -890,7 +870,7 @@ class OpenAIProvider(Provider):
         method: str,
         path: str,
         data: Optional[Dict[str, Any]] = None,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> bytes:
         """
         Make a request to the OpenAI API and return raw binary data.
@@ -920,7 +900,7 @@ class OpenAIProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None  # Use default SSL settings
+                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if response.status != 200:
                         # Handle error response as JSON
@@ -933,7 +913,7 @@ class OpenAIProvider(Provider):
                             raise APIError(
                                 f"OpenAI API error: {error_text} (status code: {response.status})",
                                 provider="openai",
-                                status_code=response.status
+                                status_code=response.status,
                             )
 
                     # Return the raw binary data
@@ -943,11 +923,7 @@ class OpenAIProvider(Provider):
         return await retry_async(execute_request, config=self.retry_config)
 
     async def create_speech(
-        self,
-        input: str,
-        model: str = "tts-1",
-        voice: str = "alloy",
-        **kwargs
+        self, input: str, model: str = "tts-1", voice: str = "alloy", **kwargs
     ) -> bytes:
         """
         Generate audio from text using OpenAI's text-to-speech models.
@@ -995,23 +971,19 @@ class OpenAIProvider(Provider):
         # Check speed if provided
         speed = kwargs.get("speed", 1.0)
         if not isinstance(speed, (int, float)) or speed < 0.25 or speed > 4.0:
-            raise InvalidRequestError(
-                "Speed must be a number between 0.25 and 4.0"
-            )
+            raise InvalidRequestError("Speed must be a number between 0.25 and 4.0")
 
         # Prepare request data
         request_data = {
             "input": input,
             "model": model,
             "voice": voice,
-            **{k: v for k, v in kwargs.items() if k in ["response_format", "speed"]}
+            **{k: v for k, v in kwargs.items() if k in ["response_format", "speed"]},
         }
 
         # Make the API request with raw binary response
         return await self._make_request_raw(
-            method="POST",
-            path="/audio/speech",
-            data=request_data
+            method="POST", path="/audio/speech", data=request_data
         )
 
     async def create_image(
@@ -1020,7 +992,7 @@ class OpenAIProvider(Provider):
         model: str = "dall-e-3",
         n: int = 1,
         size: str = "1024x1024",
-        **kwargs
+        **kwargs,
     ) -> ImageGenerationResult:
         """
         Generate images from a text prompt using OpenAI's DALL-E models.
@@ -1054,7 +1026,7 @@ class OpenAIProvider(Provider):
         # Check size based on model
         supported_sizes = {
             "dall-e-2": {"256x256", "512x512", "1024x1024"},
-            "dall-e-3": {"1024x1024", "1792x1024", "1024x1792"}
+            "dall-e-3": {"1024x1024", "1792x1024", "1024x1792"},
         }
         if size not in supported_sizes[model]:
             raise InvalidRequestError(
@@ -1110,21 +1082,21 @@ class OpenAIProvider(Provider):
             "model": model,
             "n": n,
             "size": size,
-            **{k: v for k, v in kwargs.items() if k in [
-                "quality", "style", "response_format", "user"
-            ]}
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k in ["quality", "style", "response_format", "user"]
+            },
         }
 
         # Make the API request
         response_data = await self._make_request(
-            method="POST",
-            path="/images/generations",
-            data=request_data
+            method="POST", path="/images/generations", data=request_data
         )
 
         return ImageGenerationResult(
             created=response_data.get("created", int(time.time())),
-            data=response_data.get("data", [])
+            data=response_data.get("data", []),
         )
 
 

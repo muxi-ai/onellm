@@ -37,7 +37,7 @@ class MuxiLLMError(Exception):
         provider: Optional[str] = None,
         status_code: Optional[int] = None,
         request_id: Optional[str] = None,
-        error_data: Optional[Dict[str, Any]] = None
+        error_data: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message)
         self.message = message
@@ -55,56 +55,67 @@ class MuxiLLMError(Exception):
 
 class APIError(MuxiLLMError):
     """Raised when the provider's API returns an unexpected error."""
+
     pass
 
 
 class AuthenticationError(MuxiLLMError):
     """Raised when there are authentication issues (invalid API key, etc.)."""
+
     pass
 
 
 class RateLimitError(MuxiLLMError):
     """Raised when the provider's rate limit is exceeded."""
+
     pass
 
 
 class InvalidRequestError(MuxiLLMError):
     """Raised when the request parameters are invalid."""
+
     pass
 
 
 class ServiceUnavailableError(MuxiLLMError):
     """Raised when the provider's service is unavailable."""
+
     pass
 
 
 class TimeoutError(MuxiLLMError):
     """Raised when a request times out."""
+
     pass
 
 
 class BadGatewayError(MuxiLLMError):
     """Raised when a bad gateway error occurs."""
+
     pass
 
 
 class PermissionError(MuxiLLMError):
     """Raised when permission is denied for the requested operation."""
+
     pass
 
 
 class ResourceNotFoundError(MuxiLLMError):
     """Raised when a requested resource is not found."""
+
     pass
 
 
 class InvalidModelError(InvalidRequestError):
     """Raised when an invalid or unsupported model is requested."""
+
     pass
 
 
 class InvalidConfigurationError(MuxiLLMError):
     """Raised when the library is configured incorrectly."""
+
     pass
 
 
@@ -118,7 +129,7 @@ class FallbackExhaustionError(MuxiLLMError):
         fallback_models: List[str],
         models_tried: List[str],
         original_error: Exception,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(message, **kwargs)
         self.primary_model = primary_model
@@ -128,8 +139,8 @@ class FallbackExhaustionError(MuxiLLMError):
 
     def __str__(self) -> str:
         base_str = super().__str__()
-        fallbacks = ', '.join(self.fallback_models)
-        tried = ', '.join(self.models_tried)
+        fallbacks = ", ".join(self.fallback_models)
+        tried = ", ".join(self.models_tried)
         return (
             f"{base_str}\n"
             f"Primary model: {self.primary_model}\n"

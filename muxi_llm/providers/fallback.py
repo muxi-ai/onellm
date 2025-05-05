@@ -30,8 +30,11 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 from ..errors import APIError, FallbackExhaustionError
 from ..models import (
-    ChatCompletionResponse, ChatCompletionChunk,
-    CompletionResponse, EmbeddingResponse, FileObject
+    ChatCompletionResponse,
+    ChatCompletionChunk,
+    CompletionResponse,
+    EmbeddingResponse,
+    FileObject,
 )
 from ..types import Message
 from ..utils.fallback import FallbackConfig, maybe_await
@@ -41,7 +44,9 @@ from .base import Provider, get_provider, parse_model_name
 class FallbackProviderProxy(Provider):
     """Provider implementation that supports fallbacks to alternative models."""
 
-    def __init__(self, models: List[str], fallback_config: Optional[FallbackConfig] = None):
+    def __init__(
+        self, models: List[str], fallback_config: Optional[FallbackConfig] = None
+    ):
         """
         Initialize with a list of models to try.
 
@@ -55,10 +60,7 @@ class FallbackProviderProxy(Provider):
         self.logger = logging.getLogger("muxi_llm.fallback")
 
     async def _try_with_fallbacks(
-        self,
-        method_name: str,
-        *args: Any,
-        **kwargs: Any
+        self, method_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """
         Try a provider method with fallbacks.
@@ -80,7 +82,7 @@ class FallbackProviderProxy(Provider):
         # Limit the number of fallbacks if max_fallbacks is set
         models_to_try = self.models
         if self.fallback_config.max_fallbacks is not None:
-            models_to_try = self.models[:self.fallback_config.max_fallbacks + 1]
+            models_to_try = self.models[: self.fallback_config.max_fallbacks + 1]
 
         # Try each model in sequence
         for model_string in models_to_try:
@@ -102,18 +104,24 @@ class FallbackProviderProxy(Provider):
                 result = await method(*args, **kwargs_with_model)
 
                 # Log fallback usage if not the primary model
-                if model_string != self.models[0] and self.fallback_config.log_fallbacks:
+                if (
+                    model_string != self.models[0]
+                    and self.fallback_config.log_fallbacks
+                ):
                     self.logger.info(
                         f"Fallback succeeded: Using {model_string} instead of {self.models[0]}"
                     )
 
                 # Call the callback if provided
-                if model_string != self.models[0] and self.fallback_config.fallback_callback:
+                if (
+                    model_string != self.models[0]
+                    and self.fallback_config.fallback_callback
+                ):
                     await maybe_await(
                         self.fallback_config.fallback_callback(
                             primary_model=self.models[0],
                             fallback_model=model_string,
-                            error=last_error
+                            error=last_error,
                         )
                     )
 
@@ -128,7 +136,8 @@ class FallbackProviderProxy(Provider):
 
                 # Determine if this error should trigger a fallback
                 retriable = any(
-                    isinstance(e, err_type) for err_type in self.fallback_config.retriable_errors
+                    isinstance(e, err_type)
+                    for err_type in self.fallback_config.retriable_errors
                 )
                 if not retriable:
                     # Non-retriable error - raise immediately
@@ -143,17 +152,16 @@ class FallbackProviderProxy(Provider):
                 primary_model=self.models[0],
                 fallback_models=self.models[1:],
                 models_tried=models_tried,
-                original_error=last_error
+                original_error=last_error,
             )
 
         # Should never reach here, but just in case
-        raise APIError(f"All models failed but no error was recorded. Models tried: {models_tried}")
+        raise APIError(
+            f"All models failed but no error was recorded. Models tried: {models_tried}"
+        )
 
     async def _try_streaming_with_fallbacks(
-        self,
-        method_name: str,
-        *args: Any,
-        **kwargs: Any
+        self, method_name: str, *args: Any, **kwargs: Any
     ) -> AsyncGenerator[Any, None]:
         """
         Try a streaming method with fallbacks.
@@ -175,7 +183,7 @@ class FallbackProviderProxy(Provider):
         # Limit the number of fallbacks if max_fallbacks is set
         models_to_try = self.models
         if self.fallback_config.max_fallbacks is not None:
-            models_to_try = self.models[:self.fallback_config.max_fallbacks + 1]
+            models_to_try = self.models[: self.fallback_config.max_fallbacks + 1]
 
         # Try each model in sequence
         for model_string in models_to_try:
@@ -197,18 +205,24 @@ class FallbackProviderProxy(Provider):
                 generator = await method(*args, **kwargs_with_model)
 
                 # Log fallback usage if not the primary model
-                if model_string != self.models[0] and self.fallback_config.log_fallbacks:
+                if (
+                    model_string != self.models[0]
+                    and self.fallback_config.log_fallbacks
+                ):
                     self.logger.info(
                         f"Fallback succeeded: Using {model_string} instead of {self.models[0]}"
                     )
 
                 # Call the callback if provided
-                if model_string != self.models[0] and self.fallback_config.fallback_callback:
+                if (
+                    model_string != self.models[0]
+                    and self.fallback_config.fallback_callback
+                ):
                     await maybe_await(
                         self.fallback_config.fallback_callback(
                             primary_model=self.models[0],
                             fallback_model=model_string,
-                            error=last_error
+                            error=last_error,
                         )
                     )
 
@@ -224,7 +238,8 @@ class FallbackProviderProxy(Provider):
 
                 # Determine if this error should trigger a fallback
                 retriable = any(
-                    isinstance(e, err_type) for err_type in self.fallback_config.retriable_errors
+                    isinstance(e, err_type)
+                    for err_type in self.fallback_config.retriable_errors
                 )
                 if not retriable:
                     # Non-retriable error - raise immediately
@@ -239,18 +254,20 @@ class FallbackProviderProxy(Provider):
                 primary_model=self.models[0],
                 fallback_models=self.models[1:],
                 models_tried=models_tried,
-                original_error=last_error
+                original_error=last_error,
             )
 
         # Should never reach here, but just in case
-        raise APIError(f"All models failed but no error was recorded. Models tried: {models_tried}")
+        raise APIError(
+            f"All models failed but no error was recorded. Models tried: {models_tried}"
+        )
 
     async def create_chat_completion(
         self,
         messages: List[Message],
         model: str = None,  # Ignored since we use models from the proxy
         stream: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """Create a chat completion with fallback support."""
         # Special handling for streaming
@@ -258,10 +275,7 @@ class FallbackProviderProxy(Provider):
             # Need to create a wrapper that awaits the coroutine and then yields from the generator
             async def stream_generator():
                 generator = await self._try_streaming_with_fallbacks(
-                    "create_chat_completion",
-                    messages=messages,
-                    stream=stream,
-                    **kwargs
+                    "create_chat_completion", messages=messages, stream=stream, **kwargs
                 )
                 async for chunk in generator:
                     yield chunk
@@ -270,10 +284,7 @@ class FallbackProviderProxy(Provider):
             return stream_generator()
         else:
             return await self._try_with_fallbacks(
-                "create_chat_completion",
-                messages=messages,
-                stream=stream,
-                **kwargs
+                "create_chat_completion", messages=messages, stream=stream, **kwargs
             )
 
     async def create_completion(
@@ -281,7 +292,7 @@ class FallbackProviderProxy(Provider):
         prompt: str,
         model: str = None,  # Ignored since we use models from the proxy
         stream: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """Create a text completion with fallback support."""
         # Special handling for streaming
@@ -289,10 +300,7 @@ class FallbackProviderProxy(Provider):
             # Need to create a wrapper that awaits the coroutine and then yields from the generator
             async def stream_generator():
                 generator = await self._try_streaming_with_fallbacks(
-                    "create_completion",
-                    prompt=prompt,
-                    stream=stream,
-                    **kwargs
+                    "create_completion", prompt=prompt, stream=stream, **kwargs
                 )
                 async for chunk in generator:
                     yield chunk
@@ -301,73 +309,44 @@ class FallbackProviderProxy(Provider):
             return stream_generator()
         else:
             return await self._try_with_fallbacks(
-                "create_completion",
-                prompt=prompt,
-                stream=stream,
-                **kwargs
+                "create_completion", prompt=prompt, stream=stream, **kwargs
             )
 
     async def create_embedding(
         self,
         input: Union[str, List[str]],
         model: str = None,  # Ignored since we use models from the proxy
-        **kwargs
+        **kwargs,
     ) -> EmbeddingResponse:
         """Create embeddings with fallback support."""
-        return await self._try_with_fallbacks(
-            "create_embedding",
-            input=input,
-            **kwargs
-        )
+        return await self._try_with_fallbacks("create_embedding", input=input, **kwargs)
 
-    async def upload_file(
-        self,
-        file: Any,
-        purpose: str,
-        **kwargs
-    ) -> FileObject:
+    async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
         """Upload a file with fallback support."""
         return await self._try_with_fallbacks(
-            "upload_file",
-            file=file,
-            purpose=purpose,
-            **kwargs
+            "upload_file", file=file, purpose=purpose, **kwargs
         )
 
-    async def download_file(
-        self,
-        file_id: str,
-        **kwargs
-    ) -> bytes:
+    async def download_file(self, file_id: str, **kwargs) -> bytes:
         """Download a file with fallback support."""
         return await self._try_with_fallbacks(
-            "download_file",
-            file_id=file_id,
-            **kwargs
+            "download_file", file_id=file_id, **kwargs
         )
 
     async def create_speech(
         self,
         input: str,
         model: str = None,  # Ignored since we use models from the proxy
-        **kwargs
+        **kwargs,
     ) -> bytes:
         """Create speech with fallback support."""
-        return await self._try_with_fallbacks(
-            "create_speech",
-            input=input,
-            **kwargs
-        )
+        return await self._try_with_fallbacks("create_speech", input=input, **kwargs)
 
     async def create_image(
         self,
         prompt: str,
         model: str = None,  # Ignored since we use models from the proxy
-        **kwargs
+        **kwargs,
     ) -> List[Dict[str, Any]]:
         """Create images with fallback support."""
-        return await self._try_with_fallbacks(
-            "create_image",
-            prompt=prompt,
-            **kwargs
-        )
+        return await self._try_with_fallbacks("create_image", prompt=prompt, **kwargs)

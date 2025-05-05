@@ -8,11 +8,14 @@ from typing import Callable, List, Optional, Type, TypeVar
 import inspect
 
 from ..errors import (
-    ServiceUnavailableError, TimeoutError, BadGatewayError, RateLimitError
+    ServiceUnavailableError,
+    TimeoutError,
+    BadGatewayError,
+    RateLimitError,
 )
 
 # Define a generic type for the return value
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class FallbackConfig:
@@ -23,7 +26,7 @@ class FallbackConfig:
         retriable_errors: Optional[List[Type[Exception]]] = None,
         max_fallbacks: Optional[int] = None,
         log_fallbacks: bool = True,
-        fallback_callback: Optional[Callable] = None
+        fallback_callback: Optional[Callable] = None,
     ):
         """
         Initialize fallback configuration.
@@ -38,7 +41,7 @@ class FallbackConfig:
             ServiceUnavailableError,
             TimeoutError,
             BadGatewayError,
-            RateLimitError
+            RateLimitError,
         ]
         self.max_fallbacks = max_fallbacks
         self.log_fallbacks = log_fallbacks

@@ -44,7 +44,7 @@ class Image:
         size: str = "1024x1024",
         fallback_models: Optional[List[str]] = None,
         fallback_config: Optional[dict] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict:
         """
         Generate images from a text prompt.
@@ -80,7 +80,7 @@ class Image:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Generate image
@@ -102,6 +102,7 @@ class Image:
                 elif "b64_json" in img_data:
                     # For base64 responses, decode the data
                     import base64
+
                     image_bytes = base64.b64decode(img_data["b64_json"])
                 else:
                     continue  # Skip if no image data
@@ -128,7 +129,7 @@ class Image:
         size: str = "1024x1024",
         fallback_models: Optional[List[str]] = None,
         fallback_config: Optional[dict] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict:
         """
         Synchronous version of create().
@@ -145,15 +146,17 @@ class Image:
         Returns:
             Dict with generated images data
         """
-        return asyncio.run(cls.create(
-            prompt=prompt,
-            model=model,
-            n=n,
-            size=size,
-            fallback_models=fallback_models,
-            fallback_config=fallback_config,
-            **kwargs
-        ))
+        return asyncio.run(
+            cls.create(
+                prompt=prompt,
+                model=model,
+                n=n,
+                size=size,
+                fallback_models=fallback_models,
+                fallback_config=fallback_config,
+                **kwargs,
+            )
+        )
 
     @classmethod
     async def _download_image(cls, url: str) -> bytes:

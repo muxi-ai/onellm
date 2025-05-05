@@ -30,8 +30,11 @@ from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type, Union
 
 from ..models import (
-    ChatCompletionResponse, ChatCompletionChunk,
-    CompletionResponse, EmbeddingResponse, FileObject
+    ChatCompletionResponse,
+    ChatCompletionChunk,
+    CompletionResponse,
+    EmbeddingResponse,
+    FileObject,
 )
 from ..types import Message
 from ..utils.fallback import FallbackConfig
@@ -70,11 +73,7 @@ class Provider(ABC):
 
     @abstractmethod
     async def create_chat_completion(
-        self,
-        messages: List[Message],
-        model: str,
-        stream: bool = False,
-        **kwargs
+        self, messages: List[Message], model: str, stream: bool = False, **kwargs
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
         Create a chat completion.
@@ -92,11 +91,7 @@ class Provider(ABC):
 
     @abstractmethod
     async def create_completion(
-        self,
-        prompt: str,
-        model: str,
-        stream: bool = False,
-        **kwargs
+        self, prompt: str, model: str, stream: bool = False, **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
         Create a text completion.
@@ -114,10 +109,7 @@ class Provider(ABC):
 
     @abstractmethod
     async def create_embedding(
-        self,
-        input: Union[str, List[str]],
-        model: str,
-        **kwargs
+        self, input: Union[str, List[str]], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
@@ -133,12 +125,7 @@ class Provider(ABC):
         pass
 
     @abstractmethod
-    async def upload_file(
-        self,
-        file: Any,
-        purpose: str,
-        **kwargs
-    ) -> FileObject:
+    async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
         """
         Upload a file to the provider.
 
@@ -153,11 +140,7 @@ class Provider(ABC):
         pass
 
     @abstractmethod
-    async def download_file(
-        self,
-        file_id: str,
-        **kwargs
-    ) -> bytes:
+    async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
         Download a file from the provider.
 
@@ -224,7 +207,7 @@ def list_providers() -> List[str]:
 def get_provider_with_fallbacks(
     primary_model: str,
     fallback_models: Optional[List[str]] = None,
-    fallback_config: Optional[FallbackConfig] = None
+    fallback_config: Optional[FallbackConfig] = None,
 ) -> Tuple[Provider, str]:
     """
     Get a provider with fallback support.

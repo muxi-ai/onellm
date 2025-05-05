@@ -70,7 +70,7 @@ class AudioTranscription:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         return await provider.create_transcription(file, model_name, **kwargs)
@@ -97,13 +97,15 @@ class AudioTranscription:
         Returns:
             Transcription result
         """
-        return asyncio.run(cls.create(
-            file=file,
-            model=model,
-            fallback_models=fallback_models,
-            fallback_config=fallback_config,
-            **kwargs
-        ))
+        return asyncio.run(
+            cls.create(
+                file=file,
+                model=model,
+                fallback_models=fallback_models,
+                fallback_config=fallback_config,
+                **kwargs
+            )
+        )
 
 
 class AudioTranslation:
@@ -144,7 +146,7 @@ class AudioTranslation:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         return await provider.create_translation(file, model_name, **kwargs)
@@ -171,10 +173,12 @@ class AudioTranslation:
         Returns:
             Translation result with text in English
         """
-        return asyncio.run(cls.create(
-            file=file,
-            model=model,
-            fallback_models=fallback_models,
-            fallback_config=fallback_config,
-            **kwargs
-        ))
+        return asyncio.run(
+            cls.create(
+                file=file,
+                model=model,
+                fallback_models=fallback_models,
+                fallback_config=fallback_config,
+                **kwargs
+            )
+        )

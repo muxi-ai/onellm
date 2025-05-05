@@ -80,7 +80,7 @@ class ChatCompletion:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method synchronously
@@ -90,20 +90,14 @@ class ChatCompletion:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(
                 provider.create_chat_completion(
-                    messages=messages,
-                    model=model_name,
-                    stream=stream,
-                    **kwargs
+                    messages=messages, model=model_name, stream=stream, **kwargs
                 )
             )
         else:
             # For non-streaming, we can just run and get the result
             return asyncio.run(
                 provider.create_chat_completion(
-                    messages=messages,
-                    model=model_name,
-                    stream=stream,
-                    **kwargs
+                    messages=messages, model=model_name, stream=stream, **kwargs
                 )
             )
 
@@ -151,13 +145,10 @@ class ChatCompletion:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method asynchronously
         return await provider.create_chat_completion(
-            messages=messages,
-            model=model_name,
-            stream=stream,
-            **kwargs
+            messages=messages, model=model_name, stream=stream, **kwargs
         )

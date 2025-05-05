@@ -66,12 +66,14 @@ ImageResponseFormat = Literal["url", "b64_json"]
 
 class ImageUrl(TypedDict, total=False):
     """Image URL details for vision models."""
+
     url: str
     detail: Optional[ImageUrlDetail]
 
 
 class ContentItem(TypedDict, total=False):
     """A single content item in a chat message."""
+
     type: ContentType
     text: Optional[str]
     image_url: Optional[ImageUrl]
@@ -79,6 +81,7 @@ class ContentItem(TypedDict, total=False):
 
 class Message(TypedDict, total=False):
     """A chat message."""
+
     role: Role
     content: Union[str, List[ContentItem]]
     name: Optional[str]
@@ -89,6 +92,7 @@ class Message(TypedDict, total=False):
 
 class UsageInfo(TypedDict, total=False):
     """Token usage information."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -96,6 +100,7 @@ class UsageInfo(TypedDict, total=False):
 
 class ModelParams(TypedDict, total=False):
     """Parameters for model configuration."""
+
     temperature: Optional[float]
     top_p: Optional[float]
     n: Optional[int]
@@ -110,11 +115,13 @@ class ModelParams(TypedDict, total=False):
 
 class ResponseFormat(TypedDict, total=False):
     """Format specification for the response."""
+
     type: Literal["text", "json_object"]
 
 
 class AudioTranscriptionParams(TypedDict, total=False):
     """Parameters for audio transcription requests."""
+
     file: Union[str, bytes, IO[bytes]]
     model: str
     language: Optional[str]
@@ -125,6 +132,7 @@ class AudioTranscriptionParams(TypedDict, total=False):
 
 class AudioTranslationParams(TypedDict, total=False):
     """Parameters for audio translation requests."""
+
     file: Union[str, bytes, IO[bytes]]
     model: str
     prompt: Optional[str]
@@ -134,6 +142,7 @@ class AudioTranslationParams(TypedDict, total=False):
 
 class TranscriptionResult(TypedDict, total=False):
     """Result from audio transcription or translation."""
+
     text: str
     task: Optional[str]
     language: Optional[str]
@@ -144,6 +153,7 @@ class TranscriptionResult(TypedDict, total=False):
 
 class SpeechParams(TypedDict, total=False):
     """Parameters for text-to-speech requests."""
+
     input: str
     model: str
     voice: SpeechVoice
@@ -153,6 +163,7 @@ class SpeechParams(TypedDict, total=False):
 
 class ImageGenerationParams(TypedDict, total=False):
     """Parameters for image generation requests."""
+
     prompt: str
     model: str
     n: Optional[int]
@@ -165,6 +176,7 @@ class ImageGenerationParams(TypedDict, total=False):
 
 class ImageData(TypedDict, total=False):
     """Generated image data."""
+
     url: Optional[str]
     b64_json: Optional[str]
     revised_prompt: Optional[str]
@@ -173,6 +185,7 @@ class ImageData(TypedDict, total=False):
 
 class ImageGenerationResult(TypedDict, total=False):
     """Result from image generation."""
+
     created: int
     data: List[ImageData]
 

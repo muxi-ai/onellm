@@ -10,7 +10,12 @@ import random
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Type, TypeVar
 
-from ..errors import RateLimitError, ServiceUnavailableError, BadGatewayError, TimeoutError
+from ..errors import (
+    RateLimitError,
+    ServiceUnavailableError,
+    BadGatewayError,
+    TimeoutError,
+)
 
 # Type variable for the return type of the retried function
 T = TypeVar("T")
@@ -19,6 +24,7 @@ T = TypeVar("T")
 @dataclass
 class RetryConfig:
     """Configuration for the retry mechanism."""
+
     max_retries: int = 3
     initial_backoff: float = 0.5  # seconds
     max_backoff: float = 60.0  # seconds
@@ -67,7 +73,7 @@ def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
     """
     backoff = min(
         config.max_backoff,
-        config.initial_backoff * (config.backoff_multiplier ** (attempt - 1))
+        config.initial_backoff * (config.backoff_multiplier ** (attempt - 1)),
     )
 
     if config.jitter:

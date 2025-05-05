@@ -33,6 +33,7 @@ from .types import Message, UsageInfo
 @dataclass
 class ChoiceDelta:
     """Represents a chunk of a streaming response."""
+
     content: Optional[str] = None
     role: Optional[str] = None
     function_call: Optional[Dict[str, Any]] = None
@@ -43,6 +44,7 @@ class ChoiceDelta:
 @dataclass
 class Choice:
     """Represents a single completion choice in a response."""
+
     message: Message
     finish_reason: Optional[str] = None
     index: int = 0
@@ -62,6 +64,7 @@ class Choice:
 @dataclass
 class StreamingChoice:
     """Represents a single streaming choice in a response."""
+
     delta: ChoiceDelta
     finish_reason: Optional[str] = None
     index: int = 0
@@ -81,6 +84,7 @@ class StreamingChoice:
 @dataclass
 class ChatCompletionResponse:
     """Response from a chat completion request."""
+
     id: str
     object: str
     created: int
@@ -112,6 +116,7 @@ class ChatCompletionResponse:
 @dataclass
 class ChatCompletionChunk:
     """Chunk of a streaming chat completion response."""
+
     id: str
     object: str
     created: int
@@ -140,6 +145,7 @@ class ChatCompletionChunk:
 @dataclass
 class CompletionChoice:
     """Represents a single text completion choice in a response."""
+
     text: str
     index: int = 0
     logprobs: Optional[Dict[str, Any]] = None
@@ -149,6 +155,7 @@ class CompletionChoice:
 @dataclass
 class CompletionResponse:
     """Response from a text completion request."""
+
     id: str
     object: str
     created: int
@@ -161,6 +168,7 @@ class CompletionResponse:
 @dataclass
 class EmbeddingData:
     """Represents a single embedding in a response."""
+
     embedding: List[float]
     index: int = 0
     object: str = "embedding"
@@ -169,6 +177,7 @@ class EmbeddingData:
 @dataclass
 class EmbeddingResponse:
     """Response from an embedding request."""
+
     object: str
     data: List[EmbeddingData]
     model: str
@@ -178,6 +187,7 @@ class EmbeddingResponse:
 @dataclass
 class FileObject:
     """Represents a file stored with the provider."""
+
     id: str
     object: str
     bytes: int

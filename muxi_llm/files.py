@@ -64,12 +64,9 @@ class File:
 
         # Call the provider's upload_file method synchronously
         import asyncio
+
         return asyncio.run(
-            provider_instance.upload_file(
-                file=file,
-                purpose=purpose,
-                **kwargs
-            )
+            provider_instance.upload_file(file=file, purpose=purpose, **kwargs)
         )
 
     @classmethod
@@ -100,11 +97,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's upload_file method
-        return await provider_instance.upload_file(
-            file=file,
-            purpose=purpose,
-            **kwargs
-        )
+        return await provider_instance.upload_file(file=file, purpose=purpose, **kwargs)
 
     @classmethod
     def download(
@@ -136,11 +129,9 @@ class File:
 
         # Call the provider's download_file method synchronously
         import asyncio
+
         file_bytes = asyncio.run(
-            provider_instance.download_file(
-                file_id=file_id,
-                **kwargs
-            )
+            provider_instance.download_file(file_id=file_id, **kwargs)
         )
 
         # Save to destination if provided
@@ -182,10 +173,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's download_file method
-        file_bytes = await provider_instance.download_file(
-            file_id=file_id,
-            **kwargs
-        )
+        file_bytes = await provider_instance.download_file(file_id=file_id, **kwargs)
 
         # Save to destination if provided
         if destination:

@@ -17,13 +17,14 @@ T = TypeVar("T")
 
 class StreamingError(MuxiLLMError):
     """Error during streaming operation."""
+
     pass
 
 
 async def stream_generator(
     source_generator: AsyncGenerator[Any, None],
     transform_func: Optional[Callable[[Any], T]] = None,
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
 ) -> AsyncGenerator[T, None]:
     """
     Create a transformed stream from a source generator.
@@ -53,9 +54,7 @@ async def stream_generator(
             else:
                 yield item  # type: ignore
     except asyncio.TimeoutError:
-        raise StreamingError(
-            f"Streaming response timed out after {timeout} seconds"
-        )
+        raise StreamingError(f"Streaming response timed out after {timeout} seconds")
     except Exception as e:
         if isinstance(e, StreamingError):
             raise
@@ -65,7 +64,7 @@ async def stream_generator(
 async def json_stream_generator(
     source_generator: AsyncGenerator[str, None],
     data_key: Optional[str] = None,
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
 ) -> AsyncGenerator[Any, None]:
     """
     Create a JSON stream from a source generator of JSON strings.
@@ -81,6 +80,7 @@ async def json_stream_generator(
     Raises:
         StreamingError: If an error occurs during streaming
     """
+
     async def transform_json(text: str) -> Optional[Any]:
         if not text.strip():
             return None
@@ -94,9 +94,7 @@ async def json_stream_generator(
             raise StreamingError(f"Invalid JSON in streaming response: {text}") from e
 
     async for item in stream_generator(
-        source_generator,
-        transform_func=transform_json,
-        timeout=timeout
+        source_generator, transform_func=transform_json, timeout=timeout
     ):
         yield item
 
@@ -104,7 +102,7 @@ async def json_stream_generator(
 async def line_stream_generator(
     source_generator: AsyncGenerator[Union[str, bytes], None],
     prefix: Optional[str] = None,
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
 ) -> AsyncGenerator[str, None]:
     """
     Create a line stream from a source generator, optionally filtering by prefix.
@@ -120,12 +118,15 @@ async def line_stream_generator(
     Raises:
         StreamingError: If an error occurs during streaming
     """
+
     async def process_line(line: Union[str, bytes]) -> Optional[str]:
         if isinstance(line, bytes):
             try:
                 line = line.decode("utf-8")
             except UnicodeDecodeError as e:
-                raise StreamingError("Error decoding bytes in streaming response") from e
+                raise StreamingError(
+                    "Error decoding bytes in streaming response"
+                ) from e
 
         line = line.rstrip("\r\n")
         if not line:
@@ -139,9 +140,7 @@ async def line_stream_generator(
         return line
 
     async for item in stream_generator(
-        source_generator,
-        transform_func=process_line,
-        timeout=timeout
+        source_generator, transform_func=process_line, timeout=timeout
     ):
         if item is not None:
             yield item

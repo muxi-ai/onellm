@@ -38,5 +38,5 @@ __all__ = [
     "parse_model_name",
     "register_provider",
     "list_providers",
-    "FallbackProviderProxy"
+    "FallbackProviderProxy",
 ]

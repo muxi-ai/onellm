@@ -85,7 +85,7 @@ class Completion:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method synchronously
@@ -95,20 +95,14 @@ class Completion:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(
                 provider.create_completion(
-                    prompt=prompt,
-                    model=model_name,
-                    stream=stream,
-                    **kwargs
+                    prompt=prompt, model=model_name, stream=stream, **kwargs
                 )
             )
         else:
             # For non-streaming, we can just run and get the result
             return asyncio.run(
                 provider.create_completion(
-                    prompt=prompt,
-                    model=model_name,
-                    stream=stream,
-                    **kwargs
+                    prompt=prompt, model=model_name, stream=stream, **kwargs
                 )
             )
 
@@ -161,13 +155,10 @@ class Completion:
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
-            fallback_config=fb_config
+            fallback_config=fb_config,
         )
 
         # Call the provider's method asynchronously
         return await provider.create_completion(
-            prompt=prompt,
-            model=model_name,
-            stream=stream,
-            **kwargs
+            prompt=prompt, model=model_name, stream=stream, **kwargs
         )

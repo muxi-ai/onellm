@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Union
 # Note: tiktoken is an optional dependency
 try:
     import tiktoken
+
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
@@ -19,7 +20,7 @@ except ImportError:
 
 # Regex pattern for tokenizing text when tiktoken is not available
 # This is a simple approximation and not accurate for all languages/models
-SIMPLE_TOKEN_PATTERN = re.compile(r'\w+|[^\w\s]')
+SIMPLE_TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]")
 
 
 # Map of OpenAI model names to tiktoken encodings
@@ -34,7 +35,6 @@ OPENAI_MODEL_ENCODINGS = {
     "gpt-4-1106-preview": "cl100k_base",
     "gpt-4-0125-preview": "cl100k_base",
     "gpt-4-vision-preview": "cl100k_base",
-
     # GPT-3.5 models
     "gpt-3.5-turbo": "cl100k_base",
     "gpt-3.5-turbo-0613": "cl100k_base",
@@ -42,7 +42,6 @@ OPENAI_MODEL_ENCODINGS = {
     "gpt-3.5-turbo-0125": "cl100k_base",
     "gpt-3.5-turbo-16k": "cl100k_base",
     "gpt-3.5-turbo-16k-0613": "cl100k_base",
-
     # Base GPT-3 models
     "text-davinci-003": "p50k_base",
     "text-davinci-002": "p50k_base",
@@ -51,7 +50,6 @@ OPENAI_MODEL_ENCODINGS = {
     "curie": "r50k_base",
     "babbage": "r50k_base",
     "ada": "r50k_base",
-
     # Embedding models
     "text-embedding-ada-002": "cl100k_base",
     "text-embedding-3-small": "cl100k_base",
@@ -92,10 +90,7 @@ def get_encoder(model: str) -> Optional["tiktoken.Encoding"]:
             return None
 
 
-def num_tokens_from_string(
-    text: str,
-    model: Optional[str] = None
-) -> int:
+def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
     """
     Count the number of tokens in a string.
 
@@ -120,8 +115,7 @@ def num_tokens_from_string(
 
 
 def num_tokens_from_messages(
-    messages: List[Dict[str, Union[str, List]]],
-    model: Optional[str] = None
+    messages: List[Dict[str, Union[str, List]]], model: Optional[str] = None
 ) -> int:
     """
     Count the number of tokens in a list of messages.
@@ -145,8 +139,10 @@ def num_tokens_from_messages(
         encoder = get_encoder(model)
         if encoder:
             # Format based on OpenAI's token counting methodology
-            tokens_per_message = 3  # Every message follows <|start|>{role/name}\n{content}<|end|>\n
-            tokens_per_name = 1     # If there's a name, the role is omitted
+            tokens_per_message = (
+                3  # Every message follows <|start|>{role/name}\n{content}<|end|>\n
+            )
+            tokens_per_name = 1  # If there's a name, the role is omitted
 
             token_count = 0
             for message in messages:
