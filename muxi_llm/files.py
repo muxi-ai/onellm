@@ -184,3 +184,117 @@ class File:
             return str(dest_path)
 
         return file_bytes
+
+    @classmethod
+    def list(
+        cls,
+        provider: str = "openai",  # Required but defaults for compatibility
+        **kwargs
+    ) -> dict:
+        """
+        List files from the provider's API.
+
+        Args:
+            provider: Provider to use (e.g., "openai")
+            **kwargs: Additional parameters to pass to the provider like 'purpose'
+
+        Returns:
+            Dictionary containing the list of files
+
+        Example:
+            >>> files = File.list(provider="openai", purpose="fine-tune")
+            >>> for file in files["data"]:
+            >>>     print(f"File: {file['filename']}, ID: {file['id']}")
+        """
+        # Get provider instance
+        provider_instance = get_provider(provider)
+
+        # Call the provider's list_files method synchronously
+        import asyncio
+
+        return asyncio.run(provider_instance.list_files(**kwargs))
+
+    @classmethod
+    async def alist(
+        cls,
+        provider: str = "openai",  # Required but defaults for compatibility
+        **kwargs
+    ) -> dict:
+        """
+        List files from the provider's API asynchronously.
+
+        Args:
+            provider: Provider to use (e.g., "openai")
+            **kwargs: Additional parameters to pass to the provider like 'purpose'
+
+        Returns:
+            Dictionary containing the list of files
+
+        Example:
+            >>> files = await File.alist(provider="openai", purpose="fine-tune")
+            >>> for file in files["data"]:
+            >>>     print(f"File: {file['filename']}, ID: {file['id']}")
+        """
+        # Get provider instance
+        provider_instance = get_provider(provider)
+
+        # Call the provider's list_files method
+        return await provider_instance.list_files(**kwargs)
+
+    @classmethod
+    def delete(
+        cls,
+        file_id: str,
+        provider: str = "openai",  # Required but defaults for compatibility
+        **kwargs
+    ) -> dict:
+        """
+        Delete a file from the provider's API.
+
+        Args:
+            file_id: ID of the file to delete
+            provider: Provider to use (e.g., "openai")
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Dictionary with deletion status
+
+        Example:
+            >>> result = File.delete("file-abc123", provider="openai")
+            >>> print(f"File deleted: {result['deleted']}")
+        """
+        # Get provider instance
+        provider_instance = get_provider(provider)
+
+        # Call the provider's delete_file method synchronously
+        import asyncio
+
+        return asyncio.run(provider_instance.delete_file(file_id=file_id, **kwargs))
+
+    @classmethod
+    async def adelete(
+        cls,
+        file_id: str,
+        provider: str = "openai",  # Required but defaults for compatibility
+        **kwargs
+    ) -> dict:
+        """
+        Delete a file from the provider's API asynchronously.
+
+        Args:
+            file_id: ID of the file to delete
+            provider: Provider to use (e.g., "openai")
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Dictionary with deletion status
+
+        Example:
+            >>> result = await File.adelete("file-abc123", provider="openai")
+            >>> print(f"File deleted: {result['deleted']}")
+        """
+        # Get provider instance
+        provider_instance = get_provider(provider)
+
+        # Call the provider's delete_file method
+        return await provider_instance.delete_file(file_id=file_id, **kwargs)
