@@ -234,11 +234,12 @@ class ImagesResource:
         prompt: str,
         **kwargs
     ):
-        """Create images asynchronously using Image.acreate()"""
+        """Create images asynchronously using Image.create() with await"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await Image.acreate(model=model, prompt=prompt, **kwargs)
+        # Use the same create method - it will return a coroutine when called from here
+        return await Image.create(model=model, prompt=prompt, **kwargs)
 
 
 class AudioResource:
@@ -258,7 +259,7 @@ class AudioTranscriptionsResource:
         file: str,
         **kwargs
     ):
-        """Transcribe audio using AudioTranscription.create()"""
+        """Create audio transcriptions using AudioTranscription.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -270,11 +271,12 @@ class AudioTranscriptionsResource:
         file: str,
         **kwargs
     ):
-        """Transcribe audio asynchronously using AudioTranscription.acreate()"""
+        """Create audio transcriptions asynchronously"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await AudioTranscription.acreate(model=model, file=file, **kwargs)
+        # Use the same create method - it will return a coroutine when called from here
+        return await AudioTranscription.create(model=model, file=file, **kwargs)
 
 
 class AudioTranslationsResource:
@@ -286,7 +288,7 @@ class AudioTranslationsResource:
         file: str,
         **kwargs
     ):
-        """Translate audio using AudioTranslation.create()"""
+        """Create audio translations using AudioTranslation.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -298,11 +300,12 @@ class AudioTranslationsResource:
         file: str,
         **kwargs
     ):
-        """Translate audio asynchronously using AudioTranslation.acreate()"""
+        """Create audio translations asynchronously using AudioTranslation.create() with await"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await AudioTranslation.acreate(model=model, file=file, **kwargs)
+        # Use the same create method - it will return a coroutine when called from here
+        return await AudioTranslation.create(model=model, file=file, **kwargs)
 
 
 class SpeechResource:
@@ -315,7 +318,7 @@ class SpeechResource:
         voice: str,
         **kwargs
     ):
-        """Generate speech using Speech.create()"""
+        """Create speech synthesis using Speech.create()"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -328,11 +331,12 @@ class SpeechResource:
         voice: str,
         **kwargs
     ):
-        """Generate speech asynchronously using Speech.acreate()"""
+        """Create speech synthesis asynchronously using Speech.create() with await"""
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
-        return await Speech.acreate(model=model, input=input, voice=voice, **kwargs)
+        # Use the same create method - it will return a coroutine when called from here
+        return await Speech.create(model=model, input=input, voice=voice, **kwargs)
 
 
 class FilesResource:
@@ -344,8 +348,8 @@ class FilesResource:
         purpose: str,
         **kwargs
     ):
-        """Upload a file using File.create()"""
-        return File.create(file=file, purpose=purpose, **kwargs)
+        """Create file using File.upload()"""
+        return File.upload(file=file, purpose=purpose, provider="openai", **kwargs)
 
     async def acreate(
         self,
@@ -353,40 +357,40 @@ class FilesResource:
         purpose: str,
         **kwargs
     ):
-        """Upload a file asynchronously using File.acreate()"""
-        return await File.acreate(file=file, purpose=purpose, **kwargs)
+        """Create file asynchronously using File.aupload()"""
+        return await File.aupload(file=file, purpose=purpose, provider="openai", **kwargs)
 
     def retrieve(self, file_id: str, **kwargs):
-        """Retrieve a file"""
-        return File.retrieve(file_id=file_id, **kwargs)
+        """Retrieve file using File.download()"""
+        return File.download(file_id=file_id, provider="openai", **kwargs)
 
     async def aretrieve(self, file_id: str, **kwargs):
-        """Retrieve a file asynchronously"""
-        return await File.aretrieve(file_id=file_id, **kwargs)
+        """Retrieve file asynchronously using File.adownload()"""
+        return await File.adownload(file_id=file_id, provider="openai", **kwargs)
 
     def list(self, **kwargs):
         """List files"""
-        return File.list(**kwargs)
+        raise NotImplementedError("Files listing not implemented yet")
 
     async def alist(self, **kwargs):
         """List files asynchronously"""
-        return await File.alist(**kwargs)
+        raise NotImplementedError("Async files listing not implemented yet")
 
     def delete(self, file_id: str, **kwargs):
-        """Delete a file"""
-        return File.delete(file_id=file_id, **kwargs)
+        """Delete file"""
+        raise NotImplementedError("File deletion not implemented yet")
 
     async def adelete(self, file_id: str, **kwargs):
-        """Delete a file asynchronously"""
-        return await File.adelete(file_id=file_id, **kwargs)
+        """Delete file asynchronously"""
+        raise NotImplementedError("Async file deletion not implemented yet")
 
     def content(self, file_id: str, **kwargs):
         """Get file content"""
-        return File.content(file_id=file_id, **kwargs)
+        raise NotImplementedError("File content retrieval not implemented yet")
 
     async def acontent(self, file_id: str, **kwargs):
         """Get file content asynchronously"""
-        return await File.acontent(file_id=file_id, **kwargs)
+        raise NotImplementedError("Async file content retrieval not implemented yet")
 
 
 class Client:
