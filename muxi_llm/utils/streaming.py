@@ -165,6 +165,9 @@ async def json_stream_generator(
         try:
             data = json.loads(text)
             if data_key and isinstance(data, dict):
+                # Return None if data_key doesn't exist in the dict
+                if data_key not in data:
+                    return None
                 return data.get(data_key)
             return data
         except json.JSONDecodeError as e:
@@ -173,18 +176,24 @@ async def json_stream_generator(
             error.__cause__ = e
             raise error
 
-    # Get the generator from stream_generator
-    generator = stream_generator(
-        source_generator, transform_func=transform_json, timeout=timeout
-    )
+    try:
+        # Get the generator from stream_generator
+        generator = stream_generator(
+            source_generator, transform_func=transform_json, timeout=timeout
+        )
 
-    # If it's a coroutine, await it to get the actual generator
-    if inspect.iscoroutine(generator):
-        generator = await generator
+        # If it's a coroutine, await it to get the actual generator
+        if inspect.iscoroutine(generator):
+            generator = await generator
 
-    # Iterate through the generator
-    async for item in generator:
-        yield item
+        # Iterate through the generator
+        async for item in generator:
+            if item is not None:
+                yield item
+    except Exception as e:
+        if isinstance(e, StreamingError):
+            raise
+        raise StreamingError(f"Error in JSON streaming: {str(e)}") from e
 
 
 async def line_stream_generator(
@@ -210,40 +219,52 @@ async def line_stream_generator(
     """
 
     async def process_line(line: Union[str, bytes]) -> Optional[str]:
-        if isinstance(line, bytes):
-            try:
-                line = line.decode("utf-8")
-            except UnicodeDecodeError as e:
-                error = StreamingError("Error decoding bytes in streaming response")
-                error.__cause__ = e
-                raise error
+        try:
+            if isinstance(line, bytes):
+                try:
+                    line = line.decode("utf-8")
+                except UnicodeDecodeError as e:
+                    error = StreamingError("Error decoding bytes in streaming response")
+                    error.__cause__ = e
+                    raise error
 
-        line = line.rstrip("\r\n")
-        if not line.strip():  # Check if the line is empty or contains only whitespace
-            return None
+            line = line.rstrip("\r\n")
+            if not line.strip():  # Check if the line is empty or contains only whitespace
+                return None
 
-        if prefix:
-            if line.startswith(prefix):
-                result = line[len(prefix):]
-                if transform_func and result is not None:
-                    return transform_func(result)
-                return result
-            return None
+            if prefix:
+                if line.startswith(prefix):
+                    result = line[len(prefix):]
+                    if transform_func and result is not None:
+                        return transform_func(result)
+                    return result
+                return None
 
-        if transform_func:
-            return transform_func(line)
-        return line
+            if transform_func and line:
+                return transform_func(line)
+            return line
+        except UnicodeDecodeError as e:
+            raise StreamingError(f"Error decoding line in streaming response: {str(e)}") from e
+        except Exception as e:
+            if isinstance(e, StreamingError):
+                raise
+            raise StreamingError(f"Error processing line in streaming response: {str(e)}") from e
 
-    # Get the generator from stream_generator
-    generator = stream_generator(
-        source_generator, transform_func=process_line, timeout=timeout
-    )
+    try:
+        # Get the generator from stream_generator
+        generator = stream_generator(
+            source_generator, transform_func=process_line, timeout=timeout
+        )
 
-    # If it's a coroutine, await it to get the actual generator
-    if inspect.iscoroutine(generator):
-        generator = await generator
+        # If it's a coroutine, await it to get the actual generator
+        if inspect.iscoroutine(generator):
+            generator = await generator
 
-    # Iterate through the generator
-    async for item in generator:
-        if item is not None:
-            yield item
+        # Iterate through the generator
+        async for item in generator:
+            if item is not None:
+                yield item
+    except Exception as e:
+        if isinstance(e, StreamingError):
+            raise
+        raise StreamingError(f"Error in line streaming: {str(e)}") from e
