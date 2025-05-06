@@ -422,4 +422,3 @@ class Client:
 
 # Alias for OpenAI = Client for backward compatibility
 OpenAI = Client
-
