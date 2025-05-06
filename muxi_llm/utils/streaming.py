@@ -191,6 +191,7 @@ async def line_stream_generator(
     source_generator: AsyncGenerator[Union[str, bytes], None],
     prefix: Optional[str] = None,
     timeout: Optional[float] = None,
+    transform_func: Optional[Callable[[str], str]] = None,
 ) -> AsyncGenerator[str, None]:
     """
     Create a line stream from a source generator, optionally filtering by prefix.
@@ -199,6 +200,7 @@ async def line_stream_generator(
         source_generator: The source async generator yielding strings or bytes
         prefix: Optional prefix to filter lines (only lines starting with this prefix are yielded)
         timeout: Optional timeout for each item
+        transform_func: Optional function to transform each line after processing
 
     Yields:
         Lines from the source generator, with the prefix removed if specified
@@ -222,9 +224,14 @@ async def line_stream_generator(
 
         if prefix:
             if line.startswith(prefix):
-                return line[len(prefix):]
+                result = line[len(prefix):]
+                if transform_func and result is not None:
+                    return transform_func(result)
+                return result
             return None
 
+        if transform_func:
+            return transform_func(line)
         return line
 
     # Get the generator from stream_generator
