@@ -75,9 +75,11 @@ class FallbackProviderProxy(Provider):
 
         Raises:
             FallbackExhaustionError: If all models fail
+            AttributeError: If method is missing on all providers
         """
         last_error = None
         models_tried = []
+        attribute_errors = 0
 
         # Limit the number of fallbacks if max_fallbacks is set
         models_to_try = self.models
@@ -127,6 +129,13 @@ class FallbackProviderProxy(Provider):
 
                 return result
 
+            except AttributeError as e:
+                # Method not implemented on this provider
+                attribute_errors += 1
+                last_error = e
+                # Continue to next provider without logging as retriable
+                continue
+
             except Exception as e:
                 last_error = e
 
@@ -145,12 +154,21 @@ class FallbackProviderProxy(Provider):
 
                 # Continue to next fallback
 
+        # If attribute errors on all providers, that means the method wasn't supported
+        if attribute_errors == len(models_tried) and last_error:
+            raise last_error  # Re-raise the AttributeError
+
         # If we get here, all models failed
         if last_error:
+            # Use the correct fallback_models list based on max_fallbacks
+            fallback_models = self.models[1:]
+            if self.fallback_config.max_fallbacks is not None:
+                fallback_models = self.models[1:self.fallback_config.max_fallbacks + 1]
+
             raise FallbackExhaustionError(
                 message=f"All models failed: {str(last_error)}",
                 primary_model=self.models[0],
-                fallback_models=self.models[1:],
+                fallback_models=fallback_models,
                 models_tried=models_tried,
                 original_error=last_error,
             )
@@ -226,8 +244,26 @@ class FallbackProviderProxy(Provider):
                         )
                     )
 
-                # Simply forward the generator from the provider without wrapping it
-                return generator
+                # Create a wrapper generator that forwards chunks but handles errors
+                async def safe_generator():
+                    try:
+                        async for chunk in generator:
+                            yield chunk
+                    except Exception as e:
+                        # If the generator fails after yielding some chunks,
+                        # propagate the error with proper error type
+                        if any(
+                            isinstance(e, err_type)
+                            for err_type in self.fallback_config.retriable_errors
+                        ):
+                            # This is a retriable error, let the outer loop handle it
+                            raise
+                        else:
+                            # Non-retriable error, propagate directly
+                            raise
+
+                # Return the wrapped generator
+                return safe_generator()
 
             except Exception as e:
                 last_error = e
@@ -249,10 +285,15 @@ class FallbackProviderProxy(Provider):
 
         # If we get here, all models failed
         if last_error:
+            # Use the correct fallback_models list based on max_fallbacks
+            fallback_models = self.models[1:]
+            if self.fallback_config.max_fallbacks is not None:
+                fallback_models = self.models[1:self.fallback_config.max_fallbacks + 1]
+
             raise FallbackExhaustionError(
                 message=f"All models failed: {str(last_error)}",
                 primary_model=self.models[0],
-                fallback_models=self.models[1:],
+                fallback_models=fallback_models,
                 models_tried=models_tried,
                 original_error=last_error,
             )
@@ -272,16 +313,21 @@ class FallbackProviderProxy(Provider):
         """Create a chat completion with fallback support."""
         # Special handling for streaming
         if stream:
-            # Need to create a wrapper that awaits the coroutine and then yields from the generator
-            async def stream_generator():
+            try:
+                # Get streaming generator from _try_streaming_with_fallbacks
                 generator = await self._try_streaming_with_fallbacks(
                     "create_chat_completion", messages=messages, stream=stream, **kwargs
                 )
-                async for chunk in generator:
-                    yield chunk
 
-            # Return the async generator
-            return stream_generator()
+                # Create a wrapper generator that just yields from the inner generator
+                async def stream_generator():
+                    async for chunk in generator:
+                        yield chunk
+
+                return stream_generator()
+            except Exception as e:
+                # Propagate exceptions correctly
+                raise e
         else:
             return await self._try_with_fallbacks(
                 "create_chat_completion", messages=messages, stream=stream, **kwargs
@@ -297,16 +343,21 @@ class FallbackProviderProxy(Provider):
         """Create a text completion with fallback support."""
         # Special handling for streaming
         if stream:
-            # Need to create a wrapper that awaits the coroutine and then yields from the generator
-            async def stream_generator():
+            try:
+                # Get streaming generator from _try_streaming_with_fallbacks
                 generator = await self._try_streaming_with_fallbacks(
                     "create_completion", prompt=prompt, stream=stream, **kwargs
                 )
-                async for chunk in generator:
-                    yield chunk
 
-            # Return the async generator
-            return stream_generator()
+                # Create a wrapper generator that just yields from the inner generator
+                async def stream_generator():
+                    async for chunk in generator:
+                        yield chunk
+
+                return stream_generator()
+            except Exception as e:
+                # Propagate exceptions correctly
+                raise e
         else:
             return await self._try_with_fallbacks(
                 "create_completion", prompt=prompt, stream=stream, **kwargs
@@ -340,6 +391,7 @@ class FallbackProviderProxy(Provider):
         **kwargs,
     ) -> bytes:
         """Create speech with fallback support."""
+        # This method is not required by the Provider interface, so check provider support
         return await self._try_with_fallbacks("create_speech", input=input, **kwargs)
 
     async def create_image(
@@ -349,4 +401,31 @@ class FallbackProviderProxy(Provider):
         **kwargs,
     ) -> List[Dict[str, Any]]:
         """Create images with fallback support."""
+        # This method is not required by the Provider interface, so check provider support
         return await self._try_with_fallbacks("create_image", prompt=prompt, **kwargs)
+
+    async def create_transcription(
+        self,
+        file: Any,
+        model: str = None,  # Ignored since we use models from the proxy
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Create a transcription with fallback support."""
+        return await self._try_with_fallbacks("create_transcription", file=file, **kwargs)
+
+    async def create_translation(
+        self,
+        file: Any,
+        model: str = None,  # Ignored since we use models from the proxy
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Create a translation with fallback support."""
+        return await self._try_with_fallbacks("create_translation", file=file, **kwargs)
+
+    async def list_files(self, **kwargs) -> List[Dict[str, Any]]:
+        """List files with fallback support."""
+        return await self._try_with_fallbacks("list_files", **kwargs)
+
+    async def delete_file(self, file_id: str, **kwargs) -> Dict[str, Any]:
+        """Delete a file with fallback support."""
+        return await self._try_with_fallbacks("delete_file", file_id=file_id, **kwargs)
