@@ -60,31 +60,82 @@ async def stream_generator(
         StreamingError: If an error occurs during streaming
     """
     try:
-        async for item in source_generator:
-            if transform_func:
-                try:
-                    # Call the transform function
-                    transformed = transform_func(item)
+        # Handle case where source_generator is actually a coroutine (happens in tests with mocks)
+        if inspect.iscoroutine(source_generator):
+            source_generator = await source_generator
 
-                    # Check if the transform function returned a coroutine
-                    if inspect.iscoroutine(transformed):
-                        # Await the coroutine
-                        transformed = await transformed
+        if timeout is not None:
+            # Implementation with timeout
+            async for item in _stream_with_timeout(source_generator, transform_func, timeout):
+                yield item
+        else:
+            # Implementation without timeout
+            async for item in source_generator:
+                if transform_func:
+                    try:
+                        # Call the transform function
+                        transformed = transform_func(item)
 
-                    if transformed is not None:
-                        yield transformed
-                except Exception as e:
-                    raise StreamingError(
-                        f"Error transforming streaming response: {str(e)}"
-                    ) from e
-            else:
-                yield item  # type: ignore
+                        # Check if the transform function returned a coroutine
+                        if inspect.iscoroutine(transformed):
+                            # Await the coroutine
+                            transformed = await transformed
+
+                        if transformed is not None:
+                            yield transformed
+                    except Exception as e:
+                        if isinstance(e, StreamingError):
+                            raise
+                        raise StreamingError(
+                            f"Error transforming streaming response: {str(e)}"
+                        ) from e
+                else:
+                    yield item  # type: ignore
     except asyncio.TimeoutError:
         raise StreamingError(f"Streaming response timed out after {timeout} seconds")
     except Exception as e:
         if isinstance(e, StreamingError):
             raise
         raise StreamingError(f"Error in streaming response: {str(e)}") from e
+
+
+async def _stream_with_timeout(
+    source_generator: AsyncGenerator[Any, None],
+    transform_func: Optional[Callable[[Any], T]],
+    timeout: float,
+) -> AsyncGenerator[T, None]:
+    """Helper to implement streaming with timeout."""
+    try:
+        while True:
+            try:
+                # Get next item with timeout
+                get_next = source_generator.__anext__()
+                item = await asyncio.wait_for(get_next, timeout)
+
+                if transform_func:
+                    try:
+                        # Call the transform function
+                        transformed = transform_func(item)
+
+                        # Check if the transform function returned a coroutine
+                        if inspect.iscoroutine(transformed):
+                            # Await the coroutine
+                            transformed = await transformed
+
+                        if transformed is not None:
+                            yield transformed
+                    except Exception as e:
+                        if isinstance(e, StreamingError):
+                            raise
+                        raise StreamingError(
+                            f"Error transforming streaming response: {str(e)}"
+                        ) from e
+                else:
+                    yield item  # type: ignore
+            except StopAsyncIteration:
+                break
+    except asyncio.TimeoutError:
+        raise StreamingError(f"Streaming response timed out after {timeout} seconds")
 
 
 async def json_stream_generator(
@@ -117,11 +168,22 @@ async def json_stream_generator(
                 return data.get(data_key)
             return data
         except json.JSONDecodeError as e:
-            raise StreamingError(f"Invalid JSON in streaming response: {text}") from e
+            # Create a new StreamingError with the JSONDecodeError as cause
+            error = StreamingError(f"Invalid JSON in streaming response: {text}")
+            error.__cause__ = e
+            raise error
 
-    async for item in stream_generator(
+    # Get the generator from stream_generator
+    generator = stream_generator(
         source_generator, transform_func=transform_json, timeout=timeout
-    ):
+    )
+
+    # If it's a coroutine, await it to get the actual generator
+    if inspect.iscoroutine(generator):
+        generator = await generator
+
+    # Iterate through the generator
+    async for item in generator:
         yield item
 
 
@@ -150,9 +212,9 @@ async def line_stream_generator(
             try:
                 line = line.decode("utf-8")
             except UnicodeDecodeError as e:
-                raise StreamingError(
-                    "Error decoding bytes in streaming response"
-                ) from e
+                error = StreamingError("Error decoding bytes in streaming response")
+                error.__cause__ = e
+                raise error
 
         line = line.rstrip("\r\n")
         if not line.strip():  # Check if the line is empty or contains only whitespace
@@ -165,8 +227,16 @@ async def line_stream_generator(
 
         return line
 
-    async for item in stream_generator(
+    # Get the generator from stream_generator
+    generator = stream_generator(
         source_generator, transform_func=process_line, timeout=timeout
-    ):
+    )
+
+    # If it's a coroutine, await it to get the actual generator
+    if inspect.iscoroutine(generator):
+        generator = await generator
+
+    # Iterate through the generator
+    async for item in generator:
         if item is not None:
             yield item
