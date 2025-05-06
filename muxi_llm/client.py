@@ -386,11 +386,11 @@ class FilesResource:
 
     def content(self, file_id: str, **kwargs):
         """Get file content"""
-        raise NotImplementedError("File content retrieval not implemented yet")
+        return File.download(file_id=file_id, provider="openai", **kwargs)
 
     async def acontent(self, file_id: str, **kwargs):
         """Get file content asynchronously"""
-        raise NotImplementedError("Async file content retrieval not implemented yet")
+        return await File.adownload(file_id=file_id, provider="openai", **kwargs)
 
 
 class Client:
