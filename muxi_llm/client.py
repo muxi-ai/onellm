@@ -30,10 +30,10 @@ from typing import Any, Dict, List, Optional, Union
 from .chat_completion import ChatCompletion
 from .completion import Completion
 from .embedding import Embedding
+from .files import File
 from .image import Image
 from .audio import AudioTranscription, AudioTranslation
 from .speech import Speech
-from .files import File
 
 
 class ChatCompletionsResource:
@@ -370,19 +370,19 @@ class FilesResource:
 
     def list(self, **kwargs):
         """List files"""
-        raise NotImplementedError("Files listing not implemented yet")
+        return File.list(provider="openai", **kwargs)
 
     async def alist(self, **kwargs):
         """List files asynchronously"""
-        raise NotImplementedError("Async files listing not implemented yet")
+        return await File.alist(provider="openai", **kwargs)
 
     def delete(self, file_id: str, **kwargs):
         """Delete file"""
-        raise NotImplementedError("File deletion not implemented yet")
+        return File.delete(file_id=file_id, provider="openai", **kwargs)
 
     async def adelete(self, file_id: str, **kwargs):
         """Delete file asynchronously"""
-        raise NotImplementedError("Async file deletion not implemented yet")
+        return await File.adelete(file_id=file_id, provider="openai", **kwargs)
 
     def content(self, file_id: str, **kwargs):
         """Get file content"""
