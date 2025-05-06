@@ -257,11 +257,11 @@ class File:
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
-            Dictionary with deletion status
+            Dictionary containing the deletion status
 
         Example:
             >>> result = File.delete("file-abc123", provider="openai")
-            >>> print(f"File deleted: {result['deleted']}")
+            >>> print(f"Deleted: {result['deleted']}")
         """
         # Get provider instance
         provider_instance = get_provider(provider)
@@ -269,7 +269,9 @@ class File:
         # Call the provider's delete_file method synchronously
         import asyncio
 
-        return asyncio.run(provider_instance.delete_file(file_id=file_id, **kwargs))
+        return asyncio.run(
+            provider_instance.delete_file(file_id=file_id, **kwargs)
+        )
 
     @classmethod
     async def adelete(
@@ -287,11 +289,11 @@ class File:
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
-            Dictionary with deletion status
+            Dictionary containing the deletion status
 
         Example:
             >>> result = await File.adelete("file-abc123", provider="openai")
-            >>> print(f"File deleted: {result['deleted']}")
+            >>> print(f"Deleted: {result['deleted']}")
         """
         # Get provider instance
         provider_instance = get_provider(provider)
