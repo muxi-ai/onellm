@@ -71,20 +71,30 @@ class OpenAIProvider(Provider):
         Initialize the OpenAI provider.
 
         Args:
+            api_key: Optional API key
+            organization_id: Optional organization ID
             **kwargs: Additional configuration options
         """
         # Get configuration with potential overrides from global config only
-        # Don't allow direct API key parameters
         self.config = get_provider_config("openai")
 
-        # Remove ability to pass api_key and other credentials directly
-        # Filter out any credential parameters
+        # Extract credential parameters
+        api_key = kwargs.pop("api_key", None)
+        organization_id = kwargs.pop("organization_id", None)
+
+        # Filter out any other credential parameters
         filtered_kwargs = {
             k: v for k, v in kwargs.items() if k not in ["api_key", "organization_id"]
         }
 
-        # Only update non-credential configuration
+        # Update non-credential configuration
         self.config.update(filtered_kwargs)
+
+        # Apply credentials explicitly provided to the constructor
+        if api_key:
+            self.config["api_key"] = api_key
+        if organization_id:
+            self.config["organization_id"] = organization_id
 
         # Check for required configuration
         if not self.config.get("api_key"):
@@ -94,12 +104,12 @@ class OpenAIProvider(Provider):
                 provider="openai",
             )
 
-        # Set up configuration
-        self.api_base = self.config.get("api_base", "https://api.openai.com/v1")
-        self.api_key = self.config.get("api_key")
+        # Store relevant configuration as instance variables
+        self.api_key = self.config["api_key"]
+        self.api_base = self.config["api_base"]
         self.organization_id = self.config.get("organization_id")
-        self.timeout = float(self.config.get("timeout", 60))
-        self.max_retries = int(self.config.get("max_retries", 3))
+        self.timeout = self.config["timeout"]
+        self.max_retries = self.config["max_retries"]
 
         # Create retry configuration
         self.retry_config = RetryConfig(
@@ -686,6 +696,45 @@ class OpenAIProvider(Provider):
 
         # Use retry mechanism
         return await retry_async(execute_request, config=self.retry_config)
+
+    async def list_files(self, **kwargs) -> Dict[str, Any]:
+        """
+        List files available to the user.
+
+        Args:
+            **kwargs: Additional parameters like 'purpose' to filter files
+
+        Returns:
+            Dictionary containing list of files
+        """
+        # Extract additional parameters
+        data = {}
+        if "purpose" in kwargs:
+            data["purpose"] = kwargs["purpose"]
+
+        # Make the API request
+        return await self._make_request(
+            method="GET",
+            path="/files",
+            data=data
+        )
+
+    async def delete_file(self, file_id: str, **kwargs) -> Dict[str, Any]:
+        """
+        Delete a file.
+
+        Args:
+            file_id: ID of the file to delete
+            **kwargs: Additional parameters
+
+        Returns:
+            Dictionary with deletion status
+        """
+        # Make the API request
+        return await self._make_request(
+            method="DELETE",
+            path=f"/files/{file_id}"
+        )
 
     async def create_transcription(
         self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
