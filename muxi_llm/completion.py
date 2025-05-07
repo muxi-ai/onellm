@@ -44,6 +44,7 @@ class Completion:
         stream: bool = False,
         fallback_models: Optional[List[str]] = None,
         fallback_config: Optional[dict] = None,
+        retries: int = 0,
         **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
@@ -55,6 +56,7 @@ class Completion:
             stream: Whether to stream the response
             fallback_models: Optional list of models to try if the primary model fails
             fallback_config: Optional configuration for fallback behavior
+            retries: Number of times to retry the primary model before falling back (default: 0)
             **kwargs: Additional model parameters
 
         Returns:
@@ -81,10 +83,18 @@ class Completion:
         if fallback_config:
             fb_config = FallbackConfig(**fallback_config)
 
+        # Add retries by prepending the primary model to fallback_models
+        effective_fallback_models = fallback_models
+        if retries > 0:
+            if effective_fallback_models is None:
+                effective_fallback_models = [model] * retries
+            else:
+                effective_fallback_models = [model] * retries + effective_fallback_models
+
         # Get provider with fallbacks or a regular provider
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
-            fallback_models=fallback_models,
+            fallback_models=effective_fallback_models,
             fallback_config=fb_config,
         )
 
@@ -114,6 +124,7 @@ class Completion:
         stream: bool = False,
         fallback_models: Optional[List[str]] = None,
         fallback_config: Optional[dict] = None,
+        retries: int = 0,
         **kwargs
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
@@ -125,6 +136,7 @@ class Completion:
             stream: Whether to stream the response
             fallback_models: Optional list of models to try if the primary model fails
             fallback_config: Optional configuration for fallback behavior
+            retries: Number of times to retry the primary model before falling back (default: 0)
             **kwargs: Additional model parameters
 
         Returns:
@@ -151,10 +163,18 @@ class Completion:
         if fallback_config:
             fb_config = FallbackConfig(**fallback_config)
 
+        # Add retries by prepending the primary model to fallback_models
+        effective_fallback_models = fallback_models
+        if retries > 0:
+            if effective_fallback_models is None:
+                effective_fallback_models = [model] * retries
+            else:
+                effective_fallback_models = [model] * retries + effective_fallback_models
+
         # Get provider with fallbacks or a regular provider
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
-            fallback_models=fallback_models,
+            fallback_models=effective_fallback_models,
             fallback_config=fb_config,
         )
 
