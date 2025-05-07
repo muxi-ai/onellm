@@ -47,7 +47,7 @@ For more detailed examples, check out the [examples directory](./examples).
 ## Key Features
 
 - **Drop-in replacement for OpenAI** - Use your existing OpenAI code with minimal changes
-- **Provider-agnostic** - Support for 300+ models across 25+ LLM providers through direct integration or via OpenRouter
+- **Provider-agnostic** - Support for 300+ models across 25+ LLM providers and services
 - **Automatic model fallback** - Seamlessly switch to alternative models when a provider is unavailable
 - **Auto-retry mechanism** - Automatically retry the same model multiple times before failing or falling back
 - **OpenAI-compatible API** - Familiar interface for developers accustomed to OpenAI's client library
