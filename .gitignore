@@ -156,3 +156,4 @@ logs/
 .playwright-cache/
 .specstory/
 .specstory/
+examples/frontmatter_template.py
