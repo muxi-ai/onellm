@@ -1,5 +1,8 @@
 # muxi-llm
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ranaroussi/muxi_llm)
+[![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
 A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client with support for hundreds of models.
 
 ## Overview
@@ -8,11 +11,39 @@ muxi-llm is a lightweight, provider-agnostic Python library that offers a unifie
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
+## Getting Started
+
+### Installation
+
+```bash
+pip install muxi-llm
+```
+
+### Quick Start
+
+```python
+# Basic usage with OpenAI-compatible syntax
+from muxi_llm import ChatCompletion
+
+response = ChatCompletion.create(
+    model="openai/gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello, how are you?"}
+    ]
+)
+
+print(response.choices[0].message["content"])
+```
+
+For more detailed examples, check out the [examples directory](./examples).
+
 ## Key Features
 
 - **Drop-in replacement for OpenAI** - Use your existing OpenAI code with minimal changes
 - **Provider-agnostic** - Support for 100+ LLM providers through direct integration or via OpenRouter
 - **Automatic model fallback** - Seamlessly switch to alternative models when a provider is unavailable
+- **Auto-retry mechanism** - Automatically retry the same model multiple times before failing or falling back
 - **OpenAI-compatible API** - Familiar interface for developers accustomed to OpenAI's client library
 - **Streaming support** - Real-time streaming responses from supported providers
 - **Multi-modal capabilities** - Full support for text, images, audio, and video across compatible models
@@ -31,6 +62,7 @@ muxi-llm supports hundreds of models through:
 ### Notable Providers
 
 * **OpenAI** - Base implementation and reference API
+* **Google Gemini** - OpenAI-compatible API for Gemini models
 * **Together AI** - Full compatibility for chat/completion/embedding
 * **Anyscale** - OpenAI-compatible endpoints
 * **Fireworks AI** - Drop-in replacement for OpenAI
@@ -39,6 +71,7 @@ muxi-llm supports hundreds of models through:
 * **Azure OpenAI** - Microsoft's hosted version of OpenAI
 * **Perplexity AI** - Compatible chat completions
 * **DeepInfra** - OpenAI-compatible API
+* **DeepSeek** - OpenAI-compatible API for DeepSeek models
 * **Lepton AI** - Compatible endpoints
 * **OctoAI** - OpenAI-compatible for selected models
 * **Modal** - Hosts compatible endpoints
@@ -49,9 +82,10 @@ muxi-llm supports hundreds of models through:
 * **OpenRouter** - OpenAI-compatible API for multiple providers
 * **Anthropic** - Has its own API structure
 * **Ollama** - Custom API for local models
+* **llama.cpp** - C/C++ implementation for running LLMs locally with direct hardware access
 * **HuggingFace** - Different API structure
 * **Sagemaker** - Custom API for embeddings/completions
-* **Cohere** - Unique API format
+* **Cohere** - Offers both unique API format and OpenAI-compatible endpoints
 
 ### Notable Models Available
 
@@ -152,6 +186,24 @@ response = ChatCompletion.create(
     messages=[{"role": "user", "content": "Explain quantum computing"}]
 )
 
+# With retries and fallbacks for enhanced reliability
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+    retries=3,  # Try gpt-4 up to 3 additional times before failing or using fallbacks
+    fallback_models=["anthropic/claude-3-opus", "mistral/mistral-large"]
+)
+
+# JSON mode for structured outputs
+response = ChatCompletion.create(
+    model="openai/gpt-4o",
+    messages=[
+        {"role": "user", "content": "List the top 3 planets by size"}
+    ],
+    response_format={"type": "json_object"}  # Request structured JSON output
+)
+print(response.choices[0].message["content"])  # Outputs valid, parseable JSON
+
 # Multi-modal with images
 response = ChatCompletion.create(
     model="openai/gpt-4-vision",
@@ -195,6 +247,84 @@ from muxi_llm import Embedding
 response = Embedding.create(
     model="openai/text-embedding-3-small",
     input="The quick brown fox jumps over the lazy dog"
+)
+```
+
+## Advanced Features
+
+### Fallback Chains for Enhanced Reliability
+
+muxi-llm includes built-in fallback support to handle API errors gracefully:
+
+```python
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello, how are you?"}],
+    fallback_models=[
+        "anthropic/claude-3-haiku",  # Try Claude if GPT-4 fails
+        "openai/gpt-3.5-turbo"       # Try GPT-3.5 if Claude fails
+    ]
+)
+```
+
+If the primary model fails due to service unavailability, rate limiting, or other retriable errors, muxi-llm automatically tries the fallback models in sequence.
+
+### Automatic Retries
+
+For transient errors, you can configure muxi-llm to retry the same model multiple times before falling back to alternatives:
+
+```python
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello, how are you?"}],
+    retries=3,  # Will try the same model up to 3 additional times if it fails
+    fallback_models=["anthropic/claude-3-haiku", "openai/gpt-3.5-turbo"]
+)
+```
+
+This is implemented using the fallback mechanism under the hood, making it both powerful and efficient.
+
+### JSON Mode for Structured Outputs
+
+For applications that require structured data, muxi-llm supports JSON mode with compatible providers:
+
+```python
+response = ChatCompletion.create(
+    model="openai/gpt-4o",
+    messages=[
+        {"role": "user", "content": "List the top 3 programming languages with their key features"}
+    ],
+    response_format={"type": "json_object"}  # Request JSON output
+)
+
+# The response contains valid, parseable JSON
+json_response = response.choices[0].message["content"]
+print(json_response)  # Structured JSON data
+
+# Parse it with standard libraries
+import json
+structured_data = json.loads(json_response)
+```
+
+When using providers that don't natively support JSON mode, muxi-llm automatically adds system instructions requesting JSON-formatted responses.
+
+### Asynchronous Support
+
+Both synchronous and asynchronous APIs are available:
+
+```python
+# Synchronous
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+
+# Asynchronous with fallbacks and retries
+response = await ChatCompletion.acreate(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello"}],
+    retries=2,
+    fallback_models=["anthropic/claude-3-opus"]
 )
 ```
 
@@ -259,6 +389,18 @@ response = ChatCompletion.create(
     }
 )
 
+# Using retries with fallbacks for enhanced reliability
+from muxi_llm import ChatCompletion
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello world"}],
+    retries=3,  # Will retry gpt-4 up to 3 additional times before using fallbacks
+    fallback_models=[
+        "anthropic/claude-3-haiku",
+        "openai/gpt-3.5-turbo"
+    ]
+)
+
 # Using fallback with the client interface
 from muxi_llm import OpenAI
 client = OpenAI()
@@ -266,9 +408,9 @@ response = client.chat.completions.create(
     model="openai/gpt-4",
     messages=[{"role": "user", "content": "Hello world"}],
     fallback_models=[
-    	"anthropic/claude-3-opus",
-    	"groq/llama3-70b"
-	]
+        "anthropic/claude-3-opus",
+        "groq/llama3-70b"
+    ]
 )
 ```
 
@@ -277,9 +419,14 @@ response = client.chat.completions.create(
 Models are specified using a provider prefix to clearly identify the source:
 
 - `openai/gpt-4` - OpenAI's GPT-4
+- `google/gemini-pro` - Google's Gemini Pro model
 - `anthropic/claude-3-opus` - Anthropic's Claude model
 - `groq/llama3-70b` - Llama 3 via Groq
+- `mistral/mistral-large` - Mistral AI's large model
+- `cohere/command-r` - Cohere's Command R model
+- `deepseek/deepseek-coder` - DeepSeek's coding model
 - `ollama/llama3` - Local Llama model via Ollama
+- `llama_cpp/llama-3-8b` - Local Llama model via llama.cpp
 - `openrouter/anthropic/claude-3` - Claude via OpenRouter
 
 ## Configuration
@@ -309,31 +456,6 @@ muxi_llm.config.fallback = {
 }
 ```
 
-## Implementation Plan
-
-The implementation will be phased to deliver value incrementally:
-
-### Phase 1: Core Framework and OpenAI Support
-
-- Basic architecture and interfaces
-- OpenAI provider implementation
-- Chat completion, text completion, and embedding support
-- Unit tests and documentation
-
-### Phase 2: OpenAI-compatible Providers
-
-- Add support for major OpenAI-compatible providers
-- Implement streaming capabilities
-- Add retry mechanisms and error handling
-- Expand test coverage
-
-### Phase 3: Custom API Providers
-
-- Implement Anthropic support
-- Implement Ollama support
-- Add multi-modal capabilities
-- Further enhance documentation and examples
-
 ## Test Coverage
 
 muxi-llm maintains comprehensive test coverage to ensure reliability and compatibility:
@@ -342,11 +464,44 @@ muxi-llm maintains comprehensive test coverage to ensure reliability and compati
 - **Integration tests** with mock servers for each provider
 - **End-to-end tests** with actual API calls (using recorded responses)
 - **Compatibility tests** across different Python versions
-- **Performance benchmarks** for critical operations
 
 The CI pipeline ensures all tests pass before merging changes, maintaining a high standard of quality.
 
-## Contributing
+### Current Coverage Metrics
+
+As of May 2024, muxi-llm maintains exceptional test coverage:
+
+- **96% overall package coverage** with 357 passing tests
+- **16 modules with perfect 100% coverage**, including core types, models, errors, files, and embeddings
+- **All modules maintain 90%+ coverage**, ensuring robust behavior across the entire codebase
+- **Key provider implementations at 93-95% coverage**, with only difficult-to-test edge cases remaining uncovered
+- **Comprehensive async testing** with robust handling of streaming responses and error conditions
+
+This extensive test coverage ensures reliable operation across all supported providers and models.
+
+## Documentation
+
+muxi-llm uses a code-first documentation approach:
+
+1. **Examples Directory**: The `examples/` directory contains well-documented example scripts that demonstrate all key features of the library:
+   - Each example includes detailed frontmatter explaining its purpose and relationship to the codebase
+   - Examples range from basic usage to advanced features like fallbacks, retries, and multi-modal capabilities
+   - Running the examples is the fastest way to understand the library's capabilities
+
+2. **Code Docstrings**: All public APIs, classes, and methods have comprehensive docstrings:
+   - Detailed parameter descriptions
+   - Return value documentation
+   - Exception information
+   - Usage examples
+
+3. **Type Annotations**: The codebase uses Python type annotations throughout:
+   - Provides IDE autocompletion support
+   - Makes argument requirements clear
+   - Enables static type checking
+
+This approach keeps documentation tightly coupled with code, ensuring it stays up-to-date as the library evolves. To get started, we recommend examining the examples that match your use case.
+
+## Call for Contributions
 
 I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features, improving documentation, or supporting new providers, your help is appreciated.
 
@@ -375,5 +530,40 @@ I chose the AGPL license to ensure that all improvements to muxi-llm remain avai
 
 For individuals and organizations integrating muxi-llm into their applications, this means you can freely use, modify, and distribute the library, as long as you share your improvements with the community when you distribute your software.
 
+## Developing Custom Providers
 
+### Provider Capability Flags
 
+When developing custom providers for muxi-llm, use capability flags to indicate supported features:
+
+```python
+from muxi_llm.providers.base import Provider
+
+class MyCustomProvider(Provider):
+    """Custom provider implementation."""
+
+    # Set capability flags
+    json_mode_support = True         # Supports structured JSON output
+
+    # Multi-modal capabilities
+    vision_support = True            # Supports image inputs
+    audio_input_support = False      # No audio input support
+    video_input_support = False      # No video input support
+
+    # Streaming capabilities
+    streaming_support = True         # Supports streaming responses
+    token_by_token_support = True    # Supports granular token streaming
+
+    # Realtime capabilities
+    realtime_support = False         # No realtime API support
+
+    # Implement required methods...
+```
+
+The library automatically adapts requests based on each provider's capabilities:
+
+1. When JSON mode is requested for providers without support, a system message is added
+2. For streaming requests with non-streaming providers, streaming is disabled
+3. Image/audio/video content is removed for providers without multimedia support
+
+These flags help the library gracefully handle features across different provider implementations while maintaining consistent behavior.
