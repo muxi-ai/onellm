@@ -1,0 +1,47 @@
+[run]
+source = muxi_llm
+omit =
+    # Omit test files
+    */tests/*
+    # Omit setup.py and conftest.py
+    setup.py
+    conftest.py
+    # Omit any cached files
+    */__pycache__/*
+    # Common development files to ignore
+    */.tox/*
+    */.env/*
+    */.venv/*
+    */env/*
+    */venv/*
+
+parallel = True
+concurrency = multiprocessing,thread
+
+[report]
+# Don't show empty files in the report
+skip_empty = True
+
+# Exclude lines from coverage that match these patterns
+exclude_lines =
+    # Skip pragma comments that exclude code from coverage
+    pragma: no cover
+    # Skip defensive assertion code
+    raise NotImplementedError
+    # Skip abstract methods
+    @abstractmethod
+    # Skip debug-only print statements
+    def __repr__
+    # Skip assertions that should never happen
+    assert False
+    # Skip "pass" statements in abstract base classes
+    pass
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json
