@@ -1,6 +1,6 @@
 # muxi-llm
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ranaroussi/muxi_llm)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ranaroussi/muxi-llm)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client with support for hundreds of models.
