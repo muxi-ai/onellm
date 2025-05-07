@@ -16,7 +16,11 @@ The library follows the OpenAI client API design pattern, making it familiar to 
 ### Installation
 
 ```bash
+# Basic installation (includes OpenAI compatibility)
 pip install muxi-llm
+
+# For all providers (includes dependencies for future provider support)
+pip install "muxi-llm[all]"
 ```
 
 ### Quick Start
@@ -333,6 +337,8 @@ response = await ChatCompletion.acreate(
 muxi-llm provides multiple ways to migrate from the OpenAI client, including a fully compatible client interface:
 
 ### Option 1: Complete Drop-in Replacement (Identical Interface)
+
+muxi-llm is a complete drop-in replacement for the OpenAI client with the OpenAI library included as a default dependency:
 
 ```python
 # Before
