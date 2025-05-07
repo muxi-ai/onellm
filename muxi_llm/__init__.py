@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/ranaroussi/muxi_llm
+# https://github.com/ranaroussi/muxi-llm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -66,7 +66,7 @@ with open(version_file, "r", encoding="utf-8") as f:
 # Package metadata
 __author__ = "Ran Aroussi"
 __license__ = "AGPL-3.0"
-__url__ = "https://github.com/ranaroussi/muxi_llm"
+__url__ = "https://github.com/ranaroussi/muxi-llm"
 
 # Module exports - defines the public API of the package
 # This controls what gets imported when using "from muxi_llm import *"
