@@ -66,6 +66,9 @@ def parse_model_name(model: str) -> Tuple[str, str]:
 class Provider(ABC):
     """Base class for all LLM providers."""
 
+    # Provider capability flags
+    json_mode_support = False
+
     @classmethod
     def get_provider_name(cls) -> str:
         """Get the name of the provider."""

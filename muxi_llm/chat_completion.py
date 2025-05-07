@@ -26,6 +26,8 @@ completions from various providers in a manner compatible with OpenAI's API.
 """
 
 import asyncio
+import logging
+import warnings
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 from .providers.base import get_provider_with_fallbacks
@@ -35,6 +37,8 @@ from .utils.fallback import FallbackConfig
 
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
+
+    logger = logging.getLogger("muxi_llm.chat_completion")
 
     @classmethod
     def create(
@@ -93,6 +97,48 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
+        # Process kwargs based on provider capabilities
+        processed_kwargs = dict(kwargs)
+
+        # Handle JSON mode (response_format parameter)
+        if "response_format" in kwargs:
+            response_format = kwargs["response_format"]
+
+            # Check if this is a JSON mode request
+            is_json_mode = (
+                isinstance(response_format, dict) and
+                response_format.get("type") == "json_object"
+            )
+
+            if is_json_mode and not provider.json_mode_support:
+                # Provider doesn't support JSON mode, remove parameter and warn
+                processed_kwargs.pop("response_format", None)
+                warnings.warn(
+                    "The selected provider does not support JSON mode. "
+                    "The 'response_format' parameter will be ignored.",
+                    UserWarning,
+                    stacklevel=2
+                )
+
+                # Add a system message to request JSON format if not already present
+                has_system_message = False
+                for msg in messages:
+                    if msg.get("role") == "system":
+                        has_system_message = True
+                        if "json" not in msg.get("content", "").lower():
+                            # Append JSON instruction to existing system message
+                            msg["content"] += " Please provide your response in valid JSON format."
+                        break
+
+                if not has_system_message:
+                    # Add a new system message requesting JSON
+                    messages_copy = list(messages)  # Create a copy to avoid modifying the original
+                    messages_copy.insert(0, {
+                        "role": "system",
+                        "content": "Please provide your response in valid JSON format."
+                    })
+                    messages = messages_copy
+
         # Call the provider's method synchronously
         if stream:
             # For streaming, we need to use async properly
@@ -100,14 +146,14 @@ class ChatCompletion:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(
                 provider.create_chat_completion(
-                    messages=messages, model=model_name, stream=stream, **kwargs
+                    messages=messages, model=model_name, stream=stream, **processed_kwargs
                 )
             )
         else:
             # For non-streaming, we can just run and get the result
             return asyncio.run(
                 provider.create_chat_completion(
-                    messages=messages, model=model_name, stream=stream, **kwargs
+                    messages=messages, model=model_name, stream=stream, **processed_kwargs
                 )
             )
 
@@ -168,7 +214,49 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
+        # Process kwargs based on provider capabilities
+        processed_kwargs = dict(kwargs)
+
+        # Handle JSON mode (response_format parameter)
+        if "response_format" in kwargs:
+            response_format = kwargs["response_format"]
+
+            # Check if this is a JSON mode request
+            is_json_mode = (
+                isinstance(response_format, dict) and
+                response_format.get("type") == "json_object"
+            )
+
+            if is_json_mode and not provider.json_mode_support:
+                # Provider doesn't support JSON mode, remove parameter and warn
+                processed_kwargs.pop("response_format", None)
+                warnings.warn(
+                    "The selected provider does not support JSON mode. "
+                    "The 'response_format' parameter will be ignored.",
+                    UserWarning,
+                    stacklevel=2
+                )
+
+                # Add a system message to request JSON format if not already present
+                has_system_message = False
+                for msg in messages:
+                    if msg.get("role") == "system":
+                        has_system_message = True
+                        if "json" not in msg.get("content", "").lower():
+                            # Append JSON instruction to existing system message
+                            msg["content"] += " Please provide your response in valid JSON format."
+                        break
+
+                if not has_system_message:
+                    # Add a new system message requesting JSON
+                    messages_copy = list(messages)  # Create a copy to avoid modifying the original
+                    messages_copy.insert(0, {
+                        "role": "system",
+                        "content": "Please provide your response in valid JSON format."
+                    })
+                    messages = messages_copy
+
         # Call the provider's method asynchronously
         return await provider.create_chat_completion(
-            messages=messages, model=model_name, stream=stream, **kwargs
+            messages=messages, model=model_name, stream=stream, **processed_kwargs
         )

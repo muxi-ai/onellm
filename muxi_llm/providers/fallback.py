@@ -59,6 +59,43 @@ class FallbackProviderProxy(Provider):
         self.fallback_config = fallback_config or FallbackConfig()
         self.logger = logging.getLogger("muxi_llm.fallback")
 
+        # Lazy initialize capability flags - will be set on first access
+        self._json_mode_support = None
+
+    def _check_provider_capability(self, capability_name: str) -> bool:
+        """
+        Check if the primary provider supports a specific capability.
+
+        Args:
+            capability_name: Name of the capability flag to check
+
+        Returns:
+            True if the primary provider supports the capability, False otherwise
+        """
+        if not self.models:
+            return False
+
+        # Get the provider for the primary model
+        primary_model = self.models[0]
+        provider_name, _ = parse_model_name(primary_model)
+
+        # Lazy load the provider if needed
+        if provider_name not in self.providers:
+            self.providers[provider_name] = get_provider(provider_name)
+
+        # Get the provider instance
+        provider = self.providers[provider_name]
+
+        # Check if the capability is supported
+        return getattr(provider, capability_name, False)
+
+    @property
+    def json_mode_support(self) -> bool:
+        """Check if JSON mode is supported by the primary provider."""
+        if self._json_mode_support is None:
+            self._json_mode_support = self._check_provider_capability("json_mode_support")
+        return self._json_mode_support
+
     async def _try_with_fallbacks(
         self, method_name: str, *args: Any, **kwargs: Any
     ) -> Any:

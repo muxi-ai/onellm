@@ -66,6 +66,9 @@ from .base import Provider, register_provider
 class OpenAIProvider(Provider):
     """OpenAI provider implementation."""
 
+    # Set capability flags
+    json_mode_support = True
+
     def __init__(self, **kwargs):
         """
         Initialize the OpenAI provider.
