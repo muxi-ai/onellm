@@ -1,4 +1,3 @@
-import asyncio
 """
 Tests for improved coverage of image.py in muxi-llm.
 
@@ -18,16 +17,21 @@ from muxi_llm.image import Image
 class MockAsyncContextManager:
     def __init__(self, response):
         self._response = response
+
     async def __aenter__(self):
         return self._response
+
     async def __aexit__(self, exc_type, exc, tb):
         return None
+
 
 class MockSessionContextManager:
     def __init__(self, session):
         self._session = session
+
     async def __aenter__(self):
         return self._session
+
     async def __aexit__(self, exc_type, exc, tb):
         return None
 
@@ -49,11 +53,13 @@ class TestImageCreation:
                     "url": "https://example.com/image.png",
                     "revised_prompt": (
                         "A beautiful sunset casting golden light over a mountain range"
-                    )
+                    ),
                 }
-            ]
+            ],
         }
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider:
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider:
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
@@ -75,18 +81,19 @@ class TestImageCreation:
                     "b64_json": "base64encodedimage1",
                     "revised_prompt": (
                         "A vibrant futuristic cityscape with flying cars"
-                    )
+                    ),
                 },
                 {
                     "b64_json": "base64encodedimage2",
                     "revised_prompt": (
-                        "A detailed futuristic cityscape with "
-                        "tall skyscrapers"
-                    )
-                }
-            ]
+                        "A detailed futuristic cityscape with " "tall skyscrapers"
+                    ),
+                },
+            ],
         }
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider:
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider:
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
@@ -98,7 +105,7 @@ class TestImageCreation:
                 quality="hd",
                 style="vivid",
                 response_format="b64_json",
-                user="test-user"
+                user="test-user",
             )
             assert result == expected_result
 
@@ -114,15 +121,20 @@ class TestImageCreation:
             "data": [
                 {
                     "url": "https://example.com/image.png",
-                    "revised_prompt": "A beautiful sunset casting golden light over a mountain"
+                    "revised_prompt": "A beautiful sunset casting golden light over a mountain",
                 }
-            ]
+            ],
         }
+
         class DummyFallbackConfig:
             def __init__(self, **kwargs):
                 pass
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider, \
-             mock.patch("muxi_llm.image.FallbackConfig", DummyFallbackConfig):
+
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch(
+            "muxi_llm.image.FallbackConfig", DummyFallbackConfig
+        ):
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
@@ -130,7 +142,7 @@ class TestImageCreation:
                 prompt=prompt,
                 model=model,
                 fallback_models=fallback_models,
-                fallback_config=fallback_config
+                fallback_config=fallback_config,
             )
             assert result == expected_result
 
@@ -143,26 +155,21 @@ class TestImageCreation:
         test_image_bytes = b"fake image data"
         expected_result = {
             "created": 1617043084,
-            "data": [
-                {
-                    "url": "https://example.com/image.png"
-                }
-            ]
+            "data": [{"url": "https://example.com/image.png"}],
         }
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider, \
-             mock.patch("muxi_llm.image.os.makedirs"), \
-             mock.patch(
-                 "muxi_llm.image.Image._download_image",
-                 new=mock.AsyncMock(return_value=test_image_bytes),
-             ), \
-             mock.patch("builtins.open", mock.mock_open()):
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch("muxi_llm.image.os.makedirs"), mock.patch(
+            "muxi_llm.image.Image._download_image",
+            new=mock.AsyncMock(return_value=test_image_bytes),
+        ), mock.patch(
+            "builtins.open", mock.mock_open()
+        ):
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
             result = await Image.create(
-                prompt=prompt,
-                model=model,
-                output_dir=output_dir
+                prompt=prompt, model=model, output_dir=output_dir
             )
             assert result == expected_result
 
@@ -174,25 +181,21 @@ class TestImageCreation:
         output_dir = "/tmp/images"
         test_base64 = "aW1hZ2VkYXRh"  # "imagedata" in base64
         test_image_bytes = b"imagedata"
-        expected_result = {
-            "created": 1617043084,
-            "data": [
-                {
-                    "b64_json": test_base64
-                }
-            ]
-        }
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider, \
-             mock.patch("muxi_llm.image.os.makedirs") as mock_makedirs, \
-             mock.patch("base64.b64decode", return_value=test_image_bytes) as mock_b64decode, \
-             mock.patch("builtins.open", mock.mock_open()) as mock_open:
+        expected_result = {"created": 1617043084, "data": [{"b64_json": test_base64}]}
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch(
+            "muxi_llm.image.os.makedirs"
+        ) as mock_makedirs, mock.patch(
+            "base64.b64decode", return_value=test_image_bytes
+        ) as mock_b64decode, mock.patch(
+            "builtins.open", mock.mock_open()
+        ) as mock_open:
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
             result = await Image.create(
-                prompt=prompt,
-                model=model,
-                output_dir=output_dir
+                prompt=prompt, model=model, output_dir=output_dir
             )
             assert result == expected_result
 
@@ -220,17 +223,19 @@ class TestImageCreation:
 
         expected_result = {
             "created": 1617043084,
-            "data": [
-                {
-                    "url": "https://example.com/image.png"
-                }
-            ]
+            "data": [{"url": "https://example.com/image.png"}],
         }
 
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider, \
-             mock.patch("muxi_llm.image.os.makedirs") as mock_makedirs, \
-             mock.patch("muxi_llm.image.Image._download_image", new=mock.AsyncMock(return_value=test_image_bytes)) as mock_download, \
-             mock.patch("builtins.open", mock.mock_open()) as mock_open:
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch(
+            "muxi_llm.image.os.makedirs"
+        ) as mock_makedirs, mock.patch(
+            "muxi_llm.image.Image._download_image",
+            new=mock.AsyncMock(return_value=test_image_bytes),
+        ) as mock_download, mock.patch(
+            "builtins.open", mock.mock_open()
+        ) as mock_open:
 
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
@@ -240,39 +245,38 @@ class TestImageCreation:
                 prompt=prompt,
                 model=model,
                 output_dir=output_dir,
-                output_format=output_format
+                output_format=output_format,
             )
 
             mock_makedirs.assert_called_once_with(output_dir, exist_ok=True)
             mock_download.assert_called_once_with("https://example.com/image.png")
             filepath = mock_open.call_args[0][0]
             assert filepath.endswith(f".{output_format}")
-            assert result["data"][0]["filepath"].endswith(
-                f".{output_format}"
-            )
+            assert result["data"][0]["filepath"].endswith(f".{output_format}")
 
     @pytest.mark.asyncio
     async def test_create_with_output_dir_continue_branch(self):
-        """Test Image.create with output_dir and a data entry missing both 'url' and 'b64_json' (covers continue branch)."""
+        """
+        Test Image.create with output_dir and a data entry missing
+        both 'url' and 'b64_json' (covers continue branch).
+        """
         prompt = "A prompt"
         model = "openai/dall-e-3"
         output_dir = "/tmp/images"
         expected_result = {
             "created": 1617043084,
-            "data": [
-                {"irrelevant_key": "no image data"}
-            ]
+            "data": [{"irrelevant_key": "no image data"}],
         }
-        with mock.patch("muxi_llm.image.get_provider_with_fallbacks") as mock_get_provider, \
-             mock.patch("muxi_llm.image.os.makedirs"), \
-             mock.patch("builtins.open", mock.mock_open()):
+        with mock.patch(
+            "muxi_llm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch("muxi_llm.image.os.makedirs"), mock.patch(
+            "builtins.open", mock.mock_open()
+        ):
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
             mock_get_provider.return_value = (mock_provider, "dall-e-3")
             result = await Image.create(
-                prompt=prompt,
-                model=model,
-                output_dir=output_dir
+                prompt=prompt, model=model, output_dir=output_dir
             )
             assert result == expected_result
 
@@ -287,11 +291,7 @@ class TestImageCreateSync:
 
         expected_result = {
             "created": 1617043084,
-            "data": [
-                {
-                    "url": "https://example.com/image.png"
-                }
-            ]
+            "data": [{"url": "https://example.com/image.png"}],
         }
 
         # Mock the asyncio.run and create method
@@ -299,10 +299,7 @@ class TestImageCreateSync:
             mock_run.return_value = expected_result
 
             # Call the synchronous method
-            result = Image.create_sync(
-                prompt=prompt,
-                model=model
-            )
+            result = Image.create_sync(prompt=prompt, model=model)
 
             # Verify the result
             assert result == expected_result
@@ -328,9 +325,14 @@ class TestImageDownload:
         mock_response.read = mock.AsyncMock(return_value=image_content)
 
         mock_session = mock.MagicMock()
-        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(mock_response)
+        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(
+            mock_response
+        )
 
-        with mock.patch("aiohttp.ClientSession", return_value=MockSessionContextManager(mock_session)):
+        with mock.patch(
+            "aiohttp.ClientSession",
+            return_value=MockSessionContextManager(mock_session),
+        ):
             result = await Image._download_image(url)
             assert result == image_content
             mock_session.get.assert_called_once_with(url)
@@ -346,9 +348,14 @@ class TestImageDownload:
         mock_response.read = mock.AsyncMock()
 
         mock_session = mock.MagicMock()
-        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(mock_response)
+        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(
+            mock_response
+        )
 
-        with mock.patch("aiohttp.ClientSession", return_value=MockSessionContextManager(mock_session)):
+        with mock.patch(
+            "aiohttp.ClientSession",
+            return_value=MockSessionContextManager(mock_session),
+        ):
             with pytest.raises(ValueError) as excinfo:
                 await Image._download_image(url)
             assert "Failed to download image: 404" in str(excinfo.value)
@@ -365,9 +372,14 @@ class TestImageDownload:
         mock_response.read = mock.AsyncMock()
 
         mock_session = mock.MagicMock()
-        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(mock_response)
+        mock_session.get.side_effect = lambda *a, **kw: MockAsyncContextManager(
+            mock_response
+        )
 
-        with mock.patch("aiohttp.ClientSession", return_value=MockSessionContextManager(mock_session)):
+        with mock.patch(
+            "aiohttp.ClientSession",
+            return_value=MockSessionContextManager(mock_session),
+        ):
             with pytest.raises(ValueError) as excinfo:
                 await Image._download_image(url)
             assert "Failed to download image: 500" in str(excinfo.value)

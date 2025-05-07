@@ -18,7 +18,6 @@ from unittest.mock import AsyncMock
 
 from muxi_llm.files import File
 from muxi_llm.models import FileObject
-from muxi_llm.errors import InvalidRequestError
 
 
 # Create a comprehensive mock provider for file operations
@@ -159,7 +158,7 @@ class TestFilesFullCoverage:
 
             with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
                 # Call the method with destination
-                result = File.download(
+                File.download(
                     file_id="file-456",
                     destination=dest_path,
                     provider="openai"
@@ -187,7 +186,7 @@ class TestFilesFullCoverage:
 
             with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
                 # Call the method with nested path
-                result = File.download(
+                File.download(
                     file_id="file-789",
                     destination=dest_path,
                     provider="openai"
@@ -280,7 +279,7 @@ class TestFilesFullCoverage:
 
             with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
                 # Call the async method with destination
-                result = await File.adownload(
+                await File.adownload(
                     file_id="file-123",
                     destination=dest_path,
                     provider="openai"

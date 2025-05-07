@@ -52,7 +52,8 @@ class TestOpenAIFileUpload:
         file_content = b"This is a test file content."
 
         # Set up mock response
-        with mock.patch.object(self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
+        with mock.patch.object(
+                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
             mock_make_request.return_value = {
                 "id": "file-abc123",
                 "object": "file",
@@ -95,7 +96,8 @@ class TestOpenAIFileUpload:
         mock_file_content = b"This is test content from a file path."
 
         # Set up mock response
-        with mock.patch.object(self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request, \
+        with mock.patch.object(
+                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request, \
              mock.patch('builtins.open', mock.mock_open(read_data=mock_file_content)):
 
             mock_make_request.return_value = {
@@ -136,7 +138,8 @@ class TestOpenAIFileUpload:
         file_obj = io.BytesIO(file_content)
 
         # Set up mock response
-        with mock.patch.object(self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
+        with mock.patch.object(
+                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
             mock_make_request.return_value = {
                 "id": "file-io789",
                 "object": "file",

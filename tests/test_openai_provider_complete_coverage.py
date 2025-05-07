@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 Tests for complete coverage of the OpenAI provider.
@@ -15,20 +14,17 @@ This file targets specific uncovered sections in the OpenAI provider implementat
 - Lines 1064-1146: Image generation (DALL-E models)
 """
 
-import pytest
 import json
-from unittest import mock
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm.models import FileObject
+import pytest
+
 from muxi_llm.errors import (
-    InvalidRequestError, APIError, AuthenticationError,
-    RateLimitError, ServiceUnavailableError
+    APIError,
+    AuthenticationError,
+    InvalidRequestError,
 )
-
-# Import directly from the provider file
-from muxi_llm.providers.openai import ImageGenerationResult, TranscriptionResult
+from muxi_llm.providers.openai import OpenAIProvider
 
 
 # Helper function to check if a dictionary has required keys
@@ -237,17 +233,10 @@ class TestOpenAIProviderCompleteCoverage:
     @pytest.mark.xfail(reason="Cannot easily mock aiohttp.ClientSession inside download_file")
     async def test_download_file_error_handling(self):
         """Test download_file error handling (lines 679-698)."""
-        # Create a mock error response
-        error_response = {
-            "error": {
-                "message": "File not found",
-                "type": "invalid_request_error"
-            }
-        }
-
         # Since we can't control the aiohttp.ClientSession inside download_file
         # This test is marked as expected to fail
-        with pytest.raises(InvalidRequestError) as exc_info:
+        with pytest.raises(
+                InvalidRequestError) as exc_info:
             await self.provider.download_file(file_id="non-existent-file")
 
         # Verify error message if the test somehow passes
@@ -257,42 +246,48 @@ class TestOpenAIProviderCompleteCoverage:
     async def test_create_speech_validation(self):
         """Test create_speech parameter validation (lines 974-1037)."""
         # Test with invalid model
-        with pytest.raises(InvalidRequestError, match="not a supported TTS model"):
+        with pytest.raises(
+                InvalidRequestError, match="not a supported TTS model"):
             await self.provider.create_speech(
                 input="Hello world",
                 model="unsupported-model"
             )
 
         # Test with invalid voice
-        with pytest.raises(InvalidRequestError, match="Voice 'invalid' is not supported"):
+        with pytest.raises(
+                InvalidRequestError, match="Voice 'invalid' is not supported"):
             await self.provider.create_speech(
                 input="Hello world",
                 voice="invalid"
             )
 
         # Test with invalid response format
-        with pytest.raises(InvalidRequestError, match="Response format 'invalid' is not supported"):
+        with pytest.raises(
+                InvalidRequestError, match="Response format 'invalid' is not supported"):
             await self.provider.create_speech(
                 input="Hello world",
-                response_format="invalid"
+                response_format="invalid",
             )
 
         # Test with invalid speed (too low)
-        with pytest.raises(InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
             await self.provider.create_speech(
                 input="Hello world",
                 speed=0.1
             )
 
         # Test with invalid speed (too high)
-        with pytest.raises(InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
             await self.provider.create_speech(
                 input="Hello world",
                 speed=5.0
             )
 
         # Test with invalid speed (wrong type)
-        with pytest.raises(InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
             await self.provider.create_speech(
                 input="Hello world",
                 speed="fast"
@@ -314,14 +309,16 @@ class TestOpenAIProviderCompleteCoverage:
         }
 
         # Test with invalid model
-        with pytest.raises(InvalidRequestError, match="not a supported image generation model"):
+        with pytest.raises(
+                InvalidRequestError, match="not a supported image generation model"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="unsupported-model"
             )
 
         # Test with invalid size for DALL-E 3
-        with pytest.raises(InvalidRequestError, match="Size '256x256' is not supported for dall-e-3"):
+        with pytest.raises(
+                InvalidRequestError, match="Size '256x256' is not supported for dall-e-3"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="dall-e-3",
@@ -329,7 +326,8 @@ class TestOpenAIProviderCompleteCoverage:
             )
 
         # Test with invalid size for DALL-E 2
-        with pytest.raises(InvalidRequestError, match="Size '1792x1024' is not supported for dall-e-2"):
+        with pytest.raises(
+                InvalidRequestError, match="Size '1792x1024' is not supported for dall-e-2"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="dall-e-2",
@@ -337,7 +335,8 @@ class TestOpenAIProviderCompleteCoverage:
             )
 
         # Test with multiple images for DALL-E 3 (not supported)
-        with pytest.raises(InvalidRequestError, match="DALL-E 3 only supports generating one image at a time"):
+        with pytest.raises(
+                InvalidRequestError, match="DALL-E 3 only supports generating one image at a time"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="dall-e-3",
@@ -345,7 +344,8 @@ class TestOpenAIProviderCompleteCoverage:
             )
 
         # Test with invalid quality for DALL-E 3
-        with pytest.raises(InvalidRequestError, match="Quality 'ultra' is not supported"):
+        with pytest.raises(
+                InvalidRequestError, match="Quality 'ultra' is not supported"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="dall-e-3",
@@ -353,7 +353,8 @@ class TestOpenAIProviderCompleteCoverage:
             )
 
         # Test with invalid style for DALL-E 3
-        with pytest.raises(InvalidRequestError, match="Style 'abstract' is not supported"):
+        with pytest.raises(
+                InvalidRequestError, match="Style 'abstract' is not supported"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 model="dall-e-3",
@@ -361,7 +362,8 @@ class TestOpenAIProviderCompleteCoverage:
             )
 
         # Test with invalid response format
-        with pytest.raises(InvalidRequestError, match="Response format 'png' is not supported"):
+        with pytest.raises(
+                InvalidRequestError, match="Response format 'png' is not supported"):
             await self.provider.create_image(
                 prompt="A beautiful sunset",
                 response_format="png"

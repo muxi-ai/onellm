@@ -225,7 +225,7 @@ class TestProviderCapabilities(unittest.TestCase):
 
     def test_fallback_provider_capability_inheritance(self):
         """Test that FallbackProviderProxy correctly inherits capabilities from primary provider."""
-        # Mock the Provider._get_provider and FallbackProviderProxy._check_provider_capability methods
+        # Mock Provider._get_provider and FallbackProviderProxy._check_provider_capability methods
         with patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
             # Set up the mock to return our capable provider
             mock_get_provider.return_value = self.fully_capable_provider
