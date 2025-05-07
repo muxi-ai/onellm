@@ -19,10 +19,10 @@
 # GNU Affero General Public License for more details.
 
 """
-OpenAI text-to-speech capabilities.
+Text-to-speech capabilities.
 
-This module provides a high-level API for OpenAI's text-to-speech capabilities.
-It supports multiple providers and models with fallback options, and offers both
+This module provides a high-level API for text-to-speech generation across multiple providers.
+It supports various providers and models with fallback options, and offers both
 synchronous and asynchronous interfaces for speech generation.
 """
 

@@ -19,9 +19,11 @@
 # GNU Affero General Public License for more details.
 
 """
-OpenAI image generation capabilities.
+Image generation capabilities.
 
-This module provides a high-level API for OpenAI's image generation capabilities.
+This module provides a high-level API for image generation across multiple providers.
+It supports various models and offers both synchronous and asynchronous interfaces
+with fallback options.
 """
 
 import asyncio
