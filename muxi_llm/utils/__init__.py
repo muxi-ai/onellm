@@ -20,14 +20,27 @@
 
 """
 Utility functions and classes for muxi-llm.
+
+This module provides various utility functions and classes used throughout the muxi-llm
+package to handle common tasks such as:
+- Asynchronous retry mechanisms for API calls
+- Streaming response handling
+- Error management for streaming operations
+
+These utilities help ensure robust API interactions and proper handling of
+streaming responses when working with different LLM providers.
 """
 
+# Import retry-related utilities for handling transient API failures
 from .retry import retry_async, RetryConfig
+
+# Import streaming utilities for handling real-time response processing
 from .streaming import stream_generator, StreamingError
 
+# Define the public API for this module
 __all__ = [
-    "retry_async",
-    "RetryConfig",
-    "stream_generator",
-    "StreamingError",
+    "retry_async",       # Async function decorator that implements retry logic
+    "RetryConfig",       # Configuration class for customizing retry behavior
+    "stream_generator",  # Generator function for processing streaming responses
+    "StreamingError",    # Exception class for streaming-related errors
 ]

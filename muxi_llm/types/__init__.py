@@ -20,19 +20,35 @@
 
 """
 Type definitions for muxi-llm.
+
+This module provides type definitions and data structures used throughout the muxi-llm
+package. These types ensure consistent interfaces when working with different LLM
+providers and handling various content formats.
+
+The types defined here include:
+- Role: Enumeration of possible message roles (system, user, assistant)
+- ContentType: Enumeration of content types (text, image, etc.)
+- Provider: Enumeration of supported LLM providers
+- ContentItem: Structure for multi-modal content items
+- Message: Structure for messages in a conversation
+- UsageInfo: Structure for token usage statistics
+- ModelParams: Configuration parameters for model requests
+- ResponseFormat: Structure for specifying response format preferences
 """
 
+# Import all type definitions from the common module
 from .common import (
-    Role,
-    ContentType,
-    Provider,
-    ContentItem,
-    Message,
-    UsageInfo,
-    ModelParams,
-    ResponseFormat,
+    Role,                # Defines possible message roles (system, user, assistant)
+    ContentType,         # Defines content types (text, image, audio, etc.)
+    Provider,            # Enumerates supported LLM providers
+    ContentItem,         # Structure for multi-modal content items
+    Message,             # Structure for messages in a conversation
+    UsageInfo,           # Structure for token usage statistics
+    ModelParams,         # Configuration parameters for model requests
+    ResponseFormat,      # Structure for specifying response format preferences
 )
 
+# Define the public API for this module
 __all__ = [
     "Role",
     "ContentType",

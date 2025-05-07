@@ -50,6 +50,9 @@ class Completion:
         """
         Create a text completion.
 
+        This method provides a synchronous interface for text completion requests.
+        It handles model fallbacks and retries if the primary model fails.
+
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-davinci-003')
             prompt: Text prompt to complete
@@ -84,14 +87,18 @@ class Completion:
             fb_config = FallbackConfig(**fallback_config)
 
         # Add retries by prepending the primary model to fallback_models
+        # This effectively tries the primary model multiple times before moving to fallbacks
         effective_fallback_models = fallback_models
         if retries > 0:
             if effective_fallback_models is None:
+                # If no fallback models were provided, create a list with the primary model repeated
                 effective_fallback_models = [model] * retries
             else:
+                # Prepend retries of the primary model to the fallback models list
                 effective_fallback_models = [model] * retries + effective_fallback_models
 
         # Get provider with fallbacks or a regular provider
+        # This returns both the provider instance and the specific model name to use
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=effective_fallback_models,
@@ -101,6 +108,7 @@ class Completion:
         # Call the provider's method synchronously
         if stream:
             # For streaming, we need to use async properly
+            # Create a new event loop to run the async code in a synchronous context
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(
@@ -110,6 +118,7 @@ class Completion:
             )
         else:
             # For non-streaming, we can just run and get the result
+            # asyncio.run creates a new event loop, runs the coroutine, and closes the loop
             return asyncio.run(
                 provider.create_completion(
                     prompt=prompt, model=model_name, stream=stream, **kwargs
@@ -129,6 +138,10 @@ class Completion:
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
         """
         Create a text completion asynchronously.
+
+        This method provides an asynchronous interface for text completion requests.
+        It's designed to be used with async/await syntax in asynchronous code.
+        Like the synchronous version, it handles model fallbacks and retries.
 
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-davinci-003')
@@ -164,6 +177,7 @@ class Completion:
             fb_config = FallbackConfig(**fallback_config)
 
         # Add retries by prepending the primary model to fallback_models
+        # This works the same way as in the synchronous version
         effective_fallback_models = fallback_models
         if retries > 0:
             if effective_fallback_models is None:
@@ -179,6 +193,7 @@ class Completion:
         )
 
         # Call the provider's method asynchronously
+        # Since this method is already async, we can directly await the result
         return await provider.create_completion(
             prompt=prompt, model=model_name, stream=stream, **kwargs
         )

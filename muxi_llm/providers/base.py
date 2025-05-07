@@ -53,10 +53,13 @@ def parse_model_name(model: str) -> Tuple[str, str]:
     Raises:
         ValueError: If no provider prefix is found
     """
+    # Check if the model name contains a provider prefix (separated by '/')
     if "/" in model:
+        # Split the model name into provider and model components
         provider, model_name = model.split("/", 1)
         return provider, model_name
     else:
+        # Raise an error if the model name doesn't follow the expected format
         raise ValueError(
             f"Model name '{model}' does not contain a provider prefix. "
             f"Use format 'provider/model-name' (e.g., 'openai/gpt-4')."
@@ -64,10 +67,16 @@ def parse_model_name(model: str) -> Tuple[str, str]:
 
 
 class Provider(ABC):
-    """Base class for all LLM providers."""
+    """
+    Base class for all LLM providers.
+
+    This abstract class defines the interface that all provider implementations
+    must implement. It includes capability flags that indicate what features
+    each provider supports, and abstract methods for core LLM operations.
+    """
 
     # Provider capability flags
-    json_mode_support = False
+    json_mode_support = False     # Whether the provider supports JSON mode output
 
     # Multi-modal capabilities
     vision_support = False        # Image input support
@@ -75,15 +84,21 @@ class Provider(ABC):
     video_input_support = False   # Video input support
 
     # Streaming capabilities
-    streaming_support = False   # Basic streaming support
+    streaming_support = False     # Basic streaming support
     token_by_token_support = False  # Granular streaming
 
     # Realtime capabilities
-    realtime_support = False    # Realtime API support
+    realtime_support = False      # Realtime API support
 
     @classmethod
     def get_provider_name(cls) -> str:
-        """Get the name of the provider."""
+        """
+        Get the name of the provider.
+
+        Returns:
+            The provider name in lowercase, derived from the class name.
+        """
+        # Extract provider name from class name by removing "Provider" suffix
         return cls.__name__.replace("Provider", "").lower()
 
     @abstractmethod
@@ -169,7 +184,7 @@ class Provider(ABC):
         pass
 
 
-# Registry of provider classes
+# Registry of provider classes - stores mapping of provider names to their implementation classes
 _PROVIDER_REGISTRY: Dict[str, Type[Provider]] = {}
 
 
@@ -177,16 +192,23 @@ def register_provider(provider_name: str, provider_class: Type[Provider]) -> Non
     """
     Register a provider class.
 
+    This function adds a provider implementation to the registry, making it
+    available for use throughout the library.
+
     Args:
         provider_name: Name of the provider (lowercase)
         provider_class: Provider class to register
     """
+    # Add the provider class to the registry with the given name as the key
     _PROVIDER_REGISTRY[provider_name] = provider_class
 
 
 def get_provider(provider_name: str, **kwargs) -> Provider:
     """
     Get a provider instance by name.
+
+    This function instantiates a provider class from the registry based on the
+    provided name.
 
     Args:
         provider_name: Name of the provider (lowercase)
@@ -198,14 +220,17 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
     Raises:
         ValueError: If the provider is not supported
     """
+    # Look up the provider class in the registry
     provider_class = _PROVIDER_REGISTRY.get(provider_name)
     if provider_class is None:
+        # If provider not found, generate a helpful error message with available options
         supported = ", ".join(_PROVIDER_REGISTRY.keys())
         raise ValueError(
             f"Provider '{provider_name}' is not supported. "
             f"Supported providers: {supported}"
         )
 
+    # Instantiate and return the provider class with the provided kwargs
     return provider_class(**kwargs)
 
 
@@ -214,8 +239,9 @@ def list_providers() -> List[str]:
     Get a list of registered provider names.
 
     Returns:
-        List of provider names
+        List of provider names available in the registry
     """
+    # Return the keys from the provider registry
     return list(_PROVIDER_REGISTRY.keys())
 
 
@@ -227,15 +253,18 @@ def get_provider_with_fallbacks(
     """
     Get a provider with fallback support.
 
+    This function creates either a standard provider or a fallback provider
+    that can try multiple models in sequence if the primary model fails.
+
     Args:
-        primary_model: Primary model to use
-        fallback_models: Optional list of fallback models
+        primary_model: Primary model to use (in 'provider/model' format)
+        fallback_models: Optional list of fallback models (in 'provider/model' format)
         fallback_config: Optional configuration for fallback behavior
 
     Returns:
         Tuple of (provider, model_name)
     """
-    # Parse primary model name
+    # Parse primary model name to extract provider and model
     provider_name, model_name = parse_model_name(primary_model)
 
     # If no fallbacks specified, just return the normal provider
@@ -245,6 +274,6 @@ def get_provider_with_fallbacks(
     # Import here to avoid circular imports
     from .fallback import FallbackProviderProxy
 
-    # Create a fallback provider with all models
+    # Create a fallback provider with all models (primary + fallbacks)
     all_models = [primary_model] + fallback_models
     return FallbackProviderProxy(all_models, fallback_config), model_name

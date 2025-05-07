@@ -22,6 +22,8 @@
 OpenAI text-to-speech capabilities.
 
 This module provides a high-level API for OpenAI's text-to-speech capabilities.
+It supports multiple providers and models with fallback options, and offers both
+synchronous and asynchronous interfaces for speech generation.
 """
 
 import asyncio
@@ -32,7 +34,12 @@ from .utils.fallback import FallbackConfig
 
 
 class Speech:
-    """API class for text-to-speech."""
+    """
+    API class for text-to-speech operations.
+
+    This class provides methods to convert text to speech using various
+    provider models, with support for fallback options if the primary model fails.
+    """
 
     @classmethod
     async def create(
@@ -45,7 +52,11 @@ class Speech:
         **kwargs
     ) -> bytes:
         """
-        Generate speech from text.
+        Generate speech from text asynchronously.
+
+        This method handles the asynchronous generation of speech from text input.
+        It supports fallback models if the primary model fails and can save the
+        generated audio to a file if an output path is specified.
 
         Args:
             input: Text to convert to speech
@@ -61,25 +72,29 @@ class Speech:
         Returns:
             Audio data as bytes
         """
-        # Extract output_file if provided
+        # Extract output_file if provided, removing it from kwargs to avoid passing
+        # it to the provider's create_speech method
         output_file = kwargs.pop("output_file", None)
 
-        # Process fallback configuration
+        # Process fallback configuration by creating a FallbackConfig object
+        # if fallback settings were provided
         fb_config = None
         if fallback_config:
             fb_config = FallbackConfig(**fallback_config)
 
         # Get provider with fallbacks or a regular provider
+        # This handles selecting the appropriate provider and model based on the input
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
             fallback_config=fb_config,
         )
 
-        # Generate speech
+        # Generate speech using the selected provider and model
         audio_data = await provider.create_speech(input, model_name, voice, **kwargs)
 
         # Save to file if requested
+        # This allows users to directly save the audio without additional code
         if output_file:
             with open(output_file, "wb") as f:
                 f.write(audio_data)
@@ -97,7 +112,11 @@ class Speech:
         **kwargs
     ) -> bytes:
         """
-        Synchronous version of create().
+        Synchronous version of create() for text-to-speech generation.
+
+        This method provides a convenient synchronous interface to the asynchronous
+        create() method by running it in an event loop. It has the same functionality
+        and parameters as the asynchronous version.
 
         Args:
             input: Text to convert to speech
@@ -110,6 +129,7 @@ class Speech:
         Returns:
             Audio data as bytes
         """
+        # Use asyncio.run to execute the async create method in a synchronous context
         return asyncio.run(
             cls.create(
                 input=input,

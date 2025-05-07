@@ -63,6 +63,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's upload_file method synchronously
+        # We need to use asyncio.run to call the async method from a synchronous context
         import asyncio
 
         return asyncio.run(
@@ -97,6 +98,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's upload_file method
+        # This is the async version, so we directly await the result
         return await provider_instance.upload_file(file=file, purpose=purpose, **kwargs)
 
     @classmethod
@@ -128,6 +130,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's download_file method synchronously
+        # We need to use asyncio.run to call the async method from a synchronous context
         import asyncio
 
         file_bytes = asyncio.run(
@@ -135,9 +138,13 @@ class File:
         )
 
         # Save to destination if provided
+        # If a destination path is given, save the file and return the path
+        # Otherwise, return the raw bytes
         if destination:
             dest_path = Path(destination)
+            # Create parent directories if they don't exist
             dest_path.parent.mkdir(parents=True, exist_ok=True)
+            # Write the file contents
             with open(dest_path, "wb") as f:
                 f.write(file_bytes)
             return str(dest_path)
@@ -173,12 +180,17 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's download_file method
+        # This is the async version, so we directly await the result
         file_bytes = await provider_instance.download_file(file_id=file_id, **kwargs)
 
         # Save to destination if provided
+        # If a destination path is given, save the file and return the path
+        # Otherwise, return the raw bytes
         if destination:
             dest_path = Path(destination)
+            # Create parent directories if they don't exist
             dest_path.parent.mkdir(parents=True, exist_ok=True)
+            # Write the file contents
             with open(dest_path, "wb") as f:
                 f.write(file_bytes)
             return str(dest_path)
@@ -210,6 +222,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's list_files method synchronously
+        # We need to use asyncio.run to call the async method from a synchronous context
         import asyncio
 
         return asyncio.run(provider_instance.list_files(**kwargs))
@@ -239,6 +252,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's list_files method
+        # This is the async version, so we directly await the result
         return await provider_instance.list_files(**kwargs)
 
     @classmethod
@@ -267,6 +281,7 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's delete_file method synchronously
+        # We need to use asyncio.run to call the async method from a synchronous context
         import asyncio
 
         return asyncio.run(
@@ -299,4 +314,5 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's delete_file method
+        # This is the async version, so we directly await the result
         return await provider_instance.delete_file(file_id=file_id, **kwargs)

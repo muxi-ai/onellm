@@ -38,15 +38,21 @@ def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
     """
     Validate the input for embedding.
 
+    This function checks if the input data is valid for embedding generation.
+    It ensures that the input is not empty, and if it's a list, that it contains
+    at least one non-empty string.
+
     Args:
         input_data: Text or list of texts to validate
 
     Raises:
         InvalidRequestError: If the input is empty or invalid
     """
+    # Check if input is completely empty
     if not input_data:
         raise InvalidRequestError("Input cannot be empty")
 
+    # If input is a list, check that it's not empty and contains at least one non-empty string
     if isinstance(input_data, list):
         if not input_data or all(not text for text in input_data):
             raise InvalidRequestError("Input cannot be empty")
@@ -66,6 +72,9 @@ class Embedding:
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
+
+        This method provides a synchronous interface for embedding generation.
+        It handles model fallbacks if the primary model fails.
 
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-embedding-ada-002')
@@ -91,16 +100,18 @@ class Embedding:
         # Process fallback configuration
         fb_config = None
         if fallback_config:
+            # Convert dictionary to FallbackConfig object
             fb_config = FallbackConfig(**fallback_config)
 
         # Get provider with fallbacks or a regular provider
+        # This returns both the provider instance and the specific model name to use
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,
             fallback_config=fb_config,
         )
 
-        # Call the provider's method synchronously
+        # Call the provider's method synchronously by running the async method in an event loop
         return asyncio.run(
             provider.create_embedding(input=input, model=model_name, **kwargs)
         )
@@ -116,6 +127,9 @@ class Embedding:
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input asynchronously.
+
+        This method provides an asynchronous interface for embedding generation.
+        It's useful when working within an async context to avoid blocking the event loop.
 
         Args:
             model: Model name with provider prefix (e.g., 'openai/text-embedding-ada-002')
@@ -141,9 +155,11 @@ class Embedding:
         # Process fallback configuration
         fb_config = None
         if fallback_config:
+            # Convert dictionary to FallbackConfig object
             fb_config = FallbackConfig(**fallback_config)
 
         # Get provider with fallbacks or a regular provider
+        # This returns both the provider instance and the specific model name to use
         provider, model_name = get_provider_with_fallbacks(
             primary_model=model,
             fallback_models=fallback_models,

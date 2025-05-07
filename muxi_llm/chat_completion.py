@@ -52,6 +52,10 @@ class ChatCompletion:
         """
         Process messages and kwargs based on provider capabilities.
 
+        This method checks if the provider supports requested features like JSON mode,
+        streaming, vision (image content), and audio input. It modifies the messages
+        and parameters accordingly to ensure compatibility with the provider's capabilities.
+
         Args:
             provider: The provider instance
             messages: The messages to process
@@ -115,6 +119,7 @@ class ChatCompletion:
         # Check for vision (image) content when provider doesn't support it
         if not provider.vision_support:
             has_image_content = False
+            # Scan all messages to check if any contain image content
             for message in messages:
                 content = message.get("content", "")
                 # Check for image content in list format
@@ -158,6 +163,7 @@ class ChatCompletion:
         # Check for audio content when provider doesn't support it
         if not provider.audio_input_support:
             has_audio_content = False
+            # Scan all messages to check if any contain audio content
             for message in messages:
                 content = message.get("content", "")
                 # Check for audio content in list format
@@ -225,6 +231,11 @@ class ChatCompletion:
         """
         Create a chat completion.
 
+        This synchronous method creates a chat completion using the specified model.
+        It supports fallback models if the primary model fails, and can retry the
+        primary model before falling back. It handles both streaming and non-streaming
+        responses.
+
         Args:
             model: Model name with provider prefix (e.g., 'openai/gpt-4')
             messages: List of messages in the conversation
@@ -264,6 +275,7 @@ class ChatCompletion:
             fb_config = FallbackConfig(**fallback_config)
 
         # Add retries by prepending the primary model to fallback_models
+        # This effectively retries the primary model before trying fallbacks
         effective_fallback_models = fallback_models
         if retries > 0:
             if effective_fallback_models is None:
@@ -278,7 +290,7 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
-        # Process capabilities
+        # Process capabilities - adjust messages and kwargs based on provider support
         messages, stream, processed_kwargs = cls._process_capabilities(
             provider, messages, stream, kwargs
         )
@@ -286,6 +298,7 @@ class ChatCompletion:
         # Call the provider's method synchronously
         if stream:
             # For streaming, we need to use async properly
+            # Create a new event loop to run the async code
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(
@@ -314,6 +327,11 @@ class ChatCompletion:
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
         """
         Create a chat completion asynchronously.
+
+        This asynchronous method creates a chat completion using the specified model.
+        It supports fallback models if the primary model fails, and can retry the
+        primary model before falling back. It handles both streaming and non-streaming
+        responses.
 
         Args:
             model: Model name with provider prefix (e.g., 'openai/gpt-4')
@@ -354,6 +372,7 @@ class ChatCompletion:
             fb_config = FallbackConfig(**fallback_config)
 
         # Add retries by prepending the primary model to fallback_models
+        # This effectively retries the primary model before trying fallbacks
         effective_fallback_models = fallback_models
         if retries > 0:
             if effective_fallback_models is None:
@@ -368,7 +387,7 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
-        # Process capabilities
+        # Process capabilities - adjust messages and kwargs based on provider support
         messages, stream, processed_kwargs = cls._process_capabilities(
             provider, messages, stream, kwargs
         )

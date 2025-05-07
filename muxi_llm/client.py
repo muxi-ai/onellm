@@ -47,12 +47,26 @@ class ChatCompletionsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create a chat completion using ChatCompletion.create()"""
+        """
+        Create a chat completion using ChatCompletion.create()
+
+        Args:
+            model: The model identifier to use for the completion
+            messages: A list of message dictionaries representing the conversation history
+            stream: Whether to stream the response or return it all at once
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            A chat completion response object or a stream of completion chunks
+        """
         # Automatically add provider prefix if not present
+        # This allows users to specify just "gpt-4" instead of "openai/gpt-4"
         if "/" not in model:
             model = f"openai/{model}"
 
         # Add provider prefix to fallback models if needed
+        # This ensures consistent model naming across primary and fallback models
         if fallback_models:
             for i, fallback_model in enumerate(fallback_models):
                 if "/" not in fallback_model:
@@ -74,7 +88,19 @@ class ChatCompletionsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create a chat completion asynchronously using ChatCompletion.acreate()"""
+        """
+        Create a chat completion asynchronously using ChatCompletion.acreate()
+
+        Args:
+            model: The model identifier to use for the completion
+            messages: A list of message dictionaries representing the conversation history
+            stream: Whether to stream the response or return it all at once
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            A chat completion response object or an async generator of completion chunks
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -98,6 +124,9 @@ class ChatResource:
     """Chat API resource"""
 
     def __init__(self):
+        """
+        Initialize the Chat resource with completions subresource
+        """
         self.completions = ChatCompletionsResource()
 
 
@@ -112,7 +141,19 @@ class CompletionsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create a completion using Completion.create()"""
+        """
+        Create a completion using Completion.create()
+
+        Args:
+            model: The model identifier to use for the completion
+            prompt: The text prompt to generate completions for
+            stream: Whether to stream the response or return it all at once
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            A completion response object or a stream of completion chunks
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -139,7 +180,19 @@ class CompletionsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create a completion asynchronously using Completion.acreate()"""
+        """
+        Create a completion asynchronously using Completion.acreate()
+
+        Args:
+            model: The model identifier to use for the completion
+            prompt: The text prompt to generate completions for
+            stream: Whether to stream the response or return it all at once
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            A completion response object or an async generator of completion chunks
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -169,7 +222,18 @@ class EmbeddingsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create embeddings using Embedding.create()"""
+        """
+        Create embeddings using Embedding.create()
+
+        Args:
+            model: The model identifier to use for generating embeddings
+            input: The text or list of texts to generate embeddings for
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            An embedding response object containing vector representations
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -194,7 +258,18 @@ class EmbeddingsResource:
         fallback_models: Optional[List[str]] = None,
         **kwargs
     ):
-        """Create embeddings asynchronously using Embedding.acreate()"""
+        """
+        Create embeddings asynchronously using Embedding.acreate()
+
+        Args:
+            model: The model identifier to use for generating embeddings
+            input: The text or list of texts to generate embeddings for
+            fallback_models: Optional list of models to try if the primary model fails
+            **kwargs: Additional parameters to pass to the model
+
+        Returns:
+            An embedding response object containing vector representations
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -222,7 +297,17 @@ class ImagesResource:
         prompt: str,
         **kwargs
     ):
-        """Create images using Image.create()"""
+        """
+        Create images using Image.create()
+
+        Args:
+            model: The model identifier to use for image generation
+            prompt: The text prompt describing the image to generate
+            **kwargs: Additional parameters like size, quality, style, etc.
+
+        Returns:
+            An image generation response object with URLs or base64 data
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -234,7 +319,17 @@ class ImagesResource:
         prompt: str,
         **kwargs
     ):
-        """Create images asynchronously using Image.create() with await"""
+        """
+        Create images asynchronously using Image.create() with await
+
+        Args:
+            model: The model identifier to use for image generation
+            prompt: The text prompt describing the image to generate
+            **kwargs: Additional parameters like size, quality, style, etc.
+
+        Returns:
+            An image generation response object with URLs or base64 data
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -246,6 +341,9 @@ class AudioResource:
     """Audio API resource"""
 
     def __init__(self):
+        """
+        Initialize the Audio resource with transcriptions and translations subresources
+        """
         self.transcriptions = AudioTranscriptionsResource()
         self.translations = AudioTranslationsResource()
 
@@ -259,7 +357,17 @@ class AudioTranscriptionsResource:
         file: str,
         **kwargs
     ):
-        """Create audio transcriptions using AudioTranscription.create()"""
+        """
+        Create audio transcriptions using AudioTranscription.create()
+
+        Args:
+            model: The model identifier to use for transcription
+            file: Path to the audio file or file-like object to transcribe
+            **kwargs: Additional parameters like language, prompt, etc.
+
+        Returns:
+            A transcription response object containing the transcribed text
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -271,7 +379,17 @@ class AudioTranscriptionsResource:
         file: str,
         **kwargs
     ):
-        """Create audio transcriptions asynchronously"""
+        """
+        Create audio transcriptions asynchronously
+
+        Args:
+            model: The model identifier to use for transcription
+            file: Path to the audio file or file-like object to transcribe
+            **kwargs: Additional parameters like language, prompt, etc.
+
+        Returns:
+            A transcription response object containing the transcribed text
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -288,7 +406,17 @@ class AudioTranslationsResource:
         file: str,
         **kwargs
     ):
-        """Create audio translations using AudioTranslation.create()"""
+        """
+        Create audio translations using AudioTranslation.create()
+
+        Args:
+            model: The model identifier to use for translation
+            file: Path to the audio file or file-like object to translate
+            **kwargs: Additional parameters like prompt, response_format, etc.
+
+        Returns:
+            A translation response object containing the translated text
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -300,7 +428,17 @@ class AudioTranslationsResource:
         file: str,
         **kwargs
     ):
-        """Create audio translations asynchronously using AudioTranslation.create() with await"""
+        """
+        Create audio translations asynchronously using AudioTranslation.create() with await
+
+        Args:
+            model: The model identifier to use for translation
+            file: Path to the audio file or file-like object to translate
+            **kwargs: Additional parameters like prompt, response_format, etc.
+
+        Returns:
+            A translation response object containing the translated text
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -318,7 +456,18 @@ class SpeechResource:
         voice: str,
         **kwargs
     ):
-        """Create speech synthesis using Speech.create()"""
+        """
+        Create speech synthesis using Speech.create()
+
+        Args:
+            model: The model identifier to use for speech synthesis
+            input: The text to convert to speech
+            voice: The voice to use for the speech (e.g., "alloy", "echo", "fable")
+            **kwargs: Additional parameters like response_format, speed, etc.
+
+        Returns:
+            A speech response object containing the audio data
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -331,7 +480,18 @@ class SpeechResource:
         voice: str,
         **kwargs
     ):
-        """Create speech synthesis asynchronously using Speech.create() with await"""
+        """
+        Create speech synthesis asynchronously using Speech.create() with await
+
+        Args:
+            model: The model identifier to use for speech synthesis
+            input: The text to convert to speech
+            voice: The voice to use for the speech (e.g., "alloy", "echo", "fable")
+            **kwargs: Additional parameters like response_format, speed, etc.
+
+        Returns:
+            A speech response object containing the audio data
+        """
         # Automatically add provider prefix if not present
         if "/" not in model:
             model = f"openai/{model}"
@@ -348,7 +508,17 @@ class FilesResource:
         purpose: str,
         **kwargs
     ):
-        """Create file using File.upload()"""
+        """
+        Create file using File.upload()
+
+        Args:
+            file: Path to the file to upload
+            purpose: The intended purpose of the file (e.g., "fine-tune", "assistants")
+            **kwargs: Additional parameters for the file upload
+
+        Returns:
+            A file object containing metadata about the uploaded file
+        """
         return File.upload(file=file, purpose=purpose, provider="openai", **kwargs)
 
     async def acreate(
@@ -357,39 +527,119 @@ class FilesResource:
         purpose: str,
         **kwargs
     ):
-        """Create file asynchronously using File.aupload()"""
+        """
+        Create file asynchronously using File.aupload()
+
+        Args:
+            file: Path to the file to upload
+            purpose: The intended purpose of the file (e.g., "fine-tune", "assistants")
+            **kwargs: Additional parameters for the file upload
+
+        Returns:
+            A file object containing metadata about the uploaded file
+        """
         return await File.aupload(file=file, purpose=purpose, provider="openai", **kwargs)
 
     def retrieve(self, file_id: str, **kwargs):
-        """Retrieve file using File.download()"""
+        """
+        Retrieve file using File.download()
+
+        Args:
+            file_id: The ID of the file to retrieve
+            **kwargs: Additional parameters for the file retrieval
+
+        Returns:
+            The content of the requested file
+        """
         return File.download(file_id=file_id, provider="openai", **kwargs)
 
     async def aretrieve(self, file_id: str, **kwargs):
-        """Retrieve file asynchronously using File.adownload()"""
+        """
+        Retrieve file asynchronously using File.adownload()
+
+        Args:
+            file_id: The ID of the file to retrieve
+            **kwargs: Additional parameters for the file retrieval
+
+        Returns:
+            The content of the requested file
+        """
         return await File.adownload(file_id=file_id, provider="openai", **kwargs)
 
     def list(self, **kwargs):
-        """List files"""
+        """
+        List files
+
+        Args:
+            **kwargs: Additional parameters for filtering the file list
+
+        Returns:
+            A list of file objects containing metadata about available files
+        """
         return File.list(provider="openai", **kwargs)
 
     async def alist(self, **kwargs):
-        """List files asynchronously"""
+        """
+        List files asynchronously
+
+        Args:
+            **kwargs: Additional parameters for filtering the file list
+
+        Returns:
+            A list of file objects containing metadata about available files
+        """
         return await File.alist(provider="openai", **kwargs)
 
     def delete(self, file_id: str, **kwargs):
-        """Delete file"""
+        """
+        Delete file
+
+        Args:
+            file_id: The ID of the file to delete
+            **kwargs: Additional parameters for the file deletion
+
+        Returns:
+            A deletion status object
+        """
         return File.delete(file_id=file_id, provider="openai", **kwargs)
 
     async def adelete(self, file_id: str, **kwargs):
-        """Delete file asynchronously"""
+        """
+        Delete file asynchronously
+
+        Args:
+            file_id: The ID of the file to delete
+            **kwargs: Additional parameters for the file deletion
+
+        Returns:
+            A deletion status object
+        """
         return await File.adelete(file_id=file_id, provider="openai", **kwargs)
 
     def content(self, file_id: str, **kwargs):
-        """Get file content"""
+        """
+        Get file content
+
+        Args:
+            file_id: The ID of the file to retrieve content for
+            **kwargs: Additional parameters for the content retrieval
+
+        Returns:
+            The content of the requested file
+        """
         return File.download(file_id=file_id, provider="openai", **kwargs)
 
     async def acontent(self, file_id: str, **kwargs):
-        """Get file content asynchronously"""
+        """
+        Get file content asynchronously
+
+        Args:
+            file_id: The ID of the file to retrieve content for
+            **kwargs: Additional parameters for the content retrieval
+
+        Returns:
+            The content of the requested file
+        """
         return await File.adownload(file_id=file_id, provider="openai", **kwargs)
 
 
@@ -407,6 +657,7 @@ class Client:
             api_key: Optional API key to use for provider requests
             **kwargs: Additional configuration options
         """
+        # Initialize all API resources that match OpenAI's client structure
         self.chat = ChatResource()
         self.completions = CompletionsResource()
         self.embeddings = EmbeddingsResource()
@@ -421,4 +672,5 @@ class Client:
 
 
 # Alias for OpenAI = Client for backward compatibility
+# This allows users to use either muxi_llm.OpenAI or muxi_llm.Client
 OpenAI = Client

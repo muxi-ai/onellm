@@ -21,6 +21,10 @@
 """
 muxi-llm: A lightweight, provider-agnostic Python library that offers a unified interface
 for interacting with large language models (LLMs) from various providers.
+
+This module serves as the main entry point for the muxi-llm library, exposing all
+public APIs and functionality to users. It provides a consistent interface for working
+with different LLM providers while maintaining compatibility with the OpenAI API format.
 """
 
 import os
@@ -56,42 +60,50 @@ from .errors import (
 # Read version from .version file in the same directory as this file
 version_file = os.path.join(os.path.dirname(__file__), ".version")
 with open(version_file, "r", encoding="utf-8") as f:
+    # Strip whitespace to ensure clean version string
     __version__ = f.read().strip()
 
+# Package metadata
 __author__ = "Ran Aroussi"
 __license__ = "AGPL-3.0"
 __url__ = "https://github.com/ranaroussi/muxi_llm"
 
-# Module exports
+# Module exports - defines the public API of the package
+# This controls what gets imported when using "from muxi_llm import *"
 __all__ = [
     # Core functionality
-    "ChatCompletion",
-    "Completion",
-    "Embedding",
+    "ChatCompletion",  # Chat-based completions (conversations)
+    "Completion",      # Text completions
+    "Embedding",       # Vector embeddings for text
+
     # Media handling
-    "File",
-    "AudioTranscription",
-    "AudioTranslation",
-    "Speech",
-    "Image",
+    "File",            # File operations for models
+    "AudioTranscription",  # Convert audio to text
+    "AudioTranslation",    # Translate audio to text
+    "Speech",          # Text-to-speech synthesis
+    "Image",           # Image generation and manipulation
+
     # Client interface (OpenAI compatibility)
-    "Client",
-    "OpenAI",
+    "Client",          # Generic client for any provider
+    "OpenAI",          # OpenAI-compatible client
+
     # Configuration and providers
-    "set_api_key",
-    "get_api_key",
-    "get_provider",
-    "list_providers",
-    "register_provider",
-    "parse_model_name",
-    "get_provider_config",
+    "set_api_key",     # Set API key for a provider
+    "get_api_key",     # Get API key for a provider
+    "get_provider",    # Get provider instance by name
+    "list_providers",  # List available providers
+    "register_provider",  # Register a new provider
+    "parse_model_name",   # Parse provider from model name
+    "get_provider_config",  # Get configuration for a provider
+
     # Error handling
-    "MuxiLLMError",
-    "APIError",
-    "AuthenticationError",
-    "RateLimitError",
-    "InvalidRequestError",
+    "MuxiLLMError",       # Base error class
+    "APIError",           # API-related errors
+    "AuthenticationError",  # Authentication failures
+    "RateLimitError",     # Rate limit exceeded
+    "InvalidRequestError",  # Invalid request parameters
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:
 # e.g., from muxi_llm import openai_api_key, anthropic_api_key
+# This allows for a cleaner import experience when working with multiple providers

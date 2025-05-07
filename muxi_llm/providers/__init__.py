@@ -23,20 +23,26 @@ Provider implementations for muxi-llm.
 
 This module imports all available provider implementations,
 ensuring they are registered with the provider registry.
+
+The provider system is designed to be extensible, allowing new LLM providers
+to be added by implementing the Provider interface and registering them.
 """
 
 from .base import get_provider, list_providers, parse_model_name, register_provider
 from .fallback import FallbackProviderProxy
 from .openai import OpenAIProvider
 
-# Register provider implementations
+# Register provider implementations with the provider registry
+# This makes the OpenAI provider available through the get_provider function
+# Additional providers should be registered here as they are implemented
 register_provider("openai", OpenAIProvider)
 
-# Convenience export
+# Convenience export - these symbols will be available when importing from muxi_llm.providers
+# This allows users to access core provider functionality directly
 __all__ = [
-    "get_provider",
-    "parse_model_name",
-    "register_provider",
-    "list_providers",
-    "FallbackProviderProxy",
+    "get_provider",           # Function to get a provider instance by name
+    "parse_model_name",       # Function to parse "provider/model" format strings
+    "register_provider",      # Function to register new provider implementations
+    "list_providers",         # Function to list all registered providers
+    "FallbackProviderProxy",  # Class for implementing provider fallback chains
 ]

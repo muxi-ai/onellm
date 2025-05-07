@@ -22,6 +22,8 @@
 Fallback utilities for muxi-llm.
 
 This module provides utilities for model fallback functionality.
+When a primary model or provider fails, these utilities help gracefully
+fall back to alternative models or providers to maintain service reliability.
 """
 
 from typing import Callable, List, Optional, Type, TypeVar
@@ -35,11 +37,18 @@ from ..errors import (
 )
 
 # Define a generic type for the return value
+# This allows the fallback mechanism to work with any return type
 T = TypeVar("T")
 
 
 class FallbackConfig:
-    """Configuration for fallback behavior."""
+    """
+    Configuration for fallback behavior.
+
+    This class defines how fallbacks should be handled when errors occur,
+    including which errors should trigger fallbacks, how many fallbacks to attempt,
+    and optional logging and callback functionality.
+    """
 
     def __init__(
         self,
@@ -52,11 +61,15 @@ class FallbackConfig:
         Initialize fallback configuration.
 
         Args:
-            retriable_errors: Error types that should trigger fallbacks
-            max_fallbacks: Maximum number of fallbacks to try
-            log_fallbacks: Whether to log fallback attempts
-            fallback_callback: Optional callback function when fallbacks are used
+            retriable_errors: Error types that should trigger fallbacks. If None,
+                              defaults to common network and rate limit errors.
+            max_fallbacks: Maximum number of fallbacks to try before giving up.
+                          If None, will try all available fallbacks.
+            log_fallbacks: Whether to log fallback attempts for monitoring and debugging.
+            fallback_callback: Optional callback function when fallbacks are used.
+                              Can be used for metrics collection or notifications.
         """
+        # Default to common API errors if no specific errors are provided
         self.retriable_errors = retriable_errors or [
             ServiceUnavailableError,
             TimeoutError,
@@ -69,7 +82,21 @@ class FallbackConfig:
 
 
 async def maybe_await(result):
-    """Helper to await a result if it's awaitable, otherwise return it."""
+    """
+    Helper to await a result if it's awaitable, otherwise return it directly.
+
+    This utility function allows the fallback mechanism to work with both
+    synchronous and asynchronous functions by handling the awaiting logic.
+
+    Args:
+        result: The result to potentially await, could be a coroutine or regular value
+
+    Returns:
+        The awaited result if it was awaitable, or the original result otherwise
+    """
+    # Check if the result is a coroutine or other awaitable object
     if inspect.isawaitable(result):
+        # If it is awaitable, await it and return the result
         return await result
+    # Otherwise, return the result directly
     return result

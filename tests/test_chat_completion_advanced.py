@@ -181,7 +181,7 @@ class TestChatCompletionAdvanced:
             messages=[{"role": "user", "content": "Hello"}],
             max_tokens=100,
             temperature=0.7,
-            fallback_models=["fallback-model-1", "fallback-model-2"]
+            fallback_models=["test-provider/fallback-model-1", "test-provider/fallback-model-2"]
         )
 
         # Verify provider was called with correct parameters
@@ -196,7 +196,7 @@ class TestChatCompletionAdvanced:
 
         # Verify get_provider_with_fallbacks was called with fallback_models
         args, kwargs = self.mock_get_provider.call_args
-        assert kwargs["fallback_models"] == ["fallback-model-1", "fallback-model-2"]
+        assert kwargs["fallback_models"] == ["test-provider/fallback-model-1", "test-provider/fallback-model-2"]
 
     @pytest.mark.asyncio
     async def test_acreate_with_complex_messages(self):

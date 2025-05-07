@@ -81,32 +81,39 @@ def get_encoder(model: str) -> Optional["tiktoken.Encoding"]:
     """
     Get the tiktoken encoder for the specified model.
 
+    This function attempts to find the appropriate tiktoken encoder for a given model.
+    It first checks if the model has a known encoding in our mapping, then tries to get
+    the encoder directly from tiktoken, and finally falls back to cl100k_base as a default.
+
     Args:
-        model: Name of the model
+        model: Name of the model to get the encoder for
 
     Returns:
-        Encoding object if available, None otherwise
+        Encoding object if available, None otherwise if tiktoken is not installed
+        or if no appropriate encoder can be found
     """
+    # Return None immediately if tiktoken is not available
     if not TIKTOKEN_AVAILABLE:
         return None
 
-    # Extract base model name if using provider prefix
+    # Extract base model name if using provider prefix (e.g., "openai/gpt-4")
     if "/" in model:
         _, model = model.split("/", 1)
 
     try:
-        # Check for exact match
+        # First check if we have a predefined encoding for this model
         if model in OPENAI_MODEL_ENCODINGS:
             encoding_name = OPENAI_MODEL_ENCODINGS[model]
             return tiktoken.get_encoding(encoding_name)
 
-        # Try to get by model name directly
+        # If not in our mapping, try to get encoder directly from tiktoken
         return tiktoken.encoding_for_model(model)
     except (KeyError, ImportError, ValueError):
-        # Fallback to cl100k_base for most newer models
+        # If both methods fail, fall back to cl100k_base which works for most newer models
         try:
             return tiktoken.get_encoding("cl100k_base")
         except Exception:
+            # If all attempts fail, return None
             return None
 
 
@@ -114,23 +121,28 @@ def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
     """
     Count the number of tokens in a string.
 
+    This function counts tokens in a text string using either tiktoken (if available
+    and a model is specified) or a simple regex-based approximation as fallback.
+
     Args:
         text: Text to count tokens for
-        model: Optional model name to use for counting
+        model: Optional model name to use for counting with tiktoken
 
     Returns:
-        Number of tokens
+        Number of tokens in the text
     """
+    # Handle empty text case
     if not text:
         return 0
 
-    # Try to use tiktoken if available
+    # Try to use tiktoken for accurate counting if available and model is specified
     if TIKTOKEN_AVAILABLE and model:
         encoder = get_encoder(model)
         if encoder:
             return len(encoder.encode(text))
 
-    # Fallback to simple approximation
+    # Fallback to simple approximation using regex
+    # This splits text into words and punctuation as a rough token estimate
     return len(SIMPLE_TOKEN_PATTERN.findall(text))
 
 
@@ -138,15 +150,20 @@ def num_tokens_from_messages(
     messages: List[Dict[str, Union[str, List]]], model: Optional[str] = None
 ) -> int:
     """
-    Count the number of tokens in a list of messages.
+    Count the number of tokens in a list of chat messages.
+
+    This function handles token counting for chat message formats used by LLMs.
+    It accounts for message formatting overhead and handles nested content structures
+    like those used in multi-modal conversations.
 
     Args:
-        messages: List of chat messages
+        messages: List of chat messages in the format expected by LLM APIs
         model: Optional model name to use for counting
 
     Returns:
-        Number of tokens
+        Total number of tokens in the messages, including formatting overhead
     """
+    # Handle empty messages case
     if not messages:
         return 0
 
@@ -155,10 +172,11 @@ def num_tokens_from_messages(
         _, model = model.split("/", 1)
 
     # Special handling for OpenAI chat models with tiktoken
+    # This follows OpenAI's specific token counting methodology for chat formats
     if TIKTOKEN_AVAILABLE and model and model.startswith(("gpt-3.5", "gpt-4")):
         encoder = get_encoder(model)
         if encoder:
-            # Format based on OpenAI's token counting methodology
+            # Constants based on OpenAI's token counting methodology
             tokens_per_message = (
                 3  # Every message follows <|start|>{role/name}\n{content}<|end|>\n
             )
@@ -166,44 +184,55 @@ def num_tokens_from_messages(
 
             token_count = 0
             for message in messages:
+                # Add base tokens for each message
                 token_count += tokens_per_message
+
+                # Process each field in the message
                 for key, value in message.items():
                     if isinstance(value, str):
+                        # For string values, encode and count directly
                         token_count += len(encoder.encode(value))
                     elif isinstance(value, list):
                         # Handle content list (for multi-modal inputs)
                         for item in value:
+                            # Check if this is a content item with text
                             is_dict = isinstance(item, dict)
                             has_text = is_dict and "text" in item
                             is_text_str = has_text and isinstance(item["text"], str)
 
+                            # Only count tokens for text content
                             if is_dict and has_text and is_text_str:
                                 token_count += len(encoder.encode(item["text"]))
 
+                    # Add extra token for name field if present
                     if key == "name":
                         token_count += tokens_per_name
 
-            # Add 3 tokens for assistant message formatting
+            # Add 3 tokens for assistant message formatting (final reply format)
             token_count += 3
             return token_count
 
-    # Fallback to simple approximation
+    # Fallback to simple approximation for non-OpenAI models or when tiktoken is unavailable
     token_count = 0
     for message in messages:
         # Count tokens in each field that's a string
         for value in message.values():
             if isinstance(value, str):
+                # Count tokens in string values
                 token_count += num_tokens_from_string(value, model)
             elif isinstance(value, list):
                 # Handle content list (for multi-modal inputs)
                 for item in value:
+                    # Check if this is a content item with text
                     is_dict = isinstance(item, dict)
                     has_text = is_dict and "text" in item
                     is_text_str = has_text and isinstance(item["text"], str)
 
+                    # Only count tokens for text content
                     if is_dict and has_text and is_text_str:
                         token_count += num_tokens_from_string(item["text"], model)
 
-    # Approximation of formatting overhead
+    # Add approximation of formatting overhead (4 tokens per message)
+    # This is a rough estimate of the tokens used for message formatting
     token_count += len(messages) * 4
     return token_count

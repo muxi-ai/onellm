@@ -72,6 +72,9 @@ class FallbackProviderProxy(Provider):
         """
         Check if the primary provider supports a specific capability.
 
+        This method lazily loads the primary provider and checks if it supports
+        the requested capability.
+
         Args:
             capability_name: Name of the capability flag to check
 
@@ -99,6 +102,7 @@ class FallbackProviderProxy(Provider):
     def json_mode_support(self) -> bool:
         """Check if JSON mode is supported by the primary provider."""
         if self._json_mode_support is None:
+            # Lazy initialization of the capability flag
             self._json_mode_support = self._check_provider_capability("json_mode_support")
         return self._json_mode_support
 
@@ -106,6 +110,7 @@ class FallbackProviderProxy(Provider):
     def vision_support(self) -> bool:
         """Check if vision is supported by the primary provider."""
         if self._vision_support is None:
+            # Lazy initialization of the capability flag
             self._vision_support = self._check_provider_capability("vision_support")
         return self._vision_support
 
@@ -113,6 +118,7 @@ class FallbackProviderProxy(Provider):
     def audio_input_support(self) -> bool:
         """Check if audio input is supported by the primary provider."""
         if self._audio_input_support is None:
+            # Lazy initialization of the capability flag
             self._audio_input_support = self._check_provider_capability("audio_input_support")
         return self._audio_input_support
 
@@ -120,6 +126,7 @@ class FallbackProviderProxy(Provider):
     def video_input_support(self) -> bool:
         """Check if video input is supported by the primary provider."""
         if self._video_input_support is None:
+            # Lazy initialization of the capability flag
             self._video_input_support = self._check_provider_capability("video_input_support")
         return self._video_input_support
 
@@ -127,6 +134,7 @@ class FallbackProviderProxy(Provider):
     def streaming_support(self) -> bool:
         """Check if streaming is supported by the primary provider."""
         if self._streaming_support is None:
+            # Lazy initialization of the capability flag
             self._streaming_support = self._check_provider_capability("streaming_support")
         return self._streaming_support
 
@@ -134,6 +142,7 @@ class FallbackProviderProxy(Provider):
     def token_by_token_support(self) -> bool:
         """Check if token-by-token streaming is supported by the primary provider."""
         if self._token_by_token_support is None:
+            # Lazy initialization of the capability flag
             self._token_by_token_support = self._check_provider_capability("token_by_token_support")
         return self._token_by_token_support
 
@@ -141,6 +150,7 @@ class FallbackProviderProxy(Provider):
     def realtime_support(self) -> bool:
         """Check if realtime API is supported by the primary provider."""
         if self._realtime_support is None:
+            # Lazy initialization of the capability flag
             self._realtime_support = self._check_provider_capability("realtime_support")
         return self._realtime_support
 
@@ -149,6 +159,9 @@ class FallbackProviderProxy(Provider):
     ) -> Any:
         """
         Try a provider method with fallbacks.
+
+        This method attempts to call the specified method on each provider in sequence,
+        starting with the primary model and falling back to alternatives if errors occur.
 
         Args:
             method_name: Name of the provider method to call
@@ -169,6 +182,7 @@ class FallbackProviderProxy(Provider):
         # Limit the number of fallbacks if max_fallbacks is set
         models_to_try = self.models
         if self.fallback_config.max_fallbacks is not None:
+            # Only try up to max_fallbacks+1 models (primary + fallbacks)
             models_to_try = self.models[: self.fallback_config.max_fallbacks + 1]
 
         # Try each model in sequence
@@ -178,6 +192,7 @@ class FallbackProviderProxy(Provider):
 
             # Get or create provider instance
             if provider_name not in self.providers:
+                # Lazy load the provider
                 self.providers[provider_name] = get_provider(provider_name)
 
             provider = self.providers[provider_name]
@@ -199,7 +214,7 @@ class FallbackProviderProxy(Provider):
                         f"Fallback succeeded: Using {model_string} instead of {self.models[0]}"
                     )
 
-                # Call the callback if provided
+                # Call the callback if provided and we're using a fallback model
                 if (
                     model_string != self.models[0]
                     and self.fallback_config.fallback_callback
@@ -269,6 +284,9 @@ class FallbackProviderProxy(Provider):
         """
         Try a streaming method with fallbacks.
 
+        This method attempts to call the specified streaming method on each provider in sequence,
+        starting with the primary model and falling back to alternatives if errors occur.
+
         Args:
             method_name: Name of the provider method to call
             *args: Arguments to pass to the method
@@ -286,6 +304,7 @@ class FallbackProviderProxy(Provider):
         # Limit the number of fallbacks if max_fallbacks is set
         models_to_try = self.models
         if self.fallback_config.max_fallbacks is not None:
+            # Only try up to max_fallbacks+1 models (primary + fallbacks)
             models_to_try = self.models[: self.fallback_config.max_fallbacks + 1]
 
         # Try each model in sequence
@@ -295,6 +314,7 @@ class FallbackProviderProxy(Provider):
 
             # Get or create provider instance
             if provider_name not in self.providers:
+                # Lazy load the provider
                 self.providers[provider_name] = get_provider(provider_name)
 
             provider = self.providers[provider_name]
@@ -316,7 +336,7 @@ class FallbackProviderProxy(Provider):
                         f"Fallback succeeded: Using {model_string} instead of {self.models[0]}"
                     )
 
-                # Call the callback if provided
+                # Call the callback if provided and we're using a fallback model
                 if (
                     model_string != self.models[0]
                     and self.fallback_config.fallback_callback
@@ -331,6 +351,12 @@ class FallbackProviderProxy(Provider):
 
                 # Create a wrapper generator that forwards chunks but handles errors
                 async def safe_generator():
+                    """
+                    Wrapper generator that handles errors during streaming.
+
+                    This ensures proper error propagation if the generator fails
+                    after yielding some chunks.
+                    """
                     try:
                         async for chunk in generator:
                             yield chunk
@@ -395,7 +421,22 @@ class FallbackProviderProxy(Provider):
         stream: bool = False,
         **kwargs,
     ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
-        """Create a chat completion with fallback support."""
+        """
+        Create a chat completion with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            messages: List of messages to send to the model
+            model: Ignored parameter (models are defined in the proxy)
+            stream: Whether to stream the response
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Either a ChatCompletionResponse or an AsyncGenerator of ChatCompletionChunk
+            depending on the stream parameter
+        """
         # Special handling for streaming
         if stream:
             try:
@@ -406,6 +447,7 @@ class FallbackProviderProxy(Provider):
 
                 # Create a wrapper generator that just yields from the inner generator
                 async def stream_generator():
+                    """Simple wrapper to yield chunks from the inner generator."""
                     async for chunk in generator:
                         yield chunk
 
@@ -414,6 +456,7 @@ class FallbackProviderProxy(Provider):
                 # Propagate exceptions correctly
                 raise e
         else:
+            # For non-streaming requests, use the standard fallback mechanism
             return await self._try_with_fallbacks(
                 "create_chat_completion", messages=messages, stream=stream, **kwargs
             )
@@ -425,7 +468,21 @@ class FallbackProviderProxy(Provider):
         stream: bool = False,
         **kwargs,
     ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
-        """Create a text completion with fallback support."""
+        """
+        Create a text completion with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            prompt: Text prompt to send to the model
+            model: Ignored parameter (models are defined in the proxy)
+            stream: Whether to stream the response
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Either a CompletionResponse or an AsyncGenerator depending on the stream parameter
+        """
         # Special handling for streaming
         if stream:
             try:
@@ -436,6 +493,7 @@ class FallbackProviderProxy(Provider):
 
                 # Create a wrapper generator that just yields from the inner generator
                 async def stream_generator():
+                    """Simple wrapper to yield chunks from the inner generator."""
                     async for chunk in generator:
                         yield chunk
 
@@ -444,6 +502,7 @@ class FallbackProviderProxy(Provider):
                 # Propagate exceptions correctly
                 raise e
         else:
+            # For non-streaming requests, use the standard fallback mechanism
             return await self._try_with_fallbacks(
                 "create_completion", prompt=prompt, stream=stream, **kwargs
             )
@@ -454,17 +513,55 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> EmbeddingResponse:
-        """Create embeddings with fallback support."""
+        """
+        Create embeddings with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            input: Text or list of texts to create embeddings for
+            model: Ignored parameter (models are defined in the proxy)
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            EmbeddingResponse containing the embeddings
+        """
         return await self._try_with_fallbacks("create_embedding", input=input, **kwargs)
 
     async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
-        """Upload a file with fallback support."""
+        """
+        Upload a file with fallback support.
+
+        This method will try the primary provider first and fall back to alternative providers
+        if the primary provider fails.
+
+        Args:
+            file: File to upload
+            purpose: Purpose of the file
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            FileObject containing information about the uploaded file
+        """
         return await self._try_with_fallbacks(
             "upload_file", file=file, purpose=purpose, **kwargs
         )
 
     async def download_file(self, file_id: str, **kwargs) -> bytes:
-        """Download a file with fallback support."""
+        """
+        Download a file with fallback support.
+
+        This method will try the primary provider first and fall back to alternative providers
+        if the primary provider fails.
+
+        Args:
+            file_id: ID of the file to download
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            File content as bytes
+        """
         return await self._try_with_fallbacks(
             "download_file", file_id=file_id, **kwargs
         )
@@ -475,7 +572,20 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> bytes:
-        """Create speech with fallback support."""
+        """
+        Create speech with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            input: Text to convert to speech
+            model: Ignored parameter (models are defined in the proxy)
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Audio data as bytes
+        """
         # This method is not required by the Provider interface, so check provider support
         return await self._try_with_fallbacks("create_speech", input=input, **kwargs)
 
@@ -485,7 +595,20 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> List[Dict[str, Any]]:
-        """Create images with fallback support."""
+        """
+        Create images with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            prompt: Text prompt to generate images from
+            model: Ignored parameter (models are defined in the proxy)
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            List of dictionaries containing image data
+        """
         # This method is not required by the Provider interface, so check provider support
         return await self._try_with_fallbacks("create_image", prompt=prompt, **kwargs)
 
@@ -495,7 +618,20 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> Dict[str, Any]:
-        """Create a transcription with fallback support."""
+        """
+        Create a transcription with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            file: Audio file to transcribe
+            model: Ignored parameter (models are defined in the proxy)
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Dictionary containing the transcription
+        """
         return await self._try_with_fallbacks("create_transcription", file=file, **kwargs)
 
     async def create_translation(
@@ -504,13 +640,49 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> Dict[str, Any]:
-        """Create a translation with fallback support."""
+        """
+        Create a translation with fallback support.
+
+        This method will try the primary model first and fall back to alternative models
+        if the primary model fails.
+
+        Args:
+            file: Audio file to translate
+            model: Ignored parameter (models are defined in the proxy)
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Dictionary containing the translation
+        """
         return await self._try_with_fallbacks("create_translation", file=file, **kwargs)
 
     async def list_files(self, **kwargs) -> List[Dict[str, Any]]:
-        """List files with fallback support."""
+        """
+        List files with fallback support.
+
+        This method will try the primary provider first and fall back to alternative providers
+        if the primary provider fails.
+
+        Args:
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            List of dictionaries containing file information
+        """
         return await self._try_with_fallbacks("list_files", **kwargs)
 
     async def delete_file(self, file_id: str, **kwargs) -> Dict[str, Any]:
-        """Delete a file with fallback support."""
+        """
+        Delete a file with fallback support.
+
+        This method will try the primary provider first and fall back to alternative providers
+        if the primary provider fails.
+
+        Args:
+            file_id: ID of the file to delete
+            **kwargs: Additional parameters to pass to the provider
+
+        Returns:
+            Dictionary containing the deletion result
+        """
         return await self._try_with_fallbacks("delete_file", file_id=file_id, **kwargs)
