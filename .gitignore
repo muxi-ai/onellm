@@ -30,6 +30,7 @@ ENV/
 .venv/
 .env/
 .python-version
+.ruff_cache
 
 # Jekyll / Documentation
 docs/_site/
