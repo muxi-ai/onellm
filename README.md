@@ -11,6 +11,8 @@ muxi-llm is a lightweight, provider-agnostic Python library that offers a unifie
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
+With support for 25+ providers, muxi-llm gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+
 ## Getting Started
 
 ### Installation
@@ -45,7 +47,7 @@ For more detailed examples, check out the [examples directory](./examples).
 ## Key Features
 
 - **Drop-in replacement for OpenAI** - Use your existing OpenAI code with minimal changes
-- **Provider-agnostic** - Support for 100+ LLM providers through direct integration or via OpenRouter
+- **Provider-agnostic** - Support for 300+ models across 25+ LLM providers through direct integration or via OpenRouter
 - **Automatic model fallback** - Seamlessly switch to alternative models when a provider is unavailable
 - **Auto-retry mechanism** - Automatically retry the same model multiple times before failing or falling back
 - **OpenAI-compatible API** - Familiar interface for developers accustomed to OpenAI's client library
