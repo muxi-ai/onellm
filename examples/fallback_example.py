@@ -1,8 +1,68 @@
-"""
-Example demonstrating the fallback mechanism in muxi-llm.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Unified interface for LLM providers using OpenAI format
+# https://github.com/ranaroussi/muxi_llm
+#
+# Copyright (C) 2025 Ran Aroussi
+#
+# This is free software: You can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License (V3),
+# published by the Free Software Foundation (the "License").
+# You may obtain a copy of the License at
+#
+#    https://www.gnu.org/licenses/agpl-3.0.en.html
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 
-This example shows how to use fallbacks to increase reliability when a primary model
-is unavailable or experiences errors.
+"""
+# ============================================================================ #
+# MUXI-LLM EXAMPLE: Fallback Mechanisms for Reliability
+# ============================================================================ #
+#
+# This example demonstrates how to use muxi-llm's fallback mechanisms to create
+# robust applications that gracefully handle model failures.
+# Key features demonstrated:
+#
+# - Configuring fallback models across different providers
+# - Custom fallback configurations and policies
+# - Fallback callbacks for monitoring and logging
+# - Streaming responses with fallback support
+# - Error handling with specific error types
+#
+# CODEBASE RELATIONSHIP:
+# ----------------------
+# This example leverages muxi-llm's support for:
+# - Fallback mechanism in ChatCompletion, Completion, and Embedding APIs
+# - Error handling and retry logic
+# - Custom callback integrations
+# - Cross-provider compatibility
+#
+# RELATED EXAMPLES:
+# ----------------
+# - retry_example.py: Retrying with the same model before fallback
+# - chat_completion_example.py: Basic chat completions without fallbacks
+# - parallel_operation_example.py: Parallel processing with reliability
+#
+# REQUIREMENTS:
+# ------------
+# - muxi-llm
+# - OpenAI API key
+# - Anthropic API key (optional, for more fallback options)
+# - Cohere API key (optional, for more fallback options)
+#
+# EXPECTED OUTPUT:
+# ---------------
+# Multiple demonstrations of fallback scenarios:
+# 1. Successful fallback from non-existent to valid model
+# 2. Limited fallback attempts based on configuration
+# 3. Fallbacks with different API types (completion, embedding)
+# 4. Custom callback execution during fallback events
+# 5. Streaming response with fallback support
+# ============================================================================ #
 """
 
 import asyncio
@@ -17,7 +77,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def set_api_keys_from_env():
-    """Set API keys from environment variables."""
+    """
+    Set API keys from environment variables.
+
+    This function retrieves API keys from environment variables for different providers
+    and configures them in the muxi_llm library. It supports OpenAI, Anthropic, and Cohere.
+    """
     from muxi_llm import set_api_key
 
     # Set API keys for different providers
@@ -35,7 +100,16 @@ def set_api_keys_from_env():
 
 
 async def demonstrate_chat_completion_fallback():
-    """Demonstrate fallback for chat completions."""
+    """
+    Demonstrate fallback for chat completions.
+
+    This function shows two scenarios:
+    1. Fallback from a non-existent model to a valid model
+    2. Custom fallback configuration with limited fallback attempts
+
+    It demonstrates how the fallback mechanism automatically switches to alternative
+    models when the primary model fails.
+    """
     print("\n=== Chat Completion Fallback Demo ===")
 
     messages = [{"role": "user", "content": "What are three interesting facts about the moon?"}]
@@ -51,7 +125,7 @@ async def demonstrate_chat_completion_fallback():
                 "anthropic/claude-3-haiku"  # Backup if the first fallback also fails
             ],
             fallback_config={
-                "log_fallbacks": True
+                "log_fallbacks": True  # Enable logging of fallback events
             }
         )
 
@@ -74,7 +148,7 @@ async def demonstrate_chat_completion_fallback():
             ],
             fallback_config={
                 "max_fallbacks": 1,  # Only try the first fallback
-                "log_fallbacks": True
+                "log_fallbacks": True  # Enable logging of fallback events
             }
         )
 
@@ -86,7 +160,12 @@ async def demonstrate_chat_completion_fallback():
 
 
 async def demonstrate_completion_fallback():
-    """Demonstrate fallback for text completions."""
+    """
+    Demonstrate fallback for text completions.
+
+    This function shows how to use fallbacks with the Completion API, including
+    configuring specific error types (RateLimitError) that should trigger fallbacks.
+    """
     print("\n=== Text Completion Fallback Demo ===")
 
     prompt = "Write a haiku about programming:"
@@ -110,7 +189,12 @@ async def demonstrate_completion_fallback():
 
 
 async def demonstrate_embedding_fallback():
-    """Demonstrate fallback for embeddings."""
+    """
+    Demonstrate fallback for embeddings.
+
+    This function shows how to use fallbacks with the Embedding API, which is useful
+    for ensuring reliable vector embeddings even when the primary embedding model fails.
+    """
     print("\n=== Embedding Fallback Demo ===")
 
     texts = ["The quick brown fox jumps over the lazy dog"]
@@ -121,7 +205,7 @@ async def demonstrate_embedding_fallback():
             input=texts,
             fallback_models=["openai/text-embedding-ada-002"],  # This should work
             fallback_config={
-                "log_fallbacks": True
+                "log_fallbacks": True  # Enable logging of fallback events
             }
         )
 
@@ -133,7 +217,18 @@ async def demonstrate_embedding_fallback():
 
 
 async def custom_fallback_callback(primary_model: str, fallback_model: str, error: Exception):
-    """Example callback function when fallbacks are used."""
+    """
+    Example callback function when fallbacks are used.
+
+    This function is called whenever a fallback occurs, providing information about
+    the primary model that failed, the fallback model being used, and the error that
+    triggered the fallback.
+
+    Args:
+        primary_model: The original model that failed
+        fallback_model: The fallback model being used instead
+        error: The exception that caused the primary model to fail
+    """
     print("\n🔄 Fallback callback triggered:")
     print(f"  - Primary model: {primary_model}")
     print(f"  - Fallback model used: {fallback_model}")
@@ -143,7 +238,13 @@ async def custom_fallback_callback(primary_model: str, fallback_model: str, erro
 
 
 async def demonstrate_fallback_callback():
-    """Demonstrate using a callback when fallbacks occur."""
+    """
+    Demonstrate using a callback when fallbacks occur.
+
+    This function shows how to register a custom callback function that will be
+    invoked whenever a fallback is triggered, allowing for custom logging, metrics,
+    or other actions.
+    """
     print("\n=== Fallback Callback Demo ===")
 
     messages = [{"role": "user", "content": "What's your favorite programming language?"}]
@@ -155,7 +256,7 @@ async def demonstrate_fallback_callback():
             fallback_models=["openai/gpt-3.5-turbo"],  # This should work
             fallback_config={
                 "log_fallbacks": True,
-                "fallback_callback": custom_fallback_callback
+                "fallback_callback": custom_fallback_callback  # Register our custom callback
             }
         )
 
@@ -167,7 +268,12 @@ async def demonstrate_fallback_callback():
 
 
 async def demonstrate_streaming_fallback():
-    """Demonstrate fallback for streaming responses."""
+    """
+    Demonstrate fallback for streaming responses.
+
+    This function shows how fallbacks work with streaming responses, which is important
+    for applications that need to display results incrementally as they are generated.
+    """
     print("\n=== Streaming Fallback Demo ===")
 
     messages = [{"role": "user", "content": "Count from 1 to 5 slowly."}]
@@ -180,17 +286,18 @@ async def demonstrate_streaming_fallback():
             stream=True,  # Important: Enable streaming
             fallback_models=["openai/gpt-3.5-turbo"],  # This should work
             fallback_config={
-                "log_fallbacks": True
+                "log_fallbacks": True  # Enable logging of fallback events
             }
         )
 
         # Process the streaming response chunks
         response_text = ""
         async for chunk in stream:
+            # Extract content from each chunk if available
             if chunk.choices and chunk.choices[0].delta.get("content"):
                 content = chunk.choices[0].delta["content"]
-                response_text += content
-                print(content, end="", flush=True)
+                response_text += content  # Accumulate the full response
+                print(content, end="", flush=True)  # Print immediately without newlines
 
         print("\n✅ Streaming complete!")
 
@@ -199,7 +306,12 @@ async def demonstrate_streaming_fallback():
 
 
 async def run_demos():
-    """Run all the demonstration functions."""
+    """
+    Run all the demonstration functions.
+
+    This function serves as the main entry point for the example, setting up API keys
+    and executing all the demonstration functions in sequence.
+    """
     # Set API keys
     set_api_keys_from_env()
 

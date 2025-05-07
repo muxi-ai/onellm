@@ -1,12 +1,63 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# Unified interface for LLM providers using OpenAI format
+# https://github.com/ranaroussi/muxi_llm
+#
+# Copyright (C) 2025 Ran Aroussi
+#
+# This is free software: You can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License (V3),
+# published by the Free Software Foundation (the "License").
+# You may obtain a copy of the License at
+#
+#    https://www.gnu.org/licenses/agpl-3.0.en.html
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 
 """
-Example demonstrating the JSON mode feature of muxi-llm.
-
-This example shows how to use the response_format parameter to request
-JSON responses from models that support it, and demonstrates the fallback
-to text-based instructions for models that don't support native JSON mode.
+# ============================================================================ #
+# MUXI-LLM EXAMPLE: JSON Mode for Structured Responses
+# ============================================================================ #
+#
+# This example demonstrates how to use muxi-llm's JSON mode feature to get
+# structured, parseable responses from LLMs.
+# Key features demonstrated:
+#
+# - Requesting JSON-formatted responses
+# - Working with structured data from LLMs
+# - Handling models with and without native JSON support
+# - Using fallbacks with JSON mode requirements
+#
+# CODEBASE RELATIONSHIP:
+# ----------------------
+# This example leverages muxi-llm's support for:
+# - ChatCompletion API with response_format parameter
+# - Automatic JSON mode handling across providers
+# - Fallback mechanisms with format requirements
+# - JSON validation and parsing
+#
+# RELATED EXAMPLES:
+# ----------------
+# - chat_completion_example.py: Basic text interactions without JSON mode
+# - fallback_example.py: Using fallback models for reliability
+# - vision_example.py: Multi-modal capabilities with structured responses
+#
+# REQUIREMENTS:
+# ------------
+# - muxi-llm
+# - OpenAI API key (for models with native JSON support)
+# - Other provider API keys (optional, for testing fallback behavior)
+#
+# EXPECTED OUTPUT:
+# ---------------
+# 1. JSON response from an OpenAI model with native JSON support
+# 2. Optional example with non-OpenAI provider (commented out)
+# 3. JSON response with fallback model configuration
+# ============================================================================ #
 """
 
 import os
@@ -16,86 +67,146 @@ import muxi_llm
 # Set API key from environment
 muxi_llm.openai_api_key = os.environ.get("OPENAI_API_KEY")
 
-# Example with OpenAI model that supports JSON mode
-print("Example 1: Using OpenAI model with JSON mode")
-print("-" * 50)
 
-response = muxi_llm.ChatCompletion.create(
-    model="openai/gpt-4o",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Generate a list of 3 todo items as JSON"}
-    ],
-    response_format={"type": "json_object"}
-)
+def main():
+    """
+    Main function to demonstrate JSON mode capabilities in muxi-llm.
 
-print("JSON response from OpenAI:")
-print(response.choices[0].message["content"])
-print()
+    This function runs three examples:
+    1. Using an OpenAI model with native JSON mode support
+    2. (Commented out) Using a provider without native JSON mode support
+    3. Using JSON mode with fallback models
 
-# Parse the JSON to validate it's properly formatted
-try:
-    parsed = json.loads(response.choices[0].message["content"])
-    print("Successfully parsed JSON response:")
-    print(json.dumps(parsed, indent=2))
-except json.JSONDecodeError as e:
-    print(f"Failed to parse JSON: {e}")
+    Each example demonstrates different aspects of the JSON mode functionality.
+    """
+    # Example 1: Demonstrate JSON mode with a supporting model
+    demonstrate_json_mode_with_openai()
 
-print("\n" + "-" * 50 + "\n")
+    print("\n" + "-" * 50 + "\n")
 
-# Example showing fallback behavior for non-OpenAI model
-# This requires setting up other providers' API keys
-# Uncomment to test with other providers
+    # Example 2: Demonstrate fallback behavior (commented out)
+    # This requires setting up other providers' API keys
+    demonstrate_json_mode_with_other_provider_commented()
 
-"""
-print("Example 2: Using a provider that doesn't support JSON mode natively")
-print("-" * 50)
+    print("\n" + "-" * 50 + "\n")
 
-# Set up your API key for other providers
-# muxi_llm.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+    # Example 3: Demonstrate JSON mode with fallback models
+    demonstrate_json_mode_with_fallbacks()
 
-try:
+    print("\n" + "Done!" + "\n")
+
+
+def demonstrate_json_mode_with_openai():
+    """
+    Demonstrates using JSON mode with an OpenAI model that natively supports it.
+
+    This function:
+    1. Makes a request to GPT-4o with JSON mode enabled
+    2. Prints the raw response
+    3. Validates the JSON by parsing it
+    4. Prints the parsed JSON with formatting
+    """
+    print("Example 1: Using OpenAI model with JSON mode")
+    print("-" * 50)
+
+    # Make the API call with JSON mode enabled
     response = muxi_llm.ChatCompletion.create(
-        model="anthropic/claude-3-opus",  # Use the appropriate model for your provider
+        model="openai/gpt-4o",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Generate a list of 3 todo items as JSON"}
+            {"role": "user", "content": "Generate a list of 3 todo items as JSON"},
         ],
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},  # This parameter enables JSON mode
     )
 
-    print("Response from non-OpenAI provider:")
+    # Print the raw response content
+    print("JSON response from OpenAI:")
     print(response.choices[0].message["content"])
     print()
 
-    # Parse the JSON to validate it's properly formatted
+    # Validate the JSON by attempting to parse it
     try:
         parsed = json.loads(response.choices[0].message["content"])
         print("Successfully parsed JSON response:")
-        print(json.dumps(parsed, indent=2))
+        print(json.dumps(parsed, indent=2))  # Pretty-print the JSON
     except json.JSONDecodeError as e:
         print(f"Failed to parse JSON: {e}")
-except Exception as e:
-    print(f"Error: {e}")
-"""
 
-print("\n" + "-" * 50 + "\n")
 
-# Example showing using parameters with fallback models
-print("Example 3: Using JSON mode with fallback models")
-print("-" * 50)
+def demonstrate_json_mode_with_other_provider_commented():
+    """
+    Contains commented-out code that demonstrates JSON mode with non-OpenAI providers.
 
-response = muxi_llm.ChatCompletion.create(
-    model="openai/gpt-4o",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Generate a list of 3 todo items as JSON"}
-    ],
-    response_format={"type": "json_object"},
-    fallback_models=["openai/gpt-3.5-turbo"]  # Both support JSON mode
-)
+    This function is not executed but serves as a template for users who want to
+    test JSON mode with other providers like Anthropic. The code shows:
+    1. How to set up API keys for other providers
+    2. How to make a request with JSON mode
+    3. How to handle and validate the response
+    """
+    # The entire function is commented out as it requires additional API keys
+    """
+    print("Example 2: Using a provider that doesn't support JSON mode natively")
+    print("-" * 50)
 
-print("JSON response with fallback models:")
-print(response.choices[0].message["content"])
+    # Set up your API key for other providers
+    # muxi_llm.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
 
-print("\n" + "Done!" + "\n")
+    try:
+        response = muxi_llm.ChatCompletion.create(
+            model="anthropic/claude-3-opus",  # Use the appropriate model for your provider
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Generate a list of 3 todo items as JSON"}
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        print("Response from non-OpenAI provider:")
+        print(response.choices[0].message["content"])
+        print()
+
+        # Parse the JSON to validate it's properly formatted
+        try:
+            parsed = json.loads(response.choices[0].message["content"])
+            print("Successfully parsed JSON response:")
+            print(json.dumps(parsed, indent=2))
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse JSON: {e}")
+    except Exception as e:
+        print(f"Error: {e}")
+    """
+
+
+def demonstrate_json_mode_with_fallbacks():
+    """
+    Demonstrates using JSON mode with fallback models.
+
+    This function shows how to:
+    1. Configure a primary model with fallback options
+    2. Request JSON responses with this configuration
+    3. Handle the response from whichever model was used
+
+    This is useful for ensuring reliability in production systems.
+    """
+    print("Example 3: Using JSON mode with fallback models")
+    print("-" * 50)
+
+    # Make API call with primary model and fallback options
+    response = muxi_llm.ChatCompletion.create(
+        model="openai/gpt-4o",  # Primary model
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Generate a list of 3 todo items as JSON"},
+        ],
+        response_format={"type": "json_object"},
+        fallback_models=["openai/gpt-3.5-turbo"],  # Model to use if primary fails
+    )
+
+    # Print the response (could be from primary or fallback model)
+    print("JSON response with fallback models:")
+    print(response.choices[0].message["content"])
+
+
+# Execute the main function when the script is run directly
+if __name__ == "__main__":
+    main()
