@@ -69,6 +69,18 @@ class Provider(ABC):
     # Provider capability flags
     json_mode_support = False
 
+    # Multi-modal capabilities
+    vision_support = False        # Image input support
+    audio_input_support = False   # Audio input support
+    video_input_support = False   # Video input support
+
+    # Streaming capabilities
+    streaming_support = False   # Basic streaming support
+    token_by_token_support = False  # Granular streaming
+
+    # Realtime capabilities
+    realtime_support = False    # Realtime API support
+
     @classmethod
     def get_provider_name(cls) -> str:
         """Get the name of the provider."""

@@ -41,6 +41,176 @@ class ChatCompletion:
     logger = logging.getLogger("muxi_llm.chat_completion")
 
     @classmethod
+    def _process_capabilities(
+        cls,
+        provider: Any,
+        messages: List[Dict[str, Any]],
+        stream: bool,
+        kwargs: Dict[str, Any]
+    ) -> tuple:
+        """
+        Process messages and kwargs based on provider capabilities.
+
+        Args:
+            provider: The provider instance
+            messages: The messages to process
+            stream: Whether streaming was requested
+            kwargs: Additional kwargs to process
+
+        Returns:
+            Tuple of (processed_messages, stream_flag, processed_kwargs)
+        """
+        processed_kwargs = dict(kwargs)
+
+        # Handle JSON mode (response_format parameter)
+        if "response_format" in kwargs:
+            response_format = kwargs["response_format"]
+
+            # Check if this is a JSON mode request
+            is_json_mode = (
+                isinstance(response_format, dict) and
+                response_format.get("type") == "json_object"
+            )
+
+            if is_json_mode and not provider.json_mode_support:
+                # Provider doesn't support JSON mode, remove parameter and warn
+                processed_kwargs.pop("response_format", None)
+                warnings.warn(
+                    "The selected provider does not support JSON mode. "
+                    "The 'response_format' parameter will be ignored.",
+                    UserWarning,
+                    stacklevel=2
+                )
+
+                # Add a system message to request JSON format if not already present
+                has_system_message = False
+                for msg in messages:
+                    if msg.get("role") == "system":
+                        has_system_message = True
+                        if "json" not in msg.get("content", "").lower():
+                            # Append JSON instruction to existing system message
+                            msg["content"] += " Please provide your response in valid JSON format."
+                        break
+
+                if not has_system_message:
+                    # Add a new system message requesting JSON
+                    messages_copy = list(messages)  # Create a copy to avoid modifying the original
+                    messages_copy.insert(0, {
+                        "role": "system",
+                        "content": "Please provide your response in valid JSON format."
+                    })
+                    messages = messages_copy
+
+        # Check if streaming is requested but not supported
+        if stream and not provider.streaming_support:
+            stream = False
+            warnings.warn(
+                "The selected provider does not support streaming. "
+                "The request will be processed in non-streaming mode.",
+                UserWarning,
+                stacklevel=2
+            )
+
+        # Check for vision (image) content when provider doesn't support it
+        if not provider.vision_support:
+            has_image_content = False
+            for message in messages:
+                content = message.get("content", "")
+                # Check for image content in list format
+                if isinstance(content, list):
+                    for item in content:
+                        if item.get("type") == "image_url" or item.get("type") == "image":
+                            has_image_content = True
+                            break
+                    if has_image_content:
+                        break
+
+            if has_image_content:
+                warnings.warn(
+                    "The selected provider does not support vision/image inputs. "
+                    "Image content will be removed from the messages.",
+                    UserWarning,
+                    stacklevel=2
+                )
+
+                # Remove image content from messages
+                processed_messages = []
+                for message in messages:
+                    content = message.get("content", "")
+                    if isinstance(content, list):
+                        # Filter out image content
+                        text_content = ""
+                        for item in content:
+                            if item.get("type") == "text":
+                                text_content += item.get("text", "") + "\n"
+
+                        if text_content:
+                            processed_message = dict(message)
+                            processed_message["content"] = text_content.strip()
+                            processed_messages.append(processed_message)
+                    else:
+                        # Keep non-list content unchanged
+                        processed_messages.append(message)
+
+                messages = processed_messages
+
+        # Check for audio content when provider doesn't support it
+        if not provider.audio_input_support:
+            has_audio_content = False
+            for message in messages:
+                content = message.get("content", "")
+                # Check for audio content in list format
+                if isinstance(content, list):
+                    for item in content:
+                        if item.get("type") == "audio_url" or item.get("type") == "audio":
+                            has_audio_content = True
+                            break
+                    if has_audio_content:
+                        break
+
+            if has_audio_content:
+                warnings.warn(
+                    "The selected provider does not support audio inputs. "
+                    "Audio content will be removed from the messages.",
+                    UserWarning,
+                    stacklevel=2
+                )
+
+                # Remove audio content from messages
+                processed_messages = []
+                for message in messages:
+                    content = message.get("content", "")
+                    if isinstance(content, list):
+                        # Filter out audio content
+                        filtered_content = []
+                        for item in content:
+                            if item.get("type") not in ["audio_url", "audio"]:
+                                filtered_content.append(item)
+
+                        if filtered_content:
+                            processed_message = dict(message)
+                            processed_message["content"] = filtered_content
+                            processed_messages.append(processed_message)
+                        elif any(item.get("type") == "text" for item in content):
+                            # If only text remains, convert to simple format
+                            text_content = ""
+                            for item in content:
+                                if item.get("type") == "text":
+                                    text_content += item.get("text", "") + "\n"
+
+                            if text_content:
+                                processed_message = dict(message)
+                                processed_message["content"] = text_content.strip()
+                                processed_messages.append(processed_message)
+                    else:
+                        # Keep non-list content unchanged
+                        processed_messages.append(message)
+
+                messages = processed_messages
+
+        return messages, stream, processed_kwargs
+
+    @classmethod
     def create(
         cls,
         model: str,
@@ -97,47 +267,10 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
-        # Process kwargs based on provider capabilities
-        processed_kwargs = dict(kwargs)
-
-        # Handle JSON mode (response_format parameter)
-        if "response_format" in kwargs:
-            response_format = kwargs["response_format"]
-
-            # Check if this is a JSON mode request
-            is_json_mode = (
-                isinstance(response_format, dict) and
-                response_format.get("type") == "json_object"
-            )
-
-            if is_json_mode and not provider.json_mode_support:
-                # Provider doesn't support JSON mode, remove parameter and warn
-                processed_kwargs.pop("response_format", None)
-                warnings.warn(
-                    "The selected provider does not support JSON mode. "
-                    "The 'response_format' parameter will be ignored.",
-                    UserWarning,
-                    stacklevel=2
-                )
-
-                # Add a system message to request JSON format if not already present
-                has_system_message = False
-                for msg in messages:
-                    if msg.get("role") == "system":
-                        has_system_message = True
-                        if "json" not in msg.get("content", "").lower():
-                            # Append JSON instruction to existing system message
-                            msg["content"] += " Please provide your response in valid JSON format."
-                        break
-
-                if not has_system_message:
-                    # Add a new system message requesting JSON
-                    messages_copy = list(messages)  # Create a copy to avoid modifying the original
-                    messages_copy.insert(0, {
-                        "role": "system",
-                        "content": "Please provide your response in valid JSON format."
-                    })
-                    messages = messages_copy
+        # Process capabilities
+        messages, stream, processed_kwargs = cls._process_capabilities(
+            provider, messages, stream, kwargs
+        )
 
         # Call the provider's method synchronously
         if stream:
@@ -214,47 +347,10 @@ class ChatCompletion:
             fallback_config=fb_config,
         )
 
-        # Process kwargs based on provider capabilities
-        processed_kwargs = dict(kwargs)
-
-        # Handle JSON mode (response_format parameter)
-        if "response_format" in kwargs:
-            response_format = kwargs["response_format"]
-
-            # Check if this is a JSON mode request
-            is_json_mode = (
-                isinstance(response_format, dict) and
-                response_format.get("type") == "json_object"
-            )
-
-            if is_json_mode and not provider.json_mode_support:
-                # Provider doesn't support JSON mode, remove parameter and warn
-                processed_kwargs.pop("response_format", None)
-                warnings.warn(
-                    "The selected provider does not support JSON mode. "
-                    "The 'response_format' parameter will be ignored.",
-                    UserWarning,
-                    stacklevel=2
-                )
-
-                # Add a system message to request JSON format if not already present
-                has_system_message = False
-                for msg in messages:
-                    if msg.get("role") == "system":
-                        has_system_message = True
-                        if "json" not in msg.get("content", "").lower():
-                            # Append JSON instruction to existing system message
-                            msg["content"] += " Please provide your response in valid JSON format."
-                        break
-
-                if not has_system_message:
-                    # Add a new system message requesting JSON
-                    messages_copy = list(messages)  # Create a copy to avoid modifying the original
-                    messages_copy.insert(0, {
-                        "role": "system",
-                        "content": "Please provide your response in valid JSON format."
-                    })
-                    messages = messages_copy
+        # Process capabilities
+        messages, stream, processed_kwargs = cls._process_capabilities(
+            provider, messages, stream, kwargs
+        )
 
         # Call the provider's method asynchronously
         return await provider.create_chat_completion(

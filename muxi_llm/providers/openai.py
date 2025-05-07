@@ -69,6 +69,18 @@ class OpenAIProvider(Provider):
     # Set capability flags
     json_mode_support = True
 
+    # Multi-modal capabilities
+    vision_support = True          # GPT-4V, GPT-4 Turbo, GPT-4o support images
+    audio_input_support = False    # No direct audio in chat (only via transcription)
+    video_input_support = False    # No video support
+
+    # Streaming capabilities
+    streaming_support = True       # All models support streaming
+    token_by_token_support = True  # Provides token-by-token streaming
+
+    # Realtime capabilities
+    realtime_support = False       # No realtime API yet
+
     def __init__(self, **kwargs):
         """
         Initialize the OpenAI provider.

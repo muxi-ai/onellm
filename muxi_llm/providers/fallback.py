@@ -61,6 +61,12 @@ class FallbackProviderProxy(Provider):
 
         # Lazy initialize capability flags - will be set on first access
         self._json_mode_support = None
+        self._vision_support = None
+        self._audio_input_support = None
+        self._video_input_support = None
+        self._streaming_support = None
+        self._token_by_token_support = None
+        self._realtime_support = None
 
     def _check_provider_capability(self, capability_name: str) -> bool:
         """
@@ -95,6 +101,48 @@ class FallbackProviderProxy(Provider):
         if self._json_mode_support is None:
             self._json_mode_support = self._check_provider_capability("json_mode_support")
         return self._json_mode_support
+
+    @property
+    def vision_support(self) -> bool:
+        """Check if vision is supported by the primary provider."""
+        if self._vision_support is None:
+            self._vision_support = self._check_provider_capability("vision_support")
+        return self._vision_support
+
+    @property
+    def audio_input_support(self) -> bool:
+        """Check if audio input is supported by the primary provider."""
+        if self._audio_input_support is None:
+            self._audio_input_support = self._check_provider_capability("audio_input_support")
+        return self._audio_input_support
+
+    @property
+    def video_input_support(self) -> bool:
+        """Check if video input is supported by the primary provider."""
+        if self._video_input_support is None:
+            self._video_input_support = self._check_provider_capability("video_input_support")
+        return self._video_input_support
+
+    @property
+    def streaming_support(self) -> bool:
+        """Check if streaming is supported by the primary provider."""
+        if self._streaming_support is None:
+            self._streaming_support = self._check_provider_capability("streaming_support")
+        return self._streaming_support
+
+    @property
+    def token_by_token_support(self) -> bool:
+        """Check if token-by-token streaming is supported by the primary provider."""
+        if self._token_by_token_support is None:
+            self._token_by_token_support = self._check_provider_capability("token_by_token_support")
+        return self._token_by_token_support
+
+    @property
+    def realtime_support(self) -> bool:
+        """Check if realtime API is supported by the primary provider."""
+        if self._realtime_support is None:
+            self._realtime_support = self._check_provider_capability("realtime_support")
+        return self._realtime_support
 
     async def _try_with_fallbacks(
         self, method_name: str, *args: Any, **kwargs: Any
