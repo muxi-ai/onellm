@@ -1,5 +1,5 @@
 brainstorm/
-muxi_llm.egg-info
+muxi_llm.egg-info/
 
 # Dependencies
 node_modules/
