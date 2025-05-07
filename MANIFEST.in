@@ -1,3 +1,19 @@
 include muxi_llm/.version
 include README.md
 include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include NEXT_STEPS.md
+include SUMMARY.md
+include pyproject.toml
+include .coveragerc
+recursive-include examples *.py
+recursive-include muxi_llm *.py
+recursive-include tests *.py
+prune muxi_llm/__pycache__
+prune tests/__pycache__
+prune examples/__pycache__
+prune .ruff_cache
+prune dist
+prune muxi_llm.egg-info
+prune .git

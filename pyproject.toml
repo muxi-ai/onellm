@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "muxi-llm"
+dynamic = ["version"]
+description = "A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0"}
+authors = [
+    {name = "Ran Aroussi", email = "ran@aroussi.com"}
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {file = ["muxi_llm/.version"]}
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "N", "W", "C90", "I", "B", "UP", "A"]
+ignore = ["E501"]  # Line too long
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
