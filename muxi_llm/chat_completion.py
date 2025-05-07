@@ -33,6 +33,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 from .providers.base import get_provider_with_fallbacks
 from .models import ChatCompletionResponse, ChatCompletionChunk
 from .utils.fallback import FallbackConfig
+from .validators import validate_model_name, validate_messages, validate_stream
 
 
 class ChatCompletion:
@@ -247,6 +248,16 @@ class ChatCompletion:
             ... )
             >>> print(response.choices[0].message["content"])
         """
+        # Validate inputs
+        validate_model_name(model)
+        validate_messages(messages)
+        validate_stream(stream)
+
+        # Validate fallback models if provided
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                validate_model_name(fallback_model)
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
@@ -327,6 +338,16 @@ class ChatCompletion:
             ... )
             >>> print(response.choices[0].message["content"])
         """
+        # Validate inputs
+        validate_model_name(model)
+        validate_messages(messages)
+        validate_stream(stream)
+
+        # Validate fallback models if provided
+        if fallback_models:
+            for i, fallback_model in enumerate(fallback_models):
+                validate_model_name(fallback_model)
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
