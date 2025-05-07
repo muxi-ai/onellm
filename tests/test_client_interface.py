@@ -6,7 +6,6 @@
 # Copyright (C) 2025 Ran Aroussi
 #
 
-import asyncio
 import pytest
 from unittest.mock import patch, MagicMock
 
