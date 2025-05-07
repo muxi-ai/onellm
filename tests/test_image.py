@@ -1,3 +1,4 @@
+import pytest
 """
 Tests for the image generation functionality in the OpenAI provider.
 
@@ -25,6 +26,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.api_key = "test-api-key"
         self.provider = OpenAIProvider(api_key=self.api_key)
 
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image(self, mock_make_request):
         """Test creating images with OpenAI's DALL-E."""
@@ -62,6 +64,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(result["data"][0]["url"], "https://example.com/image1.png")
         self.assertEqual(result["data"][0]["revised_prompt"], "A detailed prompt with revisions")
 
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image_dall_e_2(self, mock_make_request):
         """Test creating images with DALL-E 2."""
@@ -93,6 +96,7 @@ class TestImageCapabilities(unittest.TestCase):
         # Verify the response
         self.assertEqual(len(result["data"]), 2)
 
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_create_image_with_options(self, mock_make_request):
         """Test creating images with additional options."""
@@ -120,7 +124,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(call_args[1]["data"]["style"], "vivid")
         self.assertEqual(call_args[1]["data"]["response_format"], "url")
         self.assertEqual(call_args[1]["data"]["user"], "user123")
-
+    @pytest.mark.asyncio
     async def test_create_image_invalid_model(self):
         """Test that invalid models are rejected."""
         with self.assertRaises(InvalidRequestError) as context:
@@ -129,7 +133,7 @@ class TestImageCapabilities(unittest.TestCase):
                 model="invalid-model"
             )
         self.assertIn("not a supported image generation model", str(context.exception))
-
+    @pytest.mark.asyncio
     async def test_create_image_invalid_size(self):
         """Test that invalid sizes are rejected."""
         with self.assertRaises(InvalidRequestError) as context:
@@ -139,7 +143,7 @@ class TestImageCapabilities(unittest.TestCase):
                 size="invalid-size"
             )
         self.assertIn("not supported for dall-e-3", str(context.exception))
-
+    @pytest.mark.asyncio
     async def test_dall_e_3_multiple_images(self):
         """Test that DALL-E 3 rejects multiple images."""
         with self.assertRaises(InvalidRequestError) as context:
@@ -151,6 +155,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertIn("only supports generating one image", str(context.exception))
 
     @mock.patch("muxi_llm.providers.get_provider")
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.providers.openai.OpenAIProvider.create_image")
     async def test_image_api_class(self, mock_create_image, mock_get_provider):
         """Test the Image API class."""
@@ -181,6 +186,7 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(result["data"][0]["url"], "https://example.com/image1.png")
 
     @mock.patch("muxi_llm.providers.get_provider")
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.image.Image._download_image")
     async def test_image_save_to_file(self, mock_download_image, mock_get_provider):
         """Test saving generated images to files."""

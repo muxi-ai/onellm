@@ -255,7 +255,7 @@ class TestFallbackProvider100Percent:
     @pytest.mark.asyncio
     async def test_streaming_with_fallbacks_generator(self):
         """Test the streaming generator - targeting line 150."""
-        # Use our FailingStreamProvider class which now implements all required methods
+        # Use our FailingStreamProvider class for the test
         failing_provider = FailingStreamProvider()
         fallback_provider = MockStreamingProvider()
 
@@ -281,12 +281,20 @@ class TestFallbackProvider100Percent:
             stream=True
         )
 
-        # Try to get chunks - should raise error after first chunk
+        # When we consume one item from the generator, we should get the first chunk
+        first_chunk = None
+        async for chunk in generator:
+            first_chunk = chunk
+            break
+
+        # The first chunk should be from the failing provider
+        assert first_chunk is not None
+        assert first_chunk["choices"][0]["delta"]["content"] == "first chunk"
+
+        # When we continue consuming the generator, it should raise an APIError
         with pytest.raises(APIError):
             async for chunk in generator:
-                # We should get at least the first chunk
-                assert chunk["choices"][0]["delta"]["content"] == "first chunk"
-                break  # We only need to verify we get the first chunk
+                pass
 
     @pytest.mark.asyncio
     async def test_completion_streaming(self):
@@ -353,13 +361,16 @@ class TestFallbackProvider100Percent:
             FallbackConfig(retriable_errors=[APIError], log_fallbacks=True)
         )
 
-        # Test with correct stream=True parameter - should raise FallbackExhaustionError
+        # Test with stream=True - calling _try_streaming_with_fallbacks eventually
+        # should raise FallbackExhaustionError since all providers fail
         with pytest.raises(FallbackExhaustionError) as excinfo:
-            await proxy.create_chat_completion(
+            generator = await proxy.create_chat_completion(
                 messages=[{"role": "user", "content": "Hello"}],
-                stream=True,
-                model=None  # This is needed to trigger the retry mechanism correctly
+                stream=True
             )
+            # We need to attempt to consume the generator to trigger the error
+            async for _ in generator:
+                pass
 
         # Verify error details
         assert "All models failed" in str(excinfo.value)

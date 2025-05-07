@@ -1,3 +1,4 @@
+import asyncio
 """
 Improved tests for the retry utility.
 
@@ -106,38 +107,26 @@ class TestRetryAsyncEdgeCases:
     @pytest.mark.asyncio
     async def test_last_error_reraise(self):
         """Test that retry_async properly re-raises the last error after retries."""
-        # This simulates a rare code path where we somehow get past the explicit raise
-        # inside the for loop but still have a last_error set
+        # Create a test error with a distinct message for verification
+        test_error = RateLimitError("Specific last error test")
 
-        # Create a mock function
-        mock_func = mock.AsyncMock()
+        @pytest.mark.asyncio
+        # Create a test function that raises our specific error
+        async def test_function(*args, **kwargs):
+            raise test_error
 
-        # Configure retry with monkeypatched _should_retry
-        # This is a bit hacky but necessary to exercise this branch
-        def patched_retry_async(func, *args, config=None, **kwargs):
-            config = config or RetryConfig()
-            last_error = None
+        # Force the retry mechanism to re-raise by setting max_retries=0
+        # and patching _should_retry to return False
+        with mock.patch("muxi_llm.utils.retry._should_retry", return_value=False):
+            # Call with a config that has max_retries=0
+            config = RetryConfig(max_retries=0)
 
-            for attempt in range(1, config.max_retries + 2):
-                try:
-                    # Always raise an error
-                    raise RateLimitError("Test error")
-                except Exception as e:
-                    last_error = e
-                    # Skip the re-raise logic to force the code path
-                    # where we exit the loop with last_error set
-                    pass
-
-            # Simulate the assertion and re-raise at the end
-            assert last_error is not None
-            raise last_error
-
-        # Apply the patched function
-        with mock.patch("muxi_llm.utils.retry.retry_async", patched_retry_async):
+            # Call retry_async and verify it raises our test error
             with pytest.raises(RateLimitError) as excinfo:
-                await retry_async(mock_func)
+                await retry_async(test_function, config=config)
 
-            assert "Test error" in str(excinfo.value)
+            # Verify it's our specific error
+            assert "Specific last error test" in str(excinfo.value)
 
     @pytest.mark.asyncio
     async def test_retry_with_multiple_error_instances(self):

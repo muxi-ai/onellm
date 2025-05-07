@@ -1,3 +1,4 @@
+import asyncio
 """
 Tests for the fallback mechanism in muxi-llm.
 """

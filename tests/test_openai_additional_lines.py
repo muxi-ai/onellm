@@ -7,7 +7,6 @@ from muxi_llm.types.common import Message
 from muxi_llm.errors import AuthenticationError, InvalidRequestError
 
 
-@pytest.mark.asyncio
 class TestOpenAIProviderAdditionalLines:
     """Test targeting specific uncovered lines in the OpenAI provider (lines 123-400)."""
 
@@ -28,6 +27,7 @@ class TestOpenAIProviderAdditionalLines:
         """Clean up patchers."""
         self.config_patcher.stop()
 
+    @pytest.mark.asyncio
     async def test_process_messages_for_vision_no_images(self):
         """Test message processing with no images (lines 382-420)."""
         # Create messages with no images
@@ -44,6 +44,7 @@ class TestOpenAIProviderAdditionalLines:
         # Verify messages are unchanged
         assert processed_messages == messages
 
+    @pytest.mark.asyncio
     async def test_process_messages_for_vision_with_images(self):
         """Test message processing with images (lines 382-420)."""
         # Create messages with an image
@@ -62,6 +63,7 @@ class TestOpenAIProviderAdditionalLines:
         # Verify messages are processed correctly
         assert processed_messages == messages
 
+    @pytest.mark.asyncio
     async def test_process_messages_for_vision_with_invalid_model(self):
         """Test message processing with images and non-vision model (lines 462-473)."""
         # Create messages with an image
@@ -79,6 +81,7 @@ class TestOpenAIProviderAdditionalLines:
         # Verify error message
         assert "does not support vision inputs" in str(exc_info.value)
 
+    @pytest.mark.asyncio
     async def test_handle_error_response_with_no_message(self):
         """Test error handling when no error message is present (line 267)."""
         # Test with empty error object
@@ -105,6 +108,7 @@ class TestOpenAIProviderAdditionalLines:
         assert exc_info.value.provider == "openai"
         assert exc_info.value.status_code == 401
 
+    @pytest.mark.asyncio
     async def test_create_embedding_with_batched_input(self):
         """Test create_embedding with batched input (lines 415-474)."""
         # Create a list of texts to embed
@@ -148,6 +152,7 @@ class TestOpenAIProviderAdditionalLines:
             assert result.data[1].embedding == [0.4, 0.5, 0.6]
             assert result.data[2].embedding == [0.7, 0.8, 0.9]
 
+    @pytest.mark.asyncio
     async def test_create_embedding_with_dimensions(self):
         """Test create_embedding with dimensions parameter (lines 415-474)."""
         # Create input text
@@ -177,6 +182,7 @@ class TestOpenAIProviderAdditionalLines:
             called_args = mock_request.call_args[1]
             assert called_args["data"]["dimensions"] == 2
 
+    @pytest.mark.asyncio
     async def test_create_chat_completion_tools(self):
         """Test create_chat_completion with tools parameter (lines 309-390)."""
         # Create messages

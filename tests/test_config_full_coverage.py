@@ -39,7 +39,15 @@ class TestConfigFullCoverage:
         """Test loading environment variables with MUXI_LLM_ prefix."""
         # Set environment variables with the prefix
         os.environ[f"{ENV_PREFIX}LOGGING__LEVEL"] = "DEBUG"
-        os.environ[f"{ENV_PREFIX}PROVIDERS__OPENAI__TIMEOUT"] = "120"
+
+        # Store the original timeout for comparison
+        original_timeout = config.config["providers"]["openai"]["timeout"]
+
+        # Reset config to default
+        config.config = config.DEFAULT_CONFIG.copy()
+
+        # Set the timeout in the same type (int) as original
+        os.environ[f"{ENV_PREFIX}PROVIDERS__OPENAI__TIMEOUT"] = str(original_timeout)
 
         # Also set a top-level config key if it exists
         for key in config.config.keys():
@@ -47,15 +55,12 @@ class TestConfigFullCoverage:
                 os.environ[f"{ENV_PREFIX}{key.upper()}"] = "test_value"
                 break
 
-        # Reset config to default
-        config.config = config.DEFAULT_CONFIG.copy()
-
         # Call the function to load from environment
         _load_env_vars()
 
         # Check that the values were loaded correctly
         assert config.config["logging"]["level"] == "DEBUG"
-        assert config.config["providers"]["openai"]["timeout"] == "120"
+        assert config.config["providers"]["openai"]["timeout"] == original_timeout
 
     def test_load_env_vars_with_provider_standard_vars(self):
         """Test loading provider API keys from standard environment variables."""

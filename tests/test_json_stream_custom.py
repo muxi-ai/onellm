@@ -19,7 +19,7 @@ async def async_generator(items: List[Any]) -> AsyncGenerator[Any, None]:
         yield item
 
 
-# Simplified implementation of json_stream_generator for testing
+@pytest.mark.asyncio
 async def test_json_stream_generator(
     source_generator: AsyncGenerator[str, None],
     data_key: Optional[str] = None

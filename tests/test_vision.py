@@ -1,3 +1,4 @@
+import pytest
 """
 Tests for vision capabilities in the OpenAI provider.
 
@@ -131,6 +132,7 @@ class TestVisionCapabilities(unittest.TestCase):
             "auto"
         )
 
+    @pytest.mark.asyncio
     @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
     async def test_vision_request_formatting(self, mock_make_request):
         """Test that vision requests are formatted correctly for the API."""

@@ -1,3 +1,4 @@
+import asyncio
 """
 Advanced tests for the ChatCompletion class.
 
