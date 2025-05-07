@@ -7,16 +7,13 @@ This is used by the test runner script to ensure tests use mocks instead of real
 """
 
 import sys
-import os
-import asyncio
 from unittest import mock
 from pathlib import Path
 
 # Add the parent directory to the path for proper imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from muxi_llm.models import FileObject
-from muxi_llm.providers import get_provider, openai
+from muxi_llm.models import FileObject  # noqa: E402
+from muxi_llm.providers import openai  # noqa: E402
 
 # Create mock file objects for testing
 MOCK_FILE_OBJECTS = {
@@ -40,22 +37,29 @@ MOCK_FILE_OBJECTS = {
     )
 }
 
+
 async def mock_upload_file(*args, **kwargs):
     """Mock file upload API call."""
     return MOCK_FILE_OBJECTS["file-123"]
+
 
 async def mock_download_file(*args, **kwargs):
     """Mock file download API call."""
     return b"test file content"
 
+
 async def mock_list_files(*args, **kwargs):
     """Mock list files API call."""
-    return {"data": [{"id": f.id, "object": f.object, "filename": f.filename}
-                    for f in MOCK_FILE_OBJECTS.values()]}
+    return {"data": [
+        {"id": f.id, "object": f.object, "filename": f.filename}
+        for f in MOCK_FILE_OBJECTS.values()
+    ]}
+
 
 async def mock_delete_file(*args, **kwargs):
     """Mock delete file API call."""
     return {"id": "file-123", "deleted": True}
+
 
 # Apply the patches to avoid real API calls
 def apply_patches():
@@ -73,6 +77,7 @@ def apply_patches():
         p.start()
 
     return patches
+
 
 # This will be imported and used in test runner
 patches = apply_patches()

@@ -5,7 +5,6 @@ These tests focus on the audio transcription and translation functionality,
 particularly the fallback mechanisms, synchronous wrappers, and error handling.
 """
 
-import asyncio
 import pytest
 from unittest import mock
 from io import BytesIO
@@ -23,7 +22,8 @@ async def test_audio_transcription_fallback_models():
     mock_provider.create_transcription = mock.AsyncMock(return_value={"text": "Transcribed text"})
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch(
+            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Test with fallback models
@@ -42,7 +42,9 @@ async def test_audio_transcription_fallback_models():
         )
 
         # Check provider method call
-        mock_provider.create_transcription.assert_called_with(b"fake audio data", "whisper-1", language="en")
+        mock_provider.create_transcription.assert_called_with(
+            b"fake audio data", "whisper-1", language="en"
+        )
         assert result == {"text": "Transcribed text"}
 
 
@@ -54,7 +56,8 @@ async def test_audio_transcription_custom_fallback_config():
     mock_provider.create_transcription = mock.AsyncMock(return_value={"text": "Transcribed text"})
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch(
+            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Create a fallback config
@@ -88,12 +91,12 @@ def test_audio_transcription_sync_wrapper():
     mock_result = {"text": "Synchronous transcription test"}
 
     # Mock the async create method to check parameters
-    with mock.patch.object(AudioTranscription, "create",
-                          return_value=mock_result) as mock_create, \
-         mock.patch("asyncio.run", side_effect=lambda x: x) as mock_run:
+    with mock.patch.object(
+        AudioTranscription, "create", return_value=mock_result
+    ) as mock_create, mock.patch("asyncio.run", side_effect=lambda x: x) as mock_run:
 
         # Call the sync method
-        result = AudioTranscription.create_sync(
+        AudioTranscription.create_sync(
             file="test.mp3",
             model="openai/whisper-1",
             language="en",
@@ -131,7 +134,8 @@ async def test_audio_translation_with_file_object():
     mock_provider.create_translation = mock.AsyncMock(return_value={"text": "Translated text"})
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch(
+            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Call the method with a file object
@@ -151,12 +155,12 @@ def test_audio_translation_sync_wrapper():
     mock_result = {"text": "Synchronous translation test"}
 
     # Mock the async create method to check parameters
-    with mock.patch.object(AudioTranslation, "create",
-                          return_value=mock_result) as mock_create, \
-         mock.patch("asyncio.run", side_effect=lambda x: x) as mock_run:
+    with mock.patch.object(
+        AudioTranslation, "create", return_value=mock_result
+    ) as mock_create, mock.patch("asyncio.run", side_effect=lambda x: x) as mock_run:
 
         # Call the sync method with various optional parameters
-        result = AudioTranslation.create_sync(
+        AudioTranslation.create_sync(
             file="foreign_speech.mp3",
             model="openai/whisper-1",
             response_format="srt",
@@ -189,10 +193,13 @@ async def test_audio_translation_all_parameters():
     """Test AudioTranslation with all possible parameters."""
     # Mock provider and method
     mock_provider = mock.Mock()
-    mock_provider.create_translation = mock.AsyncMock(return_value={"text": "Translated with all params"})
+    mock_provider.create_translation = mock.AsyncMock(
+        return_value={"text": "Translated with all params"}
+    )
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch(
+            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Call with all possible parameters
