@@ -17,7 +17,7 @@
 >
 > More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
 >
-> <a href="https://github.com/ranaroussi/muxi-llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star" alt="Star this repo"></a>
+> <a href="https://github.com/ranaroussi/muxi-llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
 >
 > Thank you for your support! 🙏
 
