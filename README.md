@@ -114,35 +114,6 @@ muxi-llm supports models through three main approaches:
 2. **OpenRouter connectivity for aggregated access**
 3. **Local model support via Ollama and llama.cpp**
 
-<div align="center">
-
-<!-- Provider grid - replace with actual logos when available -->
-<table>
-  <tr>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=OpenAI" width="50px" /><br />OpenAI</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Google" width="50px" /><br />Google</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Anthropic" width="50px" /><br />Anthropic</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Mistral" width="50px" /><br />Mistral</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Groq" width="50px" /><br />Groq</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Azure" width="50px" /><br />Azure</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Together" width="50px" /><br />Together</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Anyscale" width="50px" /><br />Anyscale</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Fireworks" width="50px" /><br />Fireworks</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Cohere" width="50px" /><br />Cohere</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Perplexity" width="50px" /><br />Perplexity</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=DeepInfra" width="50px" /><br />DeepInfra</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=DeepSeek" width="50px" /><br />DeepSeek</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=Ollama" width="50px" /><br />Ollama</td>
-    <td align="center"><img src="https://via.placeholder.com/50x50?text=HF" width="50px" /><br />HuggingFace</td>
-  </tr>
-</table>
-
-</div>
-
 ### Notable Models Available
 
 Through these providers, you gain access to hundreds of models, including:
