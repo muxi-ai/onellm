@@ -25,20 +25,20 @@
 
 ## 📚 Table of Contents
 
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-- [Key Features](#key-features)
-- [Supported Providers](#supported-providers)
-- [Architecture](#architecture)
-- [API Design](#api-design)
-- [Advanced Features](#advanced-features)
-- [Migration from OpenAI](#migration-from-openai)
-- [Model Naming Convention](#model-naming-convention)
-- [Configuration](#configuration)
-- [Test Coverage](#test-coverage)
-- [Documentation](#documentation)
-- [Call for Contributions](#call-for-contributions)
-- [License](#license)
+- [Overview](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#overview)
+- [Getting Started](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#getting-started)
+- [Key Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#key-features)
+- [Supported Providers](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#supported-providers)
+- [Architecture](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#architecture)
+- [API Design](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#api-design)
+- [Advanced Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#advanced-features)
+- [Migration from OpenAI](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#migration-from-openai)
+- [Model Naming Convention](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#model-naming-convention)
+- [Configuration](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#configuration)
+- [Test Coverage](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#test-coverage)
+- [Documentation](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#documentation)
+- [Call for Contributions](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#call-for-contributions)
+- [License](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#license)
 
 ## Overview
 
