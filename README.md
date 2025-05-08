@@ -802,5 +802,5 @@ If you find muxi-llm useful in your work:
 
 Thank you for your support!
 
-— **Ran Aroussi**
+~ **Ran Aroussi**<br>
 𝕏 / [@aroussi](https://x.com/aroussi)
