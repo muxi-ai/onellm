@@ -1,19 +1,59 @@
 # muxi-llm
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ranaroussi/muxi-llm)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.python.org/pypi/muxi-llm.svg)
+[![Version](https://img.shields.io/pypi/v/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm.svg)
+[![Status](https://img.shields.io/pypi/status/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm.svg)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/ranaroussi/muxi-llm)
+&nbsp;
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client with support for hundreds of models.
+### A "drop-in replacement" for OpenAI's client that offers a unified interface for interacting with large language models from various providers,  with support for hundreds of models, built-in fallback mechanisms, and enhanced reliability features.
+
+---
+
+> [!TIP]
+> #### Support this project by starring this repo on GitHub!
+>
+> More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
+>
+> <a href="https://github.com/ranaroussi/muxi-llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star" alt="Star this repo"></a>
+>
+> Thank you for your support! 🙏
+
+---
+
+## 📚 Table of Contents
+
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Key Features](#key-features)
+- [Supported Providers](#supported-providers)
+- [Architecture](#architecture)
+- [API Design](#api-design)
+- [Advanced Features](#advanced-features)
+- [Migration from OpenAI](#migration-from-openai)
+- [Model Naming Convention](#model-naming-convention)
+- [Configuration](#configuration)
+- [Test Coverage](#test-coverage)
+- [Documentation](#documentation)
+- [Call for Contributions](#call-for-contributions)
+- [License](#license)
 
 ## Overview
 
-muxi-llm is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
+**muxi-llm** is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
 With support for 25+ providers, muxi-llm gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
-## Getting Started
+> [!NOTE]
+> **Work in Progress**: muxi-llm is currently under active development. The full functionality has been achieved using OpenAI, and I'm now working on adding support for more providers. [Contributions are welcome](./CONTRIBUTING.md) to help expand provider support!
+
+---
+
+## 🚀 Getting Started
 
 ### Installation
 
@@ -25,14 +65,14 @@ pip install muxi-llm
 pip install "muxi-llm[all]"
 ```
 
-### Quick Start
+### Quick Win: Your First LLM Call
 
 ```python
 # Basic usage with OpenAI-compatible syntax
 from muxi_llm import ChatCompletion
 
 response = ChatCompletion.create(
-    model="openai/gpt-3.5-turbo",
+    model="openai/gpt-4o-mini",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello, how are you?"}
@@ -40,100 +80,214 @@ response = ChatCompletion.create(
 )
 
 print(response.choices[0].message["content"])
+# Output: I'm doing well, thank you for asking! I'm here and ready to help you...
 ```
 
 For more detailed examples, check out the [examples directory](./examples).
 
-## Key Features
+---
 
-- **Drop-in replacement for OpenAI** - Use your existing OpenAI code with minimal changes
-- **Provider-agnostic** - Support for 300+ models across 25+ LLM providers and services
-- **Automatic model fallback** - Seamlessly switch to alternative models when a provider is unavailable
-- **Auto-retry mechanism** - Automatically retry the same model multiple times before failing or falling back
-- **OpenAI-compatible API** - Familiar interface for developers accustomed to OpenAI's client library
-- **Streaming support** - Real-time streaming responses from supported providers
-- **Multi-modal capabilities** - Full support for text, images, audio, and video across compatible models
-- **Model naming convention** - Consistent `provider/model-name` format for clear attribution
-- **Comprehensive test coverage** - Extensive test suite ensuring reliability and compatibility
-- **AGPL v3 license** - Open-source license that ensures all improvements remain available to the community
+## ✨ Key Features
 
-## Supported Providers
 
-muxi-llm supports hundreds of models through:
+| Feature | Description |
+|---------|-------------|
+| **📦 Drop-in replacement** | Use your existing OpenAI code with minimal changes |
+| **🔄 Provider-agnostic** | Support for 300+ models across 25+ LLM providers |
+| **🔁 Automatic fallback** | Seamlessly switch to alternative models when needed |
+| **🔄 Auto-retry mechanism** | Retry the same model multiple times before failing |
+| **🧩 OpenAI-compatible** | Familiar interface for developers used to OpenAI |
+| **📺 Streaming support** | Real-time streaming responses from supported providers |
+| **🖼️ Multi-modal capabilities** | Support for text, images, audio across compatible models |
+| **🖼️ Local LLM support** | Support for local LLMs via Ollama and llama.cpp |
+| **🏷️ Consistent naming** | Clear `provider/model-name` format for attribution |
+| **🧪 Comprehensive tests** | 96% test coverage ensuring reliability |
+| **📄 AGPL v3 license** | Open-source license that protects contributions |
 
-1. **Direct integration**
-2. **OpenRouter connectivity**
-3. **Local model support via Ollama**
+---
 
-### Notable Providers
+## 🌐 Supported Providers
 
-* **OpenAI** - Base implementation and reference API
-* **Google Gemini** - OpenAI-compatible API for Gemini models
-* **Together AI** - Full compatibility for chat/completion/embedding
-* **Anyscale** - OpenAI-compatible endpoints
-* **Fireworks AI** - Drop-in replacement for OpenAI
-* **Groq** - Compatible API format
-* **Mistral AI** - La Plateforme offers OpenAI compatibility
-* **Azure OpenAI** - Microsoft's hosted version of OpenAI
-* **Perplexity AI** - Compatible chat completions
-* **DeepInfra** - OpenAI-compatible API
-* **DeepSeek** - OpenAI-compatible API for DeepSeek models
-* **Lepton AI** - Compatible endpoints
-* **OctoAI** - OpenAI-compatible for selected models
-* **Modal** - Hosts compatible endpoints
-* **Replicate** - OpenAI compatibility layer for various models
-* **NexusFlow** - OpenAI-compatible
-* **Voyage AI** - Compatible for embeddings
-* **Databricks** - MosaicML offers compatible endpoints
-* **OpenRouter** - OpenAI-compatible API for multiple providers
-* **Anthropic** - Has its own API structure
-* **Ollama** - Custom API for local models
-* **llama.cpp** - C/C++ implementation for running LLMs locally with direct hardware access
-* **HuggingFace** - Different API structure
-* **Sagemaker** - Custom API for embeddings/completions
-* **Cohere** - Offers both unique API format and OpenAI-compatible endpoints
+muxi-llm supports models through three main approaches:
+
+1. **Direct integration with provider APIs**
+2. **OpenRouter connectivity for aggregated access**
+3. **Local model support via Ollama and llama.cpp**
+
+<div align="center">
+
+<!-- Provider grid - replace with actual logos when available -->
+<table>
+  <tr>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=OpenAI" width="50px" /><br />OpenAI</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Google" width="50px" /><br />Google</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Anthropic" width="50px" /><br />Anthropic</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Mistral" width="50px" /><br />Mistral</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Groq" width="50px" /><br />Groq</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Azure" width="50px" /><br />Azure</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Together" width="50px" /><br />Together</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Anyscale" width="50px" /><br />Anyscale</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Fireworks" width="50px" /><br />Fireworks</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Cohere" width="50px" /><br />Cohere</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Perplexity" width="50px" /><br />Perplexity</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=DeepInfra" width="50px" /><br />DeepInfra</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=DeepSeek" width="50px" /><br />DeepSeek</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=Ollama" width="50px" /><br />Ollama</td>
+    <td align="center"><img src="https://via.placeholder.com/50x50?text=HF" width="50px" /><br />HuggingFace</td>
+  </tr>
+</table>
+
+</div>
 
 ### Notable Models Available
 
 Through these providers, you gain access to hundreds of models, including:
 
-- **GPT Family**: GPT-4, GPT-4o, GPT-4 Turbo
-- **Claude Family**: Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
-- **Llama Family**: Llama 2, Llama 3, Code Llama
-- **Mistral Family**: Mistral 7B, Mistral Large
-- **Gemini Family**: Gemini Pro, Gemini Ultra
-- **Specialized Models**: Stable Diffusion XL, Command R, Phi-3, Mixtral
-- **Embeddings**: Ada-002, text-embedding-3-small/large, Cohere embeddings
-- **Multimodal Models**: GPT-4 Vision, Claude 3 Vision, Gemini Pro Vision
+<div align="center">
 
-## Architecture
+<!-- Model categories -->
+<table>
+  <tr>
+    <th>Model Family</th>
+    <th>Notable Models</th>
+  </tr>
+  <tr>
+    <td><strong>OpenAI Family</strong></td>
+    <td>GPT-4o, GPT-4 Turbo, o3</td>
+  </tr>
+  <tr>
+    <td><strong>Claude Family</strong></td>
+    <td>Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku</td>
+  </tr>
+  <tr>
+    <td><strong>Llama Family</strong></td>
+    <td>Llama 3 70B, Llama 3 8B, Code Llama</td>
+  </tr>
+  <tr>
+    <td><strong>Mistral Family</strong></td>
+    <td>Mistral Large, Mistral 7B, Mixtral</td>
+  </tr>
+  <tr>
+    <td><strong>Gemini Family</strong></td>
+    <td>Gemini Pro, Gemini Ultra, Gemini Flash</td>
+  </tr>
+  <tr>
+    <td><strong>Embeddings</strong></td>
+    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings</td>
+  </tr>
+  <tr>
+    <td><strong>Multimodal</strong></td>
+    <td>GPT-4 Vision, Claude 3 Vision, Gemini Pro Vision</td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+## 🏗️ Architecture
 
 muxi-llm follows a modular architecture with clear separation of concerns:
 
-```
-muxi_llm/
-├── __init__.py                 # Public API exports
-├── chat_completion.py          # ChatCompletion class
-├── completion.py               # Completion class
-├── embedding.py                # Embedding class
-├── models.py                   # Response and request model definitions
-├── errors.py                   # Error definitions
-├── config.py                   # Configuration handling
-├── providers/
-│   ├── __init__.py
-│   ├── base.py                 # Base provider interface
-│   ├── openai.py               # OpenAI implementation
-│   ├── anthropic.py            # Anthropic implementation
-│   ├── ollama.py               # Ollama implementation
-│   └── ...                     # Other provider implementations
-├── utils/
-│   ├── __init__.py
-│   ├── streaming.py            # Streaming utilities
-│   ├── retry.py                # Retry mechanisms
-│   └── token_counter.py        # Token counting utilities
-└── types/
-    ├── __init__.py
-    └── common.py               # Type definitions
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: mc
+  themeVariables:
+    background: 'transparent'
+    primaryColor: '#fff0'
+    secondaryColor: 'transparent'
+    tertiaryColor: 'transparent'
+    mainBkg: 'transparent'
+
+  flowchart:
+    layout: fixed
+---
+flowchart TD
+    %% User API Layer
+    User(User Application) --> ChatCompletion
+    User --> Completion
+    User --> Embedding
+    User --> OpenAIClient["OpenAI Client Interface"]
+
+    subgraph API["Public API Layer"]
+        ChatCompletion["ChatCompletion\n.create() / .acreate()"]
+        Completion["Completion\n.create() / .acreate()"]
+        Embedding["Embedding\n.create() / .acreate()"]
+        OpenAIClient
+    end
+
+    %% Core logic
+    subgraph Core["Core Logic"]
+        Router["Provider Router"]
+        Config["Configuration\nEnvironment Variables\nAPI Keys"]
+        FallbackManager["Fallback Manager"]
+        RetryManager["Retry Manager"]
+    end
+
+    %% Provider Layer
+    BaseProvider["Provider Interface<br>(Base Class)"]
+
+    subgraph Implementations["Provider Implementations"]
+        OpenAI["OpenAI"]
+        Anthropic["Anthropic"]
+        GoogleProvider["Google"]
+        Groq["Groq"]
+        Ollama["Local LLMs"]
+        OtherProviders["20+ Others"]
+    end
+
+    %% Utilities
+    subgraph Utilities["Utilities"]
+        Streaming["Streaming<br>Handlers"]
+        TokenCounting["Token<br>Counter"]
+        ErrorHandling["Error<br>Handling"]
+        Types["Type<br>Definitions"]
+        Models["Response<br>Models"]
+    end
+
+    %% External services
+    OpenAIAPI["OpenAI API"]
+    AnthropicAPI["Anthropic API"]
+    GoogleAPI["Google API"]
+    GroqAPI["Groq API"]
+    LocalModels["Ollama/llama.cpp"]
+    OtherAPIs["..."]
+
+    %% Connections
+    ChatCompletion --> Router
+    Completion --> Router
+    Embedding --> Router
+    OpenAIClient --> Router
+
+    Router --> Config
+    Router --> FallbackManager
+    FallbackManager --> RetryManager
+
+    RetryManager --> BaseProvider
+
+    BaseProvider --> OpenAI
+    BaseProvider --> Anthropic
+    BaseProvider --> GoogleProvider
+    BaseProvider --> Groq
+    BaseProvider --> Ollama
+    BaseProvider --> OtherProviders
+
+    BaseProvider --> Streaming
+    BaseProvider --> TokenCounting
+    BaseProvider --> ErrorHandling
+
+    OpenAI --> OpenAIAPI
+    Anthropic --> AnthropicAPI
+    GoogleProvider --> GoogleAPI
+    Groq --> GroqAPI
+    Ollama --> LocalModels
+    OtherProviders --> OtherAPIs
 ```
 
 ### Core Components
@@ -160,7 +314,9 @@ muxi_llm/
    - Configurable fallback chains
    - Graceful degradation options
 
-## API Design
+---
+
+## 🔌 API Design
 
 muxi-llm mirrors the OpenAI Python client library API for familiarity:
 
@@ -256,9 +412,61 @@ response = Embedding.create(
 )
 ```
 
-## Advanced Features
+---
+
+## 🛠️ Advanced Features
 
 ### Fallback Chains for Enhanced Reliability
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: mc
+  themeVariables:
+    background: 'transparent'
+    primaryColor: '#fff0'
+    secondaryColor: 'transparent'
+    tertiaryColor: 'transparent'
+    mainBkg: 'transparent'
+
+  flowchart:
+    layout: fixed
+---
+flowchart TD
+    START(["Client Request"]) --> REQUEST["Chat/Completion Request"]
+    REQUEST --> PRIMARY["Primary Model<br>e.g., openai/gpt-4"]
+
+    PRIMARY --> API_CHECK{"API<br>Available?"}
+    API_CHECK -->|Yes| MODEL_CHECK{"Model<br>Available?"}
+    MODEL_CHECK -->|Yes| QUOTA_CHECK{"Quota/Rate<br>Limits OK?"}
+    QUOTA_CHECK -->|Yes| SUCCESS["Successful Response"]
+    SUCCESS --> RESPONSE(["Return to Client"])
+
+    API_CHECK -->|No| RETRY_DECISION{"Retry<br>Count < Max?"}
+    MODEL_CHECK -->|No| RETRY_DECISION
+    QUOTA_CHECK -->|No| RETRY_DECISION
+
+    RETRY_DECISION -->|Yes| RETRY["Retry with Delay<br>(Same Model)"]
+    RETRY --> PRIMARY
+
+    RETRY_DECISION -->|No| FALLBACK_CHECK{"Fallbacks<br>Available?"}
+
+    FALLBACK_CHECK -->|Yes| FALLBACK_MODEL["Next Fallback Model<br>e.g., anthropic/claude-3-haiku"]
+    FALLBACK_MODEL --> FALLBACK_TRY["Try Fallback"]
+    FALLBACK_TRY --> FALLBACK_API_CHECK{"API<br>Available?"}
+
+    FALLBACK_API_CHECK -->|Yes| FALLBACK_SUCCESS["Successful Response"]
+    FALLBACK_SUCCESS --> RESPONSE
+
+    FALLBACK_API_CHECK -->|No| NEXT_FALLBACK{"More<br>Fallbacks?"}
+    NEXT_FALLBACK -->|Yes| FALLBACK_MODEL
+    NEXT_FALLBACK -->|No| ERROR["Error Response"]
+
+    FALLBACK_CHECK -->|No| ERROR
+    ERROR --> RESPONSE
+```
+
 
 muxi-llm includes built-in fallback support to handle API errors gracefully:
 
@@ -334,7 +542,9 @@ response = await ChatCompletion.acreate(
 )
 ```
 
-## Migration from OpenAI
+---
+
+## 🔄 Migration from OpenAI
 
 muxi-llm provides multiple ways to migrate from the OpenAI client, including a fully compatible client interface:
 
@@ -422,22 +632,59 @@ response = client.chat.completions.create(
 )
 ```
 
-## Model Naming Convention
+---
+
+## 🏷️ Model Naming Convention
 
 Models are specified using a provider prefix to clearly identify the source:
 
-- `openai/gpt-4` - OpenAI's GPT-4
-- `google/gemini-pro` - Google's Gemini Pro model
-- `anthropic/claude-3-opus` - Anthropic's Claude model
-- `groq/llama3-70b` - Llama 3 via Groq
-- `mistral/mistral-large` - Mistral AI's large model
-- `cohere/command-r` - Cohere's Command R model
-- `deepseek/deepseek-coder` - DeepSeek's coding model
-- `ollama/llama3` - Local Llama model via Ollama
-- `llama_cpp/llama-3-8b` - Local Llama model via llama.cpp
-- `openrouter/anthropic/claude-3` - Claude via OpenRouter
+<!-- Model naming examples -->
+<table>
+  <tr>
+    <th>Provider</th>
+    <th>Format</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td>OpenAI</td>
+    <td><code>openai/{model}</code></td>
+    <td><code>openai/gpt-4</code></td>
+  </tr>
+  <tr>
+    <td>Google</td>
+    <td><code>google/{model}</code></td>
+    <td><code>google/gemini-pro</code></td>
+  </tr>
+  <tr>
+    <td>Anthropic</td>
+    <td><code>anthropic/{model}</code></td>
+    <td><code>anthropic/claude-3-opus</code></td>
+  </tr>
+  <tr>
+    <td>Groq</td>
+    <td><code>groq/{model}</code></td>
+    <td><code>groq/llama3-70b</code></td>
+  </tr>
+  <tr>
+    <td>Mistral</td>
+    <td><code>mistral/{model}</code></td>
+    <td><code>mistral/mistral-large</code></td>
+  </tr>
+  <tr>
+    <td>Local via Ollama</td>
+    <td><code>ollama/{model}</code></td>
+    <td><code>ollama/llama3</code></td>
+  </tr>
+  <tr>
+    <td>Via OpenRouter</td>
+    <td><code>openrouter/{provider}/{model}</code></td>
+    <td><code>openrouter/anthropic/claude-3</code></td>
+  </tr>
+</table>
 
-## Configuration
+---
+
+## ⚙️ Configuration
 
 muxi-llm can be configured through environment variables or at runtime:
 
@@ -464,30 +711,42 @@ muxi_llm.config.fallback = {
 }
 ```
 
-## Test Coverage
+---
+
+## 🧪 Test Coverage
 
 muxi-llm maintains comprehensive test coverage to ensure reliability and compatibility:
 
-- **Unit tests** for all core components and utilities
-- **Integration tests** with mock servers for each provider
-- **End-to-end tests** with actual API calls (using recorded responses)
-- **Compatibility tests** across different Python versions
+<!-- Test coverage visualization -->
+<table>
+  <tr>
+    <th>Coverage Metric</th>
+    <th>Value</th>
+  </tr>
+  <tr>
+    <td>Overall Package Coverage</td>
+    <td>96% (357 passing tests)</td>
+  </tr>
+  <tr>
+    <td>Modules with 100% Coverage</td>
+    <td>16 modules</td>
+  </tr>
+  <tr>
+    <td>Minimum Module Coverage</td>
+    <td>90%</td>
+  </tr>
+  <tr>
+    <td>Provider Implementations</td>
+    <td>93-95% coverage</td>
+  </tr>
+</table>
 
-The CI pipeline ensures all tests pass before merging changes, maintaining a high standard of quality.
-
-### Current Coverage Metrics
-
-As of May 2024, muxi-llm maintains exceptional test coverage:
-
-- **96% overall package coverage** with 357 passing tests
-- **16 modules with perfect 100% coverage**, including core types, models, errors, files, and embeddings
-- **All modules maintain 90%+ coverage**, ensuring robust behavior across the entire codebase
-- **Key provider implementations at 93-95% coverage**, with only difficult-to-test edge cases remaining uncovered
-- **Comprehensive async testing** with robust handling of streaming responses and error conditions
 
 This extensive test coverage ensures reliable operation across all supported providers and models.
 
-## Documentation
+---
+
+## 📖 Documentation
 
 muxi-llm uses a code-first documentation approach:
 
@@ -509,21 +768,30 @@ muxi-llm uses a code-first documentation approach:
 
 This approach keeps documentation tightly coupled with code, ensuring it stays up-to-date as the library evolves. To get started, we recommend examining the examples that match your use case.
 
-## Call for Contributions
+---
 
-I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features, improving documentation, or supporting new providers, your help is appreciated.
+## 🤝 Call for Contributions
 
-To get started:
+We're building something amazing with muxi-llm, and we'd love your help to make it even better! There are many ways to contribute:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add or update tests as necessary
-5. Submit a pull request
+- **Code contributions**: Add new providers, enhance existing ones, or improve core functionality
+- **Bug reports**: Help us identify and fix issues
+- **Documentation**: Improve examples, clarify API usage, or fix typos
+- **Feature requests**: Share your ideas for making muxi-llm more powerful
+- **Testing**: Help ensure reliability across different environments and use cases
 
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines and my contributor license agreement.
+**Getting started is easy:**
 
-## License
+1. Check out our [open issues](https://github.com/muxijs/muxi/issues) for good first contributions
+2. Fork the repository and create a feature branch
+3. Make your improvements and run tests
+4. Submit a pull request with a clear description of your changes
+
+For complete details on contribution guidelines, code style, provider development, testing standards, and our contributor license agreement, please read our [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+---
+
+## 📄 License
 
 muxi-llm is licensed under the [GNU Affero General Public License V3 (AGPL-3.0)](./LICENSE).
 
@@ -538,40 +806,19 @@ I chose the AGPL license to ensure that all improvements to muxi-llm remain avai
 
 For individuals and organizations integrating muxi-llm into their applications, this means you can freely use, modify, and distribute the library, as long as you share your improvements with the community when you distribute your software.
 
-## Developing Custom Providers
+---
 
-### Provider Capability Flags
+## 🙏 Thank You
 
-When developing custom providers for muxi-llm, use capability flags to indicate supported features:
+Thank you for trying out muxi-llm! Your interest and support mean a lot to this project. Whether you're using it in your applications, experimenting with different LLM providers, or just exploring the capabilities, your participation helps drive this project forward.
 
-```python
-from muxi_llm.providers.base import Provider
+If you find muxi-llm useful in your work:
 
-class MyCustomProvider(Provider):
-    """Custom provider implementation."""
+- Consider starring the repository on GitHub
+- Share your experiences or use cases with the community
+- Let us know how we can make it better for your needs
 
-    # Set capability flags
-    json_mode_support = True         # Supports structured JSON output
+Thank you for your support!
 
-    # Multi-modal capabilities
-    vision_support = True            # Supports image inputs
-    audio_input_support = False      # No audio input support
-    video_input_support = False      # No video input support
-
-    # Streaming capabilities
-    streaming_support = True         # Supports streaming responses
-    token_by_token_support = True    # Supports granular token streaming
-
-    # Realtime capabilities
-    realtime_support = False         # No realtime API support
-
-    # Implement required methods...
-```
-
-The library automatically adapts requests based on each provider's capabilities:
-
-1. When JSON mode is requested for providers without support, a system message is added
-2. For streaming requests with non-streaming providers, streaming is disabled
-3. Image/audio/video content is removed for providers without multimedia support
-
-These flags help the library gracefully handle features across different provider implementations while maintaining consistent behavior.
+— **Ran Aroussi**
+𝕏 / [@aroussi](https://x.com/aroussi)
