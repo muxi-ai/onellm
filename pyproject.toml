@@ -12,9 +12,36 @@ license = {text = "AGPL-3.0"}
 authors = [
     {name = "Ran Aroussi", email = "ran@aroussi.com"}
 ]
+dependencies = [
+    # Add your actual dependencies here, e.g.:
+    # "requests>=2.28.0",
+    # "pydantic>=2.0.0",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/muxijs/muxi"
+"Documentation" = "https://docs.muxi.io"
+"Issues" = "https://github.com/muxijs/muxi/issues"
+
+# Uncomment if you have CLI commands
+# [project.scripts]
+# muxi-llm = "muxi_llm.cli:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["muxi_llm*"]
 
 [tool.setuptools.dynamic]
 version = {file = ["muxi_llm/.version"]}
