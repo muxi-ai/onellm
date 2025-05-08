@@ -389,6 +389,38 @@ response = Embedding.create(
 
 ### Fallback Chains for Enhanced Reliability
 
+muxi-llm includes built-in fallback support to handle API errors gracefully:
+
+```python
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello, how are you?"}],
+    fallback_models=[
+        "anthropic/claude-3-haiku",  # Try Claude if GPT-4 fails
+        "openai/gpt-3.5-turbo"       # Try GPT-3.5 if Claude fails
+    ]
+)
+```
+
+If the primary model fails due to service unavailability, rate limiting, or other retriable errors, muxi-llm automatically tries the fallback models in sequence.
+
+### Automatic Retries
+
+For transient errors, you can configure muxi-llm to retry the same model multiple times before falling back to alternatives:
+
+```python
+response = ChatCompletion.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Hello, how are you?"}],
+    retries=3,  # Will try the same model up to 3 additional times if it fails
+    fallback_models=["anthropic/claude-3-haiku", "openai/gpt-3.5-turbo"]
+)
+```
+
+This is implemented using the fallback mechanism under the hood, making it both powerful and efficient.
+
+### Fallback Chains + Automatic Retries Architecture
+
 ```mermaid
 ---
 config:
@@ -439,35 +471,6 @@ flowchart TD
 ```
 
 
-muxi-llm includes built-in fallback support to handle API errors gracefully:
-
-```python
-response = ChatCompletion.create(
-    model="openai/gpt-4",
-    messages=[{"role": "user", "content": "Hello, how are you?"}],
-    fallback_models=[
-        "anthropic/claude-3-haiku",  # Try Claude if GPT-4 fails
-        "openai/gpt-3.5-turbo"       # Try GPT-3.5 if Claude fails
-    ]
-)
-```
-
-If the primary model fails due to service unavailability, rate limiting, or other retriable errors, muxi-llm automatically tries the fallback models in sequence.
-
-### Automatic Retries
-
-For transient errors, you can configure muxi-llm to retry the same model multiple times before falling back to alternatives:
-
-```python
-response = ChatCompletion.create(
-    model="openai/gpt-4",
-    messages=[{"role": "user", "content": "Hello, how are you?"}],
-    retries=3,  # Will try the same model up to 3 additional times if it fails
-    fallback_models=["anthropic/claude-3-haiku", "openai/gpt-3.5-turbo"]
-)
-```
-
-This is implemented using the fallback mechanism under the hood, making it both powerful and efficient.
 
 ### JSON Mode for Structured Outputs
 
