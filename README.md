@@ -25,22 +25,24 @@
 
 ## 📚 Table of Contents
 
-- [Overview](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#overview)
-- [Getting Started](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#getting-started)
-- [Key Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#key-features)
-- [Supported Providers](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#supported-providers)
-- [Architecture](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#architecture)
-- [API Design](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#api-design)
-- [Advanced Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#advanced-features)
-- [Migration from OpenAI](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#migration-from-openai)
-- [Model Naming Convention](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#model-naming-convention)
-- [Configuration](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#configuration)
-- [Test Coverage](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#test-coverage)
-- [Documentation](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#documentation)
-- [Call for Contributions](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#call-for-contributions)
-- [License](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#license)
+- [Overview](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-overview)
+- [Getting Started](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-getting-started)
+- [Key Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-key-features)
+- [Supported Providers](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-supported-providers)
+- [Architecture](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-architecture)
+- [API Design](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-api-design)
+- [Advanced Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-advanced-features)
+- [Migration from OpenAI](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-migration-from-openai)
+- [Model Naming Convention](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-model-naming-convention)
+- [Configuration](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-configuration)
+- [Test Coverage](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-test-coverage)
+- [Documentation](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-documentation)
+- [Call for Contributions](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-call-for-contributions)
+- [License](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-license)
+- [Acknowledgements](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-acknowledgements)
 
-## Overview
+
+## 👉 Overview
 
 **muxi-llm** is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
 
@@ -781,6 +783,12 @@ I chose the AGPL license to ensure that all improvements to muxi-llm remain avai
 For individuals and organizations integrating muxi-llm into their applications, this means you can freely use, modify, and distribute the library, as long as you share your improvements with the community when you distribute your software.
 
 ---
+
+## 🌟 Acknowledgements
+
+This project stands on the shoulders of many excellent open-source projects and would not be possible without the collaborative spirit of the developer community.
+
+Special thanks to all the LLM providers whose APIs this library integrates with, and to the early adopters who tested the library and provided crucial feedback.
 
 ## 🙏 Thank You
 
