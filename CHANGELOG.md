@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.1.2
+
+- Changed license from AGPL-3.0 to Apache-2.0 for broader adoption and easier integration
+- Updated license classifiers in pyproject.toml
+- Updated license badge in README.md
+- Updated license section in documentation
+
+## 0.1.1
+
+- Initial public release
+- Added support for OpenAI provider
+- Implemented core API interfaces
+- Added comprehensive error handling
+- Added streaming support
+- Added retry mechanisms
+- Added model fallback chains
+- Added multi-modal capabilities
+
 ## 0.1.0 (Initial Release)
 
 The initial release of muxi-llm includes a comprehensive set of features providing a complete provider-agnostic interface for large language models.
