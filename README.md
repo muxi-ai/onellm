@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/pypi/v/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
 [![Status](https://img.shields.io/pypi/status/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/ranaroussi/muxi-llm)
+[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/llm)
 &nbsp;
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
@@ -17,7 +17,7 @@
 >
 > More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
 >
-> <a href="https://github.com/ranaroussi/muxi-llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
+> <a href="https://github.com/muxi-ai/llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
 >
 > Thank you for your support! 🙏
 
@@ -25,21 +25,21 @@
 
 ## 📚 Table of Contents
 
-- [Overview](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-overview)
-- [Getting Started](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-getting-started)
-- [Key Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-key-features)
-- [Supported Providers](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-supported-providers)
-- [Architecture](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-architecture)
-- [API Design](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-api-design)
-- [Advanced Features](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-advanced-features)
-- [Migration from OpenAI](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-migration-from-openai)
-- [Model Naming Convention](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-model-naming-convention)
-- [Configuration](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-configuration)
-- [Test Coverage](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-test-coverage)
-- [Documentation](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-documentation)
-- [Call for Contributions](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-call-for-contributions)
-- [License](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-license)
-- [Acknowledgements](https://github.com/ranaroussi/muxi-llm/blob/main/README.md#-acknowledgements)
+- [Overview](https://github.com/muxi-ai/llm/blob/main/README.md#-overview)
+- [Getting Started](https://github.com/muxi-ai/llm/blob/main/README.md#-getting-started)
+- [Key Features](https://github.com/muxi-ai/llm/blob/main/README.md#-key-features)
+- [Supported Providers](https://github.com/muxi-ai/llm/blob/main/README.md#-supported-providers)
+- [Architecture](https://github.com/muxi-ai/llm/blob/main/README.md#-architecture)
+- [API Design](https://github.com/muxi-ai/llm/blob/main/README.md#-api-design)
+- [Advanced Features](https://github.com/muxi-ai/llm/blob/main/README.md#-advanced-features)
+- [Migration from OpenAI](https://github.com/muxi-ai/llm/blob/main/README.md#-migration-from-openai)
+- [Model Naming Convention](https://github.com/muxi-ai/llm/blob/main/README.md#-model-naming-convention)
+- [Configuration](https://github.com/muxi-ai/llm/blob/main/README.md#-configuration)
+- [Test Coverage](https://github.com/muxi-ai/llm/blob/main/README.md#-test-coverage)
+- [Documentation](https://github.com/muxi-ai/llm/blob/main/README.md#-documentation)
+- [Call for Contributions](https://github.com/muxi-ai/llm/blob/main/README.md#-call-for-contributions)
+- [License](https://github.com/muxi-ai/llm/blob/main/README.md#-license)
+- [Acknowledgements](https://github.com/muxi-ai/llm/blob/main/README.md#-acknowledgements)
 
 
 ## 👉 Overview

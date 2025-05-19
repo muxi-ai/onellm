@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/ranaroussi/muxi-llm
+# https://github.com/muxi-ai/llm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -39,7 +39,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Ran Aroussi",
     author_email="ran@aroussi.com",
-    url="https://github.com/ranaroussi/muxi-llm",
+    url="https://github.com/muxi-ai/llm",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -88,10 +88,10 @@ setup(
     keywords="llm, ai, openai, gpt, chatgpt, api, client, claude, gemini, mistral, "
              "multimodal, embeddings, vector",
     project_urls={
-        "Source": "https://github.com/ranaroussi/muxi-llm",
-        "Bug Reports": "https://github.com/ranaroussi/muxi-llm/issues",
-        "Documentation": "https://github.com/ranaroussi/muxi-llm",
-        "Changelog": "https://github.com/ranaroussi/muxi-llm/blob/main/CHANGELOG.md",
+        "Source": "https://github.com/muxi-ai/llm",
+        "Bug Reports": "https://github.com/muxi-ai/llm/issues",
+        "Documentation": "https://github.com/muxi-ai/llm",
+        "Changelog": "https://github.com/muxi-ai/llm/blob/main/CHANGELOG.md",
         "Funding": "https://github.com/sponsors/ranaroussi",
     },
     python_requires=">=3.10"

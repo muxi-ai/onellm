@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/ranaroussi/muxi-llm
+# https://github.com/muxi-ai/llm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
