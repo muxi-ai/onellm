@@ -104,7 +104,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | **🖼️ Local LLM support** | Support for local LLMs via Ollama and llama.cpp |
 | **🏷️ Consistent naming** | Clear `provider/model-name` format for attribution |
 | **🧪 Comprehensive tests** | 96% test coverage ensuring reliability |
-| **📄 AGPL v3 license** | Open-source license that protects contributions |
+| **📄 Apache-2.0 license** | Open-source license that protects contributions |
 
 ---
 
@@ -769,18 +769,18 @@ For complete details on contribution guidelines, code style, provider developmen
 
 ## 📄 License
 
-muxi-llm is licensed under the [GNU Affero General Public License V3 (AGPL-3.0)](./LICENSE).
+muxi-llm is licensed under the [Apache-2.0 license](./LICENSE).
 
-### Why AGPL?
+### Why Apache 2.0?
 
-I chose the AGPL license to ensure that all improvements to muxi-llm remain available to the entire community. This license:
+I chose the Apache 2.0 license to make muxi-llm easy to adopt, integrate, and build on. This license:
 
-- Ensures that modifications to this library, even when used in distributed software, are shared back with the community
-- Promotes collaborative development and prevents proprietary forks that don't contribute back
-- Creates a sustainable ecosystem where everyone benefits from improvements
-- Allows free usage while ensuring the open-source nature is preserved
+- Allows you to freely use, modify, and distribute the library in both open-source and proprietary software
+- Encourages wide adoption by individuals, startups, and enterprises alike
+- Includes a clear patent grant for legal peace of mind
+- Enables flexible usage without the complexity of copyleft restrictions
 
-For individuals and organizations integrating muxi-llm into their applications, this means you can freely use, modify, and distribute the library, as long as you share your improvements with the community when you distribute your software.
+Whether you’re building internal tools or commercial applications, Apache 2.0 gives you the freedom to use muxi-llm however you need – no strings attached.
 
 ---
 

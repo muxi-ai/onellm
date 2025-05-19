@@ -6,17 +6,17 @@
 #
 # Copyright (C) 2025 Ran Aroussi
 #
-# This is free software: You can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License (V3),
-# published by the Free Software Foundation (the "License").
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    https://www.gnu.org/licenses/agpl-3.0.en.html
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """
 muxi-llm: A lightweight, provider-agnostic Python library that offers a unified interface
@@ -57,15 +57,29 @@ from .errors import (
     InvalidRequestError,
 )
 
-# Read version from .version file in the same directory as this file
-version_file = os.path.join(os.path.dirname(__file__), ".version")
-with open(version_file, "r", encoding="utf-8") as f:
-    # Strip whitespace to ensure clean version string
-    __version__ = f.read().strip()
+
+def get_version() -> str:
+    """
+    Read and return the package version from the .version file.
+
+    Returns:
+        str: The current version of the package
+
+    Note:
+        The .version file should be located in the same directory as this file.
+        The version string is stripped of any whitespace to ensure clean formatting.
+    """
+    version_file = os.path.join(os.path.dirname(__file__), ".version")
+    with open(version_file, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
+# Initialize package version from .version file
+__version__ = get_version()
 
 # Package metadata
 __author__ = "Ran Aroussi"
-__license__ = "AGPL-3.0"
+__license__ = "Apache-2.0"
 __url__ = "https://github.com/muxi-ai/llm"
 
 # Module exports - defines the public API of the package
