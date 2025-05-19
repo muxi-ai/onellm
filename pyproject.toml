@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "AGPL-3.0"}
+license = {text = "Apache-2.0"}
 authors = [
     {name = "Ran Aroussi", email = "ran@aroussi.com"}
 ]

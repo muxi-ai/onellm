@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.python.org/pypi/muxi-llm)
 [![Version](https://img.shields.io/pypi/v/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
 [![Status](https://img.shields.io/pypi/status/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
-[![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/llm)
 &nbsp;
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
