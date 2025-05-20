@@ -10,41 +10,6 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
 4. Add or update tests as necessary
 5. Submit a pull request
 
----
-
-## Development Setup
-
-1. **Clone and install dependencies:**
-
-   ```bash
-   git clone https://github.com/muxijs/muxi.git
-   cd muxi/packages/llm
-   pip install -e ".[dev]"
-   ```
-
-2. **Running tests:**
-
-   ```bash
-   pytest
-   ```
-
-3. **Code formatting:**
-   We use black, isort, and ruff for formatting and linting:
-
-   ```bash
-   black muxi_llm
-   isort muxi_llm
-   ruff check muxi_llm
-   ```
-
-4. **Type checking:**
-
-   ```bash
-   mypy muxi_llm
-   ```
-
----
-
 ## Coding Standards
 
 - **Type annotations**: Always use type hints for function parameters and return values
