@@ -1,13 +1,13 @@
 # CHANGELOG
 
-## 0.1.2
+## 0.0.3
 
 - Changed license from AGPL-3.0 to Apache-2.0 for broader adoption and easier integration
 - Updated license classifiers in pyproject.toml
 - Updated license badge in README.md
 - Updated license section in documentation
 
-## 0.1.1
+## 0.0.2
 
 - Initial public release
 - Added support for OpenAI provider
@@ -18,7 +18,7 @@
 - Added model fallback chains
 - Added multi-modal capabilities
 
-## 0.1.0 (Initial Release)
+## 0.0.1 (Initial Release)
 
 The initial release of OneLLM includes a comprehensive set of features providing a complete provider-agnostic interface for large language models.
 
