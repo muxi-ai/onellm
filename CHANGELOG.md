@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.0.6
+
+- PyPi stuff
+
 ## 0.0.3
 
 - Changed license from AGPL-3.0 to Apache-2.0 for broader adoption and easier integration

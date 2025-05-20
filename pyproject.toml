@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "OneLLM"
+name = "onellm"
 dynamic = ["version"]
 description = "A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"
 readme = "README.md"
@@ -34,7 +34,7 @@ classifiers = [
 
 # Uncomment if you have CLI commands
 # [project.scripts]
-# OneLLM = "onellm.cli:main"
+# onellm = "onellm.cli:main"
 
 [tool.setuptools]
 include-package-data = true
