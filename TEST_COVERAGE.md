@@ -1,8 +1,8 @@
-# MUXI LLM Test Coverage Report
+# OneLLM Test Coverage Report
 
 ## Executive Summary
 
-The MUXI LLM package maintains exceptional test coverage across all modules, with 96% overall coverage. The test suite includes 357 passing tests covering all core functionalities and edge cases.
+The OneLLM package maintains exceptional test coverage across all modules, with 96% overall coverage. The test suite includes 357 passing tests covering all core functionalities and edge cases.
 
 | Key Metrics | Value |
 |------------|-------|

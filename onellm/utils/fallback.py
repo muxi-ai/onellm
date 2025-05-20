@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Fallback utilities for muxi-llm.
+Fallback utilities for OneLLM.
 
 This module provides utilities for model fallback functionality.
 When a primary model or provider fails, these utilities help gracefully

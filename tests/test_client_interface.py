@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Tests for muxi-llm client interface (OpenAI compatibility)
+# Tests for OneLLM client interface (OpenAI compatibility)
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -9,7 +9,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from muxi_llm import Client, OpenAI
+from onellm import Client, OpenAI
 
 
 def test_client_initialization():
@@ -41,7 +41,7 @@ def test_openai_alias():
     assert isinstance(client, Client)
 
 
-@patch('muxi_llm.ChatCompletion.create')
+@patch('onellm.ChatCompletion.create')
 def test_chat_completions_create(mock_create):
     """Test that client.chat.completions.create delegates to ChatCompletion.create."""
     # Setup mock
@@ -68,7 +68,7 @@ def test_chat_completions_create(mock_create):
     )
 
 
-@patch('muxi_llm.Completion.create')
+@patch('onellm.Completion.create')
 def test_completions_create(mock_create):
     """Test that client.completions.create delegates to Completion.create."""
     # Setup mock
@@ -94,7 +94,7 @@ def test_completions_create(mock_create):
     )
 
 
-@patch('muxi_llm.Embedding.create')
+@patch('onellm.Embedding.create')
 def test_embeddings_create(mock_create):
     """Test that client.embeddings.create delegates to Embedding.create."""
     # Setup mock
@@ -117,7 +117,7 @@ def test_embeddings_create(mock_create):
     )
 
 
-@patch('muxi_llm.ChatCompletion.create')
+@patch('onellm.ChatCompletion.create')
 def test_explicit_provider_prefix_maintained(mock_create):
     """Test that explicitly provided provider prefixes are maintained."""
     # Setup mock
@@ -143,7 +143,7 @@ def test_explicit_provider_prefix_maintained(mock_create):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.ChatCompletion.acreate')
+@patch('onellm.ChatCompletion.acreate')
 async def test_async_chat_completions(mock_acreate):
     """Test that client.chat.completions.acreate delegates to ChatCompletion.acreate."""
     # Setup mock
@@ -169,7 +169,7 @@ async def test_async_chat_completions(mock_acreate):
     )
 
 
-@patch('muxi_llm.ChatCompletion.create')
+@patch('onellm.ChatCompletion.create')
 def test_chat_completions_with_fallbacks(mock_create):
     """Test that client.chat.completions.create handles fallback models correctly."""
     # Setup mock
@@ -195,7 +195,7 @@ def test_chat_completions_with_fallbacks(mock_create):
     )
 
 
-@patch('muxi_llm.ChatCompletion.create')
+@patch('onellm.ChatCompletion.create')
 def test_chat_completions_with_mixed_fallbacks(mock_create):
     """Test that client.chat.completions.create handles mixed provider prefixes correctly."""
     # Setup mock
@@ -221,7 +221,7 @@ def test_chat_completions_with_mixed_fallbacks(mock_create):
     )
 
 
-@patch('muxi_llm.Completion.create')
+@patch('onellm.Completion.create')
 def test_completions_with_fallbacks(mock_create):
     """Test that client.completions.create handles fallback models correctly."""
     # Setup mock
@@ -246,7 +246,7 @@ def test_completions_with_fallbacks(mock_create):
     )
 
 
-@patch('muxi_llm.Embedding.create')
+@patch('onellm.Embedding.create')
 def test_embeddings_with_fallbacks(mock_create):
     """Test that client.embeddings.create handles fallback models correctly."""
     # Setup mock
@@ -270,7 +270,7 @@ def test_embeddings_with_fallbacks(mock_create):
     )
 
 
-@patch('muxi_llm.Image.create')
+@patch('onellm.Image.create')
 def test_images_create(mock_create):
     """Test that client.images.create delegates to Image.create."""
     # Set up mock
@@ -290,7 +290,7 @@ def test_images_create(mock_create):
     )
 
 
-@patch('muxi_llm.AudioTranscription.create')
+@patch('onellm.AudioTranscription.create')
 def test_audio_transcriptions_create(mock_create):
     """Test that client.audio.transcriptions.create delegates to AudioTranscription.create."""
     # Set up mock
@@ -310,7 +310,7 @@ def test_audio_transcriptions_create(mock_create):
     )
 
 
-@patch('muxi_llm.AudioTranslation.create')
+@patch('onellm.AudioTranslation.create')
 def test_audio_translations_create(mock_create):
     """Test that client.audio.translations.create delegates to AudioTranslation.create."""
     # Set up mock
@@ -330,7 +330,7 @@ def test_audio_translations_create(mock_create):
     )
 
 
-@patch('muxi_llm.Speech.create')
+@patch('onellm.Speech.create')
 def test_speech_create(mock_create):
     """Test that client.speech.create delegates to Speech.create."""
     # Set up mock
@@ -353,7 +353,7 @@ def test_speech_create(mock_create):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.Completion.acreate')
+@patch('onellm.Completion.acreate')
 async def test_async_completions(mock_acreate):
     """Test that client.completions.acreate delegates to Completion.acreate."""
     # Setup mock
@@ -379,7 +379,7 @@ async def test_async_completions(mock_acreate):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.Embedding.acreate')
+@patch('onellm.Embedding.acreate')
 async def test_async_embeddings(mock_acreate):
     """Test that client.embeddings.acreate delegates to Embedding.acreate."""
     # Setup mock
@@ -403,7 +403,7 @@ async def test_async_embeddings(mock_acreate):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.Image.create')
+@patch('onellm.Image.create')
 async def test_images_acreate(mock_create):
     """Test that client.images.acreate delegates to Image.create properly.
     Note: Image class doesn't have acreate, but returns a coroutine from create
@@ -428,7 +428,7 @@ async def test_images_acreate(mock_create):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.AudioTranscription.create')
+@patch('onellm.AudioTranscription.create')
 async def test_audio_transcriptions_acreate(mock_create):
     """Test that client.audio.transcriptions.acreate delegates correctly."""
     # Setup mock
@@ -451,7 +451,7 @@ async def test_audio_transcriptions_acreate(mock_create):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.AudioTranslation.create')
+@patch('onellm.AudioTranslation.create')
 async def test_audio_translations_acreate(mock_create):
     """Test that client.audio.translations.acreate delegates to AudioTranslation.create properly.
     Note: AudioTranslation class doesn't have acreate, but returns a coroutine from create
@@ -476,7 +476,7 @@ async def test_audio_translations_acreate(mock_create):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.Speech.create')
+@patch('onellm.Speech.create')
 async def test_speech_acreate(mock_create):
     """Test that client.speech.acreate delegates to Speech.create properly.
     Note: Speech class doesn't have acreate, but returns a coroutine from create
@@ -503,7 +503,7 @@ async def test_speech_acreate(mock_create):
 
 
 # File operations tests - update to use upload/download instead of create/retrieve
-@patch('muxi_llm.File.upload')
+@patch('onellm.File.upload')
 def test_files_create(mock_upload):
     """Test that client.files.create delegates to File.upload."""
     # Setup mock
@@ -527,7 +527,7 @@ def test_files_create(mock_upload):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.File.aupload')
+@patch('onellm.File.aupload')
 async def test_files_acreate(mock_aupload):
     """Test that client.files.acreate delegates to File.aupload."""
     # Setup mock
@@ -550,7 +550,7 @@ async def test_files_acreate(mock_aupload):
     )
 
 
-@patch('muxi_llm.File.download')
+@patch('onellm.File.download')
 def test_files_retrieve(mock_download):
     """Test that client.files.retrieve delegates to File.download."""
     # Setup mock
@@ -572,7 +572,7 @@ def test_files_retrieve(mock_download):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.File.adownload')
+@patch('onellm.File.adownload')
 async def test_files_aretrieve(mock_adownload):
     """Test that client.files.aretrieve delegates to File.adownload."""
     # Setup mock
@@ -593,7 +593,7 @@ async def test_files_aretrieve(mock_adownload):
     )
 
 
-@patch('muxi_llm.File.download')
+@patch('onellm.File.download')
 def test_files_content(mock_download):
     """Test that client.files.content delegates to File.download."""
     # Setup mock
@@ -615,7 +615,7 @@ def test_files_content(mock_download):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.File.adownload')
+@patch('onellm.File.adownload')
 async def test_files_acontent(mock_adownload):
     """Test that client.files.acontent delegates to File.adownload."""
     # Setup mock
@@ -636,7 +636,7 @@ async def test_files_acontent(mock_adownload):
     )
 
 
-@patch('muxi_llm.File.list')
+@patch('onellm.File.list')
 def test_files_list(mock_list):
     """Test that client.files.list delegates to File.list."""
     # Setup mock
@@ -658,7 +658,7 @@ def test_files_list(mock_list):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.File.alist')
+@patch('onellm.File.alist')
 async def test_files_alist(mock_alist):
     """Test that client.files.alist delegates to File.alist."""
     # Setup mock
@@ -676,7 +676,7 @@ async def test_files_alist(mock_alist):
     )
 
 
-@patch('muxi_llm.File.delete')
+@patch('onellm.File.delete')
 def test_files_delete(mock_delete):
     """Test that client.files.delete delegates to File.delete."""
     # Setup mock
@@ -698,7 +698,7 @@ def test_files_delete(mock_delete):
 
 
 @pytest.mark.asyncio
-@patch('muxi_llm.File.adelete')
+@patch('onellm.File.adelete')
 async def test_files_adelete(mock_adelete):
     """Test that client.files.adelete delegates to File.adelete."""
     # Setup mock

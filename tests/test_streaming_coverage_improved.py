@@ -1,5 +1,5 @@
 """
-Tests for improved coverage of streaming.py in muxi-llm.
+Tests for improved coverage of streaming.py in OneLLM.
 
 This file aims to achieve 90%+ coverage of streaming.py by testing all functions:
 - stream_generator
@@ -14,7 +14,7 @@ import pytest
 from unittest import mock
 from typing import Any, AsyncGenerator, List
 
-from muxi_llm.utils.streaming import (
+from onellm.utils.streaming import (
     stream_generator,
     _stream_with_timeout,
     json_stream_generator,
@@ -357,7 +357,7 @@ class TestJsonStreamGenerator:
     async def test_json_stream_generator_with_timeout(self):
         """Test json_stream_generator with timeout parameter."""
         # Mock implementation to test the timeout path
-        with mock.patch("muxi_llm.utils.streaming.stream_generator") as mock_stream_generator:
+        with mock.patch("onellm.utils.streaming.stream_generator") as mock_stream_generator:
             # Simulate a timeout error
             mock_stream_generator.side_effect = StreamingError(
                 "Streaming response timed out after 5.0 seconds"
@@ -379,7 +379,7 @@ class TestJsonStreamGenerator:
             yield {"key": "value1"}
             yield {"key": "value2"}
 
-        with mock.patch("muxi_llm.utils.streaming.stream_generator") as mock_stream_gen:
+        with mock.patch("onellm.utils.streaming.stream_generator") as mock_stream_gen:
             # Return a coroutine that needs to be awaited to get the generator
             mock_stream_gen.return_value = mock_generator()
 
@@ -519,7 +519,7 @@ class TestLineStreamGenerator:
     async def test_line_stream_generator_with_timeout(self):
         """Test line_stream_generator with timeout parameter."""
         # Mock implementation to test the timeout path
-        with mock.patch("muxi_llm.utils.streaming.stream_generator") as mock_stream_generator:
+        with mock.patch("onellm.utils.streaming.stream_generator") as mock_stream_generator:
             # Simulate a timeout error
             mock_stream_generator.side_effect = StreamingError(
                 "Streaming response timed out after 5.0 seconds"

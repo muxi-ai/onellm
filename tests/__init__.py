@@ -1,3 +1,3 @@
 """
-muxi-llm tests package.
+OneLLM tests package.
 """

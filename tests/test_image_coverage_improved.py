@@ -1,5 +1,5 @@
 """
-Tests for improved coverage of image.py in muxi-llm.
+Tests for improved coverage of image.py in OneLLM.
 
 This file aims to achieve 90%+ coverage of image.py by testing:
 - Image.create method
@@ -10,7 +10,7 @@ This file aims to achieve 90%+ coverage of image.py by testing:
 import pytest
 from unittest import mock
 
-from muxi_llm.image import Image
+from onellm.image import Image
 
 
 # --- Module-level async context manager mocks ---
@@ -58,7 +58,7 @@ class TestImageCreation:
             ],
         }
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
+            "onellm.image.get_provider_with_fallbacks"
         ) as mock_get_provider:
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
@@ -92,7 +92,7 @@ class TestImageCreation:
             ],
         }
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
+            "onellm.image.get_provider_with_fallbacks"
         ) as mock_get_provider:
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
@@ -131,9 +131,9 @@ class TestImageCreation:
                 pass
 
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
+            "onellm.image.get_provider_with_fallbacks"
         ) as mock_get_provider, mock.patch(
-            "muxi_llm.image.FallbackConfig", DummyFallbackConfig
+            "onellm.image.FallbackConfig", DummyFallbackConfig
         ):
             mock_provider = mock.MagicMock()
             mock_provider.create_image = mock.AsyncMock(return_value=expected_result)
@@ -158,9 +158,9 @@ class TestImageCreation:
             "data": [{"url": "https://example.com/image.png"}],
         }
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
-        ) as mock_get_provider, mock.patch("muxi_llm.image.os.makedirs"), mock.patch(
-            "muxi_llm.image.Image._download_image",
+            "onellm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch("onellm.image.os.makedirs"), mock.patch(
+            "onellm.image.Image._download_image",
             new=mock.AsyncMock(return_value=test_image_bytes),
         ), mock.patch(
             "builtins.open", mock.mock_open()
@@ -183,9 +183,9 @@ class TestImageCreation:
         test_image_bytes = b"imagedata"
         expected_result = {"created": 1617043084, "data": [{"b64_json": test_base64}]}
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
+            "onellm.image.get_provider_with_fallbacks"
         ) as mock_get_provider, mock.patch(
-            "muxi_llm.image.os.makedirs"
+            "onellm.image.os.makedirs"
         ) as mock_makedirs, mock.patch(
             "base64.b64decode", return_value=test_image_bytes
         ) as mock_b64decode, mock.patch(
@@ -227,11 +227,11 @@ class TestImageCreation:
         }
 
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
+            "onellm.image.get_provider_with_fallbacks"
         ) as mock_get_provider, mock.patch(
-            "muxi_llm.image.os.makedirs"
+            "onellm.image.os.makedirs"
         ) as mock_makedirs, mock.patch(
-            "muxi_llm.image.Image._download_image",
+            "onellm.image.Image._download_image",
             new=mock.AsyncMock(return_value=test_image_bytes),
         ) as mock_download, mock.patch(
             "builtins.open", mock.mock_open()
@@ -268,8 +268,8 @@ class TestImageCreation:
             "data": [{"irrelevant_key": "no image data"}],
         }
         with mock.patch(
-            "muxi_llm.image.get_provider_with_fallbacks"
-        ) as mock_get_provider, mock.patch("muxi_llm.image.os.makedirs"), mock.patch(
+            "onellm.image.get_provider_with_fallbacks"
+        ) as mock_get_provider, mock.patch("onellm.image.os.makedirs"), mock.patch(
             "builtins.open", mock.mock_open()
         ):
             mock_provider = mock.MagicMock()
@@ -295,7 +295,7 @@ class TestImageCreateSync:
         }
 
         # Mock the asyncio.run and create method
-        with mock.patch("muxi_llm.image.asyncio.run") as mock_run:
+        with mock.patch("onellm.image.asyncio.run") as mock_run:
             mock_run.return_value = expected_result
 
             # Call the synchronous method

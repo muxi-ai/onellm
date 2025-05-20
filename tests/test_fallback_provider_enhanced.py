@@ -17,10 +17,10 @@ import pytest
 from unittest import mock
 import asyncio
 
-from muxi_llm.errors import APIError
-from muxi_llm.providers.fallback import FallbackProviderProxy
-from muxi_llm.providers.base import Provider
-from muxi_llm.utils.fallback import FallbackConfig
+from onellm.errors import APIError
+from onellm.providers.fallback import FallbackProviderProxy
+from onellm.providers.base import Provider
+from onellm.utils.fallback import FallbackConfig
 
 
 class MockProvider(Provider):
@@ -348,7 +348,7 @@ class TestFallbackProviderEnhanced:
     def setup_method(self):
         """Set up test environment."""
         # Create a patcher for get_provider
-        self.get_provider_patch = mock.patch("muxi_llm.providers.fallback.get_provider")
+        self.get_provider_patch = mock.patch("onellm.providers.fallback.get_provider")
         self.mock_get_provider = self.get_provider_patch.start()
 
     def teardown_method(self):

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,10 +19,10 @@
 # limitations under the License.
 
 """
-muxi-llm: A lightweight, provider-agnostic Python library that offers a unified interface
+OneLLM: A lightweight, provider-agnostic Python library that offers a unified interface
 for interacting with large language models (LLMs) from various providers.
 
-This module serves as the main entry point for the muxi-llm library, exposing all
+This module serves as the main entry point for the OneLLM library, exposing all
 public APIs and functionality to users. It provides a consistent interface for working
 with different LLM providers while maintaining compatibility with the OpenAI API format.
 """
@@ -80,10 +80,10 @@ __version__ = get_version()
 # Package metadata
 __author__ = "Ran Aroussi"
 __license__ = "Apache-2.0"
-__url__ = "https://github.com/muxi-ai/llm"
+__url__ = "https://github.com/muxi-ai/onellm"
 
 # Module exports - defines the public API of the package
-# This controls what gets imported when using "from muxi_llm import *"
+# This controls what gets imported when using "from onellm import *"
 __all__ = [
     # Core functionality
     "ChatCompletion",  # Chat-based completions (conversations)
@@ -119,5 +119,5 @@ __all__ = [
 ]
 
 # Provider-specific API keys can be accessed as globals after they're set:
-# e.g., from muxi_llm import openai_api_key, anthropic_api_key
+# e.g., from onellm import openai_api_key, anthropic_api_key
 # This allows for a cleaner import experience when working with multiple providers

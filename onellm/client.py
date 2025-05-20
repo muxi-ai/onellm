@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-OpenAI-compatible client interface for muxi-llm.
+OpenAI-compatible client interface for OneLLM.
 
 This module implements an interface that matches OpenAI's Python client structure,
 making it a drop-in replacement for OpenAI's client with the same API structure.
@@ -645,7 +645,7 @@ class FilesResource:
 
 class Client:
     """
-    Base client class for muxi-llm that mimics OpenAI's client interface.
+    Base client class for OneLLM that mimics OpenAI's client interface.
     This provides a drop-in replacement for OpenAI's client.
     """
 
@@ -672,5 +672,5 @@ class Client:
 
 
 # Alias for OpenAI = Client for backward compatibility
-# This allows users to use either muxi_llm.OpenAI or muxi_llm.Client
+# This allows users to use either onellm.OpenAI or onellm.Client
 OpenAI = Client

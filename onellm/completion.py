@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Text completion functionality for muxi-llm.
+Text completion functionality for OneLLM.
 
 This module provides a Completion class that can be used to create text
 completions from various providers in a manner compatible with OpenAI's API.

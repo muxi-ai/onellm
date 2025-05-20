@@ -1,9 +1,9 @@
-include muxi_llm/.version
+include onellm/.version
 include README.md
 include LICENSE
 include pyproject.toml
-recursive-include muxi_llm *.py
-prune muxi_llm/__pycache__
+recursive-include onellm *.py
+prune onellm/__pycache__
 prune dist
-prune muxi_llm.egg-info
+prune onellm.egg-info
 prune .git

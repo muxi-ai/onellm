@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,9 +19,9 @@
 # limitations under the License.
 
 """
-Utility functions and classes for muxi-llm.
+Utility functions and classes for OneLLM.
 
-This module provides various utility functions and classes used throughout the muxi-llm
+This module provides various utility functions and classes used throughout the OneLLM
 package to handle common tasks such as:
 - Asynchronous retry mechanisms for API calls
 - Streaming response handling

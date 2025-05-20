@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Tests for muxi_llm/utils/fallback.py.
+Tests for onellm/utils/fallback.py.
 
 This test specifically targets the uncovered lines 73-75 in the maybe_await function
 where a non-awaitable result is handled.
@@ -10,7 +10,7 @@ where a non-awaitable result is handled.
 
 import pytest
 
-from muxi_llm.utils.fallback import maybe_await, FallbackConfig
+from onellm.utils.fallback import maybe_await, FallbackConfig
 
 
 class TestFallbackUtils:

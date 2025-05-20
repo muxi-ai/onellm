@@ -19,11 +19,11 @@ import os
 import pytest
 from unittest import mock
 
-from muxi_llm.errors import (
+from onellm.errors import (
     AuthenticationError,
     ServiceUnavailableError
 )
-from muxi_llm.providers.openai import OpenAIProvider
+from onellm.providers.openai import OpenAIProvider
 
 
 class MockAsyncIterator:

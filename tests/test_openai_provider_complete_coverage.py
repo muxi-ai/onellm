@@ -19,12 +19,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from muxi_llm.errors import (
+from onellm.errors import (
     APIError,
     AuthenticationError,
     InvalidRequestError,
 )
-from muxi_llm.providers.openai import OpenAIProvider
+from onellm.providers.openai import OpenAIProvider
 
 
 # Helper function to check if a dictionary has required keys

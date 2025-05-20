@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Utility functions for testing the muxi_llm package.
+Utility functions for testing the onellm package.
 """
 
 import asyncio

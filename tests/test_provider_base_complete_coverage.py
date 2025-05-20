@@ -12,12 +12,12 @@ import pytest
 from unittest import mock
 import asyncio
 
-from muxi_llm.providers.base import (
+from onellm.providers.base import (
     Provider, get_provider, list_providers,
     get_provider_with_fallbacks, register_provider, _PROVIDER_REGISTRY,
     parse_model_name
 )
-from muxi_llm.utils.fallback import FallbackConfig
+from onellm.utils.fallback import FallbackConfig
 
 
 class TestProviderBaseCompleteCoverage:
@@ -280,8 +280,8 @@ class TestProviderBaseCompleteCoverage:
     def test_get_provider_with_fallbacks_full(self):
         """Test get_provider_with_fallbacks with fallback models (lines 224-235)."""
         # Mock parse_model_name and FallbackProviderProxy
-        with mock.patch("muxi_llm.providers.base.parse_model_name") as mock_parse, \
-             mock.patch("muxi_llm.providers.fallback.FallbackProviderProxy") as mock_proxy:
+        with mock.patch("onellm.providers.base.parse_model_name") as mock_parse, \
+             mock.patch("onellm.providers.fallback.FallbackProviderProxy") as mock_proxy:
 
             # Configure mocks
             mock_parse.return_value = ("openai", "gpt-4")

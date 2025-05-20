@@ -6,14 +6,14 @@ These tests target the remaining missing lines in config.py to achieve 100% test
 
 import os
 
-from muxi_llm.config import (
+from onellm.config import (
     ENV_PREFIX,
     PROVIDER_API_KEY_ENV_MAP,
     _load_env_vars,
     get_provider_config,
     update_provider_config,
 )
-from muxi_llm import config
+from onellm import config
 
 
 class TestConfigFullCoverage:

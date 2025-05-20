@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Tests for the JSON mode functionality in muxi-llm.
+Tests for the JSON mode functionality in OneLLM.
 """
 
 import unittest
 from unittest.mock import patch, AsyncMock, MagicMock
 import warnings
 
-from muxi_llm.chat_completion import ChatCompletion
-from muxi_llm.providers.base import Provider
-import muxi_llm.providers.openai
+from onellm.chat_completion import ChatCompletion
+from onellm.providers.base import Provider
+import onellm.providers.openai
 
 
 class TestJSONMode(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestJSONMode(unittest.TestCase):
         # Sample response format
         self.json_response_format = {"type": "json_object"}
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_provider_with_json_mode_support(self, mock_get_provider):
         """Test when the provider supports JSON mode."""
         # Configure mock
@@ -55,7 +55,7 @@ class TestJSONMode(unittest.TestCase):
         self.assertIn("response_format", kwargs)
         self.assertEqual(kwargs["response_format"], self.json_response_format)
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_provider_without_json_mode_support(self, mock_get_provider):
         """Test when the provider doesn't support JSON mode."""
         # Configure mock
@@ -78,7 +78,7 @@ class TestJSONMode(unittest.TestCase):
         args, kwargs = self.mock_non_json_provider.create_chat_completion.call_args
         self.assertNotIn("response_format", kwargs)
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_system_message_added_when_missing(self, mock_get_provider):
         """Test that a system message is added when the provider doesn't support JSON mode."""
         # Configure mock
@@ -106,7 +106,7 @@ class TestJSONMode(unittest.TestCase):
         self.assertEqual(messages_passed[0]["role"], "system")
         self.assertIn("json", messages_passed[0]["content"].lower())
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_system_message_appended_when_exists(self, mock_get_provider):
         """Test that JSON instructions are appended to an existing system message."""
         # Configure mock
@@ -137,7 +137,7 @@ class TestJSONMode(unittest.TestCase):
         self.assertIn("helpful assistant", messages_passed[0]["content"])
         self.assertIn("json", messages_passed[0]["content"].lower())
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_async_create_with_json_mode(self, mock_get_provider):
         """Test async create with JSON mode."""
         # Configure mock
@@ -167,7 +167,7 @@ class TestJSONMode(unittest.TestCase):
 
     def test_openai_provider_has_json_mode_support(self):
         """Test that the OpenAI provider has json_mode_support set to True."""
-        self.assertTrue(muxi_llm.providers.openai.OpenAIProvider.json_mode_support)
+        self.assertTrue(onellm.providers.openai.OpenAIProvider.json_mode_support)
 
 
 if __name__ == "__main__":

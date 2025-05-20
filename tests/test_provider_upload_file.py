@@ -12,9 +12,9 @@ import tempfile
 import os
 from pathlib import Path
 
-from muxi_llm.providers.base import Provider
-from muxi_llm.models import FileObject
-from muxi_llm.errors import InvalidRequestError
+from onellm.providers.base import Provider
+from onellm.models import FileObject
+from onellm.errors import InvalidRequestError
 
 
 class MockFileProvider(Provider):

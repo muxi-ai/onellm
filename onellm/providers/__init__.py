@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Provider implementations for muxi-llm.
+Provider implementations for OneLLM.
 
 This module imports all available provider implementations,
 ensuring they are registered with the provider registry.
@@ -37,7 +37,7 @@ from .openai import OpenAIProvider
 # Additional providers should be registered here as they are implemented
 register_provider("openai", OpenAIProvider)
 
-# Convenience export - these symbols will be available when importing from muxi_llm.providers
+# Convenience export - these symbols will be available when importing from onellm.providers
 # This allows users to access core provider functionality directly
 __all__ = [
     "get_provider",           # Function to get a provider instance by name

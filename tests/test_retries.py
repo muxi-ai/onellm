@@ -8,16 +8,16 @@ Tests for the retry functionality.
 import unittest.mock as mock
 import asyncio
 
-from muxi_llm.chat_completion import ChatCompletion
-from muxi_llm.completion import Completion
-from muxi_llm.providers.fallback import FallbackProviderProxy
+from onellm.chat_completion import ChatCompletion
+from onellm.completion import Completion
+from onellm.providers.fallback import FallbackProviderProxy
 
 
 class TestRetries:
     """Test the retry functionality."""
 
-    @mock.patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
-    @mock.patch("muxi_llm.chat_completion.asyncio.run")
+    @mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
+    @mock.patch("onellm.chat_completion.asyncio.run")
     def test_chat_completion_retries_without_fallbacks(self, mock_asyncio_run, mock_get_provider):
         """Test retry parameter adds the same model multiple times to fallbacks."""
         # Setup mocks
@@ -39,8 +39,8 @@ class TestRetries:
         assert kwargs["primary_model"] == "openai/gpt-4"
         assert kwargs["fallback_models"] == ["openai/gpt-4"] * 3
 
-    @mock.patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
-    @mock.patch("muxi_llm.chat_completion.asyncio.run")
+    @mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
+    @mock.patch("onellm.chat_completion.asyncio.run")
     def test_chat_completion_retries_with_fallbacks(self, mock_asyncio_run, mock_get_provider):
         """Test retry parameter adds models before existing fallbacks."""
         # Setup mocks
@@ -66,8 +66,8 @@ class TestRetries:
         ]
         assert kwargs["fallback_models"] == expected_fallbacks
 
-    @mock.patch("muxi_llm.completion.get_provider_with_fallbacks")
-    @mock.patch("muxi_llm.completion.asyncio.run")
+    @mock.patch("onellm.completion.get_provider_with_fallbacks")
+    @mock.patch("onellm.completion.asyncio.run")
     def test_completion_retries_without_fallbacks(self, mock_asyncio_run, mock_get_provider):
         """Test retry parameter for Completion adds the same model multiple times."""
         # Setup mocks
@@ -89,8 +89,8 @@ class TestRetries:
         assert kwargs["primary_model"] == "openai/gpt-3.5-turbo-instruct"
         assert kwargs["fallback_models"] == ["openai/gpt-3.5-turbo-instruct"] * 3
 
-    @mock.patch("muxi_llm.completion.get_provider_with_fallbacks")
-    @mock.patch("muxi_llm.completion.asyncio.run")
+    @mock.patch("onellm.completion.get_provider_with_fallbacks")
+    @mock.patch("onellm.completion.asyncio.run")
     def test_completion_retries_with_fallbacks(self, mock_asyncio_run, mock_get_provider):
         """Test retry parameter for Completion adds models before existing fallbacks."""
         # Setup mocks
@@ -119,7 +119,7 @@ class TestRetries:
         ]
         assert kwargs["fallback_models"] == expected_fallbacks
 
-    @mock.patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_chat_completion_async_retries(self, mock_get_provider):
         """Test retry parameter works with async methods."""
         # Setup mock

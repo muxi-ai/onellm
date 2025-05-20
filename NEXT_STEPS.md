@@ -1,6 +1,6 @@
-# muxi-llm: Next Steps
+# OneLLM: Next Steps
 
-This document outlines what has been accomplished so far in the muxi-llm package and what tasks remain to be completed.
+This document outlines what has been accomplished so far in the OneLLM package and what tasks remain to be completed.
 
 ## Version 0.1.0 (Completed)
 

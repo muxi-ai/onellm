@@ -10,9 +10,9 @@ import unittest
 from unittest import mock
 import io
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm import AudioTranscription, AudioTranslation
-from muxi_llm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
+from onellm import AudioTranscription, AudioTranslation
+from onellm.errors import InvalidRequestError
 
 
 class TestAudioCapabilities(unittest.TestCase):
@@ -78,7 +78,7 @@ class TestAudioCapabilities(unittest.TestCase):
             self.assertEqual(content_type, expected_type)
 
     @pytest.mark.asyncio
-    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("onellm.providers.openai.OpenAIProvider._make_request")
     async def test_create_transcription(self, mock_make_request):
         """Test creating a transcription."""
         # Mock response from the API
@@ -117,7 +117,7 @@ class TestAudioCapabilities(unittest.TestCase):
         self.assertEqual(kwargs["files"]["file"]["content_type"], "audio/mpeg")
 
     @pytest.mark.asyncio
-    @mock.patch("muxi_llm.providers.openai.OpenAIProvider._make_request")
+    @mock.patch("onellm.providers.openai.OpenAIProvider._make_request")
     async def test_create_translation(self, mock_make_request):
         """Test creating a translation."""
         # Mock response from the API
@@ -155,9 +155,9 @@ class TestAudioCapabilities(unittest.TestCase):
         self.assertEqual(kwargs["files"]["file"]["filename"], "test.mp3")
         self.assertEqual(kwargs["files"]["file"]["content_type"], "audio/mpeg")
 
-    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("onellm.providers.get_provider")
     @pytest.mark.asyncio
-    @mock.patch("muxi_llm.audio.parse_model_name")
+    @mock.patch("onellm.audio.parse_model_name")
     async def test_audio_transcription_class(self, mock_parse_model_name, mock_get_provider):
         """Test the AudioTranscription class."""
         # Mock the provider and method
@@ -186,9 +186,9 @@ class TestAudioCapabilities(unittest.TestCase):
             "test.mp3", "whisper-1", language="en"
         )
 
-    @mock.patch("muxi_llm.providers.get_provider")
+    @mock.patch("onellm.providers.get_provider")
     @pytest.mark.asyncio
-    @mock.patch("muxi_llm.audio.parse_model_name")
+    @mock.patch("onellm.audio.parse_model_name")
     async def test_audio_translation_class(self, mock_parse_model_name, mock_get_provider):
         """Test the AudioTranslation class."""
         # Mock the provider and method

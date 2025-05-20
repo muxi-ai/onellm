@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Text-to-Speech (TTS)
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to convert text to speech using
+# This example demonstrates how to use OneLLM to convert text to speech using
 # AI voice synthesis models.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Speech API for text-to-speech conversion
 # - Provider-specific TTS models
 # - Audio file format handling
@@ -48,7 +48,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key with access to TTS models
 # - Writeable file system for saving audio files
 #
@@ -66,15 +66,15 @@ import asyncio
 import argparse
 from datetime import datetime
 
-# Import the Speech class from muxi-llm
-from muxi_llm import Speech
+# Import the Speech class from OneLLM
+from onellm import Speech
 
 
 async def text_to_speech_example(text, voice, output_file=None, model="tts-1"):
     """
     Generate speech from text and save it to a file.
 
-    This function uses the muxi-llm Speech API to convert the provided text into
+    This function uses the OneLLM Speech API to convert the provided text into
     speech audio using the specified voice and model. The generated audio is saved
     to the specified output file or an auto-generated file name.
 
@@ -99,7 +99,7 @@ async def text_to_speech_example(text, voice, output_file=None, model="tts-1"):
         print(f"Converting text to speech using voice '{voice}'...")
         print(f"Text: '{text}'")
 
-        # Call the Speech.create method from muxi-llm to generate the audio
+        # Call the Speech.create method from OneLLM to generate the audio
         # The model name is prefixed with "openai/" to specify the provider
         audio_data = await Speech.create(
             input=text,

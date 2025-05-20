@@ -11,7 +11,7 @@ These lines handle JSONDecodeError exceptions in the transform_json function.
 import pytest
 import json
 
-from muxi_llm.utils.streaming import StreamingError
+from onellm.utils.streaming import StreamingError
 
 
 class TestJsonDecodeError:

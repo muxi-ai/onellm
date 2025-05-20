@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Parallel Operations
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to achieve high throughput by
+# This example demonstrates how to use OneLLM to achieve high throughput by
 # processing multiple requests in parallel. This is particularly useful for:
 #
 # - Batch processing of many prompts/queries
@@ -33,7 +33,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Asynchronous API (acreate methods)
 # - Thread safety for concurrent usage
 # - Provider-agnostic interface across multiple models
@@ -47,7 +47,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - multitasking
 # ============================================================================ #
 """
@@ -59,12 +59,12 @@ import multitasking
 import concurrent.futures
 from typing import List, Dict, Any
 
-import muxi_llm
-from muxi_llm import ChatCompletion
+import onellm
+from onellm import ChatCompletion
 
 # Configure API key from environment variable
 api_key = os.environ.get("OPENAI_API_KEY", "your-api-key-here")
-muxi_llm.api_key = api_key
+onellm.api_key = api_key
 
 # Sample data for processing
 TOPICS = [
@@ -436,7 +436,7 @@ async def compare_approaches():
 
 if __name__ == "__main__":
     # Run the examples
-    print("Parallel Operation Example with muxi-llm")
+    print("Parallel Operation Example with OneLLM")
     print("======================================")
     print("This example demonstrates different approaches")
     print("to process multiple LLM requests in parallel.")

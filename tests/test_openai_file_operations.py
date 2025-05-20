@@ -12,7 +12,7 @@ to improve test coverage.
 import pytest
 from unittest.mock import patch
 
-from muxi_llm.providers.openai import OpenAIProvider
+from onellm.providers.openai import OpenAIProvider
 
 
 class MockResponse:

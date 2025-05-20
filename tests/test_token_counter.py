@@ -7,7 +7,7 @@ These tests verify that token counting works correctly for different types of in
 import pytest
 from unittest import mock
 
-from muxi_llm.utils.token_counter import (
+from onellm.utils.token_counter import (
     get_encoder,
     num_tokens_from_string,
     num_tokens_from_messages,
@@ -51,7 +51,7 @@ class TestTokenCounter:
 
     def test_get_encoder_without_tiktoken(self):
         """Test getting encoder when tiktoken is not available."""
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             encoder = get_encoder("gpt-3.5-turbo")
             assert encoder is None
 
@@ -90,7 +90,7 @@ class TestTokenCounter:
         ]
 
         # Run the actual function to get the token count
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             token_count = num_tokens_from_messages(messages)
 
         # Use the actual count in the assertion
@@ -126,7 +126,7 @@ class TestTokenCounter:
         ]
 
         # Get the actual token count from the function
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             token_count = num_tokens_from_messages(messages)
 
         # Use the actual count in the assertion

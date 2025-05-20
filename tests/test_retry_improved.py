@@ -10,8 +10,8 @@ import random
 import pytest
 from unittest import mock
 
-from muxi_llm.utils.retry import retry_async, RetryConfig, _calculate_backoff
-from muxi_llm.errors import RateLimitError, ServiceUnavailableError
+from onellm.utils.retry import retry_async, RetryConfig, _calculate_backoff
+from onellm.errors import RateLimitError, ServiceUnavailableError
 
 
 class TestRetryConfigClass:
@@ -117,7 +117,7 @@ class TestRetryAsyncEdgeCases:
 
         # Force the retry mechanism to re-raise by setting max_retries=0
         # and patching _should_retry to return False
-        with mock.patch("muxi_llm.utils.retry._should_retry", return_value=False):
+        with mock.patch("onellm.utils.retry._should_retry", return_value=False):
             # Call with a config that has max_retries=0
             config = RetryConfig(max_retries=0)
 

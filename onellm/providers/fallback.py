@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -57,7 +57,7 @@ class FallbackProviderProxy(Provider):
         self.models = models
         self.providers: Dict[str, Provider] = {}  # Lazy-loaded providers
         self.fallback_config = fallback_config or FallbackConfig()
-        self.logger = logging.getLogger("muxi_llm.fallback")
+        self.logger = logging.getLogger("onellm.fallback")
 
         # Lazy initialize capability flags - will be set on first access
         self._json_mode_support = None

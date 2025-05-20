@@ -9,7 +9,7 @@ import pytest
 import asyncio
 from typing import AsyncGenerator, Optional, List
 
-from muxi_llm.utils.streaming import (
+from onellm.utils.streaming import (
     stream_generator,
     json_stream_generator,
     line_stream_generator,

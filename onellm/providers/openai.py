@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -20,7 +20,7 @@
 
 
 """
-OpenAI provider implementation for muxi-llm.
+OpenAI provider implementation for OneLLM.
 
 This module implements the OpenAI provider adapter, supporting all OpenAI API
 endpoints including chat completions, completions, embeddings, and file operations.
@@ -115,7 +115,7 @@ class OpenAIProvider(Provider):
         if not self.config.get("api_key"):
             raise AuthenticationError(
                 "OpenAI API key is required. Set it via environment variable OPENAI_API_KEY "
-                "or with muxi_llm.openai_api_key = 'your-key'.",
+                "or with onellm.openai_api_key = 'your-key'.",
                 provider="openai",
             )
 

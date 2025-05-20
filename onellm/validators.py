@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Validation utilities for muxi-llm.
+Validation utilities for OneLLM.
 
 This module provides validation functions for ensuring that the data passed
 to the API methods is correctly formatted and within expected ranges.

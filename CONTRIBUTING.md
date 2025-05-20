@@ -1,6 +1,6 @@
-# 🤝 Contributing to muxi-llm
+# 🤝 Contributing to OneLLM
 
-I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features, improving documentation, or supporting new providers, your help is appreciated.
+I welcome contributions to OneLLM! Whether you're fixing bugs, adding features, improving documentation, or supporting new providers, your help is appreciated.
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
 - **Type annotations**: Always use type hints for function parameters and return values
 - **Docstrings**: All public functions, classes, and methods should have docstrings (follow the Google style)
 - **Tests**: New features should include tests with >90% coverage
-- **Error handling**: Use appropriate error types from `muxi_llm.errors`
+- **Error handling**: Use appropriate error types from `onellm.errors`
 - **Imports**: Group imports as standard library, third-party, and local
 - **File structure**: Follow the existing project structure patterns
 - **Naming**: Use clear, descriptive names for functions, classes, and variables
@@ -39,14 +39,14 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
 
 ### Adding a new provider
 
-1. **Create a new file** in the `muxi_llm/providers/` directory:
+1. **Create a new file** in the `onellm/providers/` directory:
 
    ```python
-   # muxi_llm/providers/my_provider.py
+   # onellm/providers/my_provider.py
    from typing import Dict, List, Optional, Union, Any, AsyncIterator
 
-   from muxi_llm.providers.base import Provider
-   from muxi_llm.types import ChatCompletionChunk, ChatMessage
+   from onellm.providers.base import Provider
+   from onellm.types import ChatCompletionChunk, ChatMessage
 
    class MyProvider(Provider):
        """My custom provider implementation."""
@@ -66,7 +66,7 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
            # Your implementation here
    ```
 
-2. **Register the provider** in `muxi_llm/providers/__init__.py`
+2. **Register the provider** in `onellm/providers/__init__.py`
 3. **Add tests** in `tests/providers/test_my_provider.py`
 4. **Add documentation** with example usage
 5. **Update provider compatibility tables** in README.md
@@ -105,10 +105,10 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
   pytest
 
   # Run with coverage
-  pytest --cov=muxi_llm
+  pytest --cov=onellm
 
   # Generate coverage report
-  pytest --cov=muxi_llm --cov-report=html
+  pytest --cov=onellm --cov-report=html
   ```
 
 ---
@@ -117,10 +117,10 @@ I welcome contributions to muxi-llm! Whether you're fixing bugs, adding features
 
 ### Provider Capability Flags
 
-When developing custom providers for muxi-llm, use capability flags to indicate supported features:
+When developing custom providers for OneLLM, use capability flags to indicate supported features:
 
 ```python
-from muxi_llm.providers.base import Provider
+from onellm.providers.base import Provider
 
 class MyCustomProvider(Provider):
     """Custom provider implementation."""

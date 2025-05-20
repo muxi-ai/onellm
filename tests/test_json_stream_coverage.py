@@ -8,7 +8,7 @@ non-dict JSON objects (line 86) and dict.get(data_key) operations (lines 93-94).
 
 import pytest
 
-from muxi_llm.utils.streaming import json_stream_generator
+from onellm.utils.streaming import json_stream_generator
 
 
 class MockGenerator:

@@ -1,5 +1,5 @@
 """
-Tests to achieve 100% coverage of token_counter.py in muxi-llm.
+Tests to achieve 100% coverage of token_counter.py in OneLLM.
 
 This file specifically targets the uncovered lines from previous test files,
 focusing on lines 37-38, 90-110, 124-134, and 150-209.
@@ -9,7 +9,7 @@ import re
 import pytest
 from unittest import mock
 
-from muxi_llm.utils.token_counter import (
+from onellm.utils.token_counter import (
     get_encoder,
     num_tokens_from_string,
     num_tokens_from_messages,
@@ -56,7 +56,7 @@ class TestTokenCounterFullCoverage:
         assert len(tokens) == len(text)
 
         # With the mock off, verify the pattern functions in a real context
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             count = num_tokens_from_string("Sample text", None)
             assert count == 2  # "Sample" and "text"
 
@@ -93,7 +93,7 @@ class TestTokenCounterFullCoverage:
             pytest.skip("tiktoken not installed")
 
         # This test focuses on lines 124-134
-        with mock.patch("muxi_llm.utils.token_counter.get_encoder") as mock_get_encoder:
+        with mock.patch("onellm.utils.token_counter.get_encoder") as mock_get_encoder:
             mock_encoder = mock.MagicMock()
             # Return specific token lengths for different strings
             mock_encoder.encode.side_effect = lambda text: [0] * len(text)
@@ -121,7 +121,7 @@ class TestTokenCounterFullCoverage:
             pytest.skip("tiktoken not installed")
 
         # This test covers lines 150-209
-        with mock.patch("muxi_llm.utils.token_counter.get_encoder") as mock_get_encoder:
+        with mock.patch("onellm.utils.token_counter.get_encoder") as mock_get_encoder:
             mock_encoder = mock.MagicMock()
             mock_encoder.encode.return_value = [1, 2, 3]  # 3 tokens
             mock_get_encoder.return_value = mock_encoder
@@ -149,12 +149,12 @@ class TestTokenCounterFullCoverage:
             pytest.skip("tiktoken not installed")
 
         # This covers the case where the model doesn't start with gpt-3.5 or gpt-4
-        with mock.patch("muxi_llm.utils.token_counter.get_encoder") as mock_get_encoder:
+        with mock.patch("onellm.utils.token_counter.get_encoder") as mock_get_encoder:
             mock_encoder = mock.MagicMock()
             mock_encoder.encode.return_value = [1, 2, 3]  # 3 tokens
             mock_get_encoder.return_value = mock_encoder
 
-            with mock.patch("muxi_llm.utils.token_counter.num_tokens_from_string") as mock_count:
+            with mock.patch("onellm.utils.token_counter.num_tokens_from_string") as mock_count:
                 mock_count.return_value = 5
 
                 messages = [
@@ -174,7 +174,7 @@ class TestTokenCounterFullCoverage:
     def test_num_tokens_from_string_with_different_models(self):
         """Test num_tokens_from_string with different model types."""
         # Use the function to demonstrate it's being used
-        with mock.patch("muxi_llm.utils.token_counter.get_encoder", return_value=None):
+        with mock.patch("onellm.utils.token_counter.get_encoder", return_value=None):
             # When encoder is None, should use SIMPLE_TOKEN_PATTERN
             text = "This is a test string"
             count = num_tokens_from_string(text, "any-model")
@@ -183,7 +183,7 @@ class TestTokenCounterFullCoverage:
     def test_num_tokens_from_messages_with_empty_fields(self):
         """Test num_tokens_from_messages with empty or null fields."""
         # This checks edge cases in the fallback logic
-        with mock.patch("muxi_llm.utils.token_counter.num_tokens_from_string") as mock_count:
+        with mock.patch("onellm.utils.token_counter.num_tokens_from_string") as mock_count:
             mock_count.return_value = 5
 
             # Messages with empty fields and None values
@@ -200,7 +200,7 @@ class TestTokenCounterFullCoverage:
 
     def test_num_tokens_from_messages_with_list_non_dict_items(self):
         """Test num_tokens_from_messages with non-dict items in content list."""
-        with mock.patch("muxi_llm.utils.token_counter.num_tokens_from_string") as mock_count:
+        with mock.patch("onellm.utils.token_counter.num_tokens_from_string") as mock_count:
             mock_count.return_value = 5
 
             # Messages with content as list containing non-dict items
@@ -253,7 +253,7 @@ class TestTokenCounterFullCoverage:
 
     def test_num_tokens_from_messages_model_with_slash(self):
         """Test num_tokens_from_messages with model string containing a slash."""
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             messages = [
                 {"role": "user", "content": "Hello"},
                 {"role": "assistant", "content": "Hi there"}
@@ -266,7 +266,7 @@ class TestTokenCounterFullCoverage:
         Test num_tokens_from_messages with lists that don't match expected dict/text
         structure.
         """
-        with mock.patch("muxi_llm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
+        with mock.patch("onellm.utils.token_counter.TIKTOKEN_AVAILABLE", False):
             messages = [
                 {"role": "user", "content": [123, None, {"foo": "bar"}]},
                 {"role": "assistant", "content": [[], {}, {"text": None}]}

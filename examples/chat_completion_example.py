@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Chat Completion
 # ============================================================================ #
 #
-# This example demonstrates the core ChatCompletion functionality of muxi-llm,
+# This example demonstrates the core ChatCompletion functionality of OneLLM,
 # providing a unified interface for interacting with various LLM providers.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - ChatCompletion API (core functionality)
 # - Multiple providers through a unified interface
 # - Streaming and non-streaming response handling
@@ -49,7 +49,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key
 # - Anthropic API key (optional, for Claude examples)
 #
@@ -67,9 +67,9 @@ import asyncio
 import os
 from typing import List, Dict, Any, Callable
 
-from muxi_llm import ChatCompletion
-from muxi_llm.models import ChatCompletionResponse, ChatCompletionChunk
-from muxi_llm.config import set_api_key
+from onellm import ChatCompletion
+from onellm.models import ChatCompletionResponse, ChatCompletionChunk
+from onellm.config import set_api_key
 
 
 def print_chat_response(response: ChatCompletionResponse) -> None:

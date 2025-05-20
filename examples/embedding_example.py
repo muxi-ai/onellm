@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Text Embeddings and Semantic Search
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to generate vector embeddings
+# This example demonstrates how to use OneLLM to generate vector embeddings
 # for text and implement semantic search functionality.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Embedding API
 # - Vector representation of text
 # - Provider-specific embedding models
@@ -48,7 +48,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - numpy (for vector operations)
 # - OpenAI API key with access to embedding models
 #
@@ -64,8 +64,8 @@ import os
 import numpy as np
 from typing import List
 
-from muxi_llm import Embedding
-from muxi_llm.config import set_api_key
+from onellm import Embedding
+from onellm.config import set_api_key
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:

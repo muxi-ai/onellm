@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -22,8 +22,8 @@
 import os
 from setuptools import setup, find_packages
 
-# Read version from .version file in the muxi_llm package
-with open(os.path.join(os.path.dirname(__file__), 'muxi_llm', '.version'), 'r') as f:
+# Read version from .version file in the onellm package
+with open(os.path.join(os.path.dirname(__file__), 'onellm', '.version'), 'r') as f:
     version = f.read().strip()
 
 # Read long description from README.md
@@ -31,7 +31,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name="muxi-llm",
+    name="onellm",
     version=version,
     description="A unified interface for interacting with large language models from "
                 "various providers - a complete drop-in replacement for OpenAI's client",
@@ -39,7 +39,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Ran Aroussi",
     author_email="ran@aroussi.com",
-    url="https://github.com/muxi-ai/llm",
+    url="https://github.com/muxi-ai/onellm",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -88,10 +88,10 @@ setup(
     keywords="llm, ai, openai, gpt, chatgpt, api, client, claude, gemini, mistral, "
              "multimodal, embeddings, vector",
     project_urls={
-        "Source": "https://github.com/muxi-ai/llm",
-        "Bug Reports": "https://github.com/muxi-ai/llm/issues",
-        "Documentation": "https://github.com/muxi-ai/llm",
-        "Changelog": "https://github.com/muxi-ai/llm/blob/main/CHANGELOG.md",
+        "Source": "https://github.com/muxi-ai/onellm",
+        "Bug Reports": "https://github.com/muxi-ai/onellm/issues",
+        "Documentation": "https://github.com/muxi-ai/onellm",
+        "Changelog": "https://github.com/muxi-ai/onellm/blob/main/CHANGELOG.md",
         "Funding": "https://github.com/sponsors/ranaroussi",
     },
     python_requires=">=3.10"

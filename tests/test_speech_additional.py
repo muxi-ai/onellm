@@ -9,12 +9,12 @@ import pytest
 from unittest import mock
 import asyncio
 
-from muxi_llm import Speech
-from muxi_llm.errors import (
+from onellm import Speech
+from onellm.errors import (
     ServiceUnavailableError,
     RateLimitError
 )
-from muxi_llm.utils.fallback import FallbackConfig
+from onellm.utils.fallback import FallbackConfig
 
 
 @pytest.mark.asyncio
@@ -25,7 +25,7 @@ async def test_fallback_models():
     mock_provider.create_speech = mock.AsyncMock(return_value=b"fake audio data")
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch("onellm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "tts-1")
 
         # Call with fallback models
@@ -57,7 +57,7 @@ async def test_fallback_config():
     mock_provider.create_speech = mock.AsyncMock(return_value=b"fake audio data")
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch("onellm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "tts-1")
 
         # Create a fallback config
@@ -95,7 +95,7 @@ async def test_output_file():
     mock_provider.create_speech = mock.AsyncMock(return_value=mock_audio_data)
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch("onellm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "tts-1")
 
         # Mock file open
@@ -150,7 +150,7 @@ async def test_additional_params():
     mock_provider.create_speech = mock.AsyncMock(return_value=b"fake audio data")
 
     # Mock get_provider_with_fallbacks
-    with mock.patch("muxi_llm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+    with mock.patch("onellm.speech.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "tts-1")
 
         # Call with additional parameters

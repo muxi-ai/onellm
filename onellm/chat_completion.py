@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Chat completion functionality for muxi-llm.
+Chat completion functionality for OneLLM.
 
 This module provides a ChatCompletion class that can be used to create chat
 completions from various providers in a manner compatible with OpenAI's API.
@@ -39,7 +39,7 @@ from .validators import validate_model_name, validate_messages, validate_stream
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
 
-    logger = logging.getLogger("muxi_llm.chat_completion")
+    logger = logging.getLogger("onellm.chat_completion")
 
     @classmethod
     def _process_capabilities(

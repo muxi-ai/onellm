@@ -9,9 +9,9 @@ import pytest
 from unittest import mock
 from io import BytesIO
 
-from muxi_llm import AudioTranscription, AudioTranslation
-from muxi_llm.utils.fallback import FallbackConfig
-from muxi_llm.errors import ServiceUnavailableError, RateLimitError
+from onellm import AudioTranscription, AudioTranslation
+from onellm.utils.fallback import FallbackConfig
+from onellm.errors import ServiceUnavailableError, RateLimitError
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ async def test_audio_transcription_fallback_models():
 
     # Mock get_provider_with_fallbacks
     with mock.patch(
-            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+            "onellm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Test with fallback models
@@ -57,7 +57,7 @@ async def test_audio_transcription_custom_fallback_config():
 
     # Mock get_provider_with_fallbacks
     with mock.patch(
-            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+            "onellm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Create a fallback config
@@ -135,7 +135,7 @@ async def test_audio_translation_with_file_object():
 
     # Mock get_provider_with_fallbacks
     with mock.patch(
-            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+            "onellm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Call the method with a file object
@@ -199,7 +199,7 @@ async def test_audio_translation_all_parameters():
 
     # Mock get_provider_with_fallbacks
     with mock.patch(
-            "muxi_llm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
+            "onellm.audio.get_provider_with_fallbacks") as mock_get_provider_with_fallbacks:
         mock_get_provider_with_fallbacks.return_value = (mock_provider, "whisper-1")
 
         # Call with all possible parameters

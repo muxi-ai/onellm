@@ -12,8 +12,8 @@ from pathlib import Path
 
 # Add the parent directory to the path for proper imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from muxi_llm.models import FileObject  # noqa: E402
-from muxi_llm.providers import openai  # noqa: E402
+from onellm.models import FileObject  # noqa: E402
+from onellm.providers import openai  # noqa: E402
 
 # Create mock file objects for testing
 MOCK_FILE_OBJECTS = {

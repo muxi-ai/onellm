@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Vision Model Usage
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to analyze images using
+# This example demonstrates how to use OneLLM to analyze images using
 # vision-capable LLMs and have multi-turn conversations about visual content.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - ChatCompletion API with multi-modal inputs
 # - Provider-specific vision models
 # - Image URL handling and message formatting
@@ -48,7 +48,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key with access to vision-capable models
 #
 # EXPECTED OUTPUT:
@@ -62,8 +62,8 @@
 import os
 from typing import List, Dict, Any
 
-from muxi_llm import ChatCompletion
-from muxi_llm.config import set_api_key
+from onellm import ChatCompletion
+from onellm.config import set_api_key
 
 
 def create_message_with_image(image_url: str) -> List[Dict[str, Any]]:

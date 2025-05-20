@@ -8,7 +8,7 @@ This file is meant to document how we would handle the unreachable code in retry
 line 123 using coverage pragmas.
 """
 
-from muxi_llm.errors import RateLimitError
+from onellm.errors import RateLimitError
 
 
 class TestPragmaApproach:

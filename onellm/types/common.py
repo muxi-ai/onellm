@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Common type definitions for muxi-llm.
+Common type definitions for OneLLM.
 
 This module contains standard type definitions used throughout the library.
 These types provide a consistent interface for working with various LLM providers

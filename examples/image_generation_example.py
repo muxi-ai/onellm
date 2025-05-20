@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Image Generation
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to generate images from text
+# This example demonstrates how to use OneLLM to generate images from text
 # prompts using AI image generation models like DALL-E.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Image generation API
 # - Provider-specific image models
 # - File handling and output management
@@ -48,7 +48,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key with access to DALL-E models
 # - Writeable file system for saving generated images
 #
@@ -64,15 +64,15 @@ import os
 import asyncio
 import argparse
 
-# Import the Image class from muxi-llm
-from muxi_llm import Image
+# Import the Image class from OneLLM
+from onellm import Image
 
 
 async def generate_image_example(prompt, model="dall-e-3", size="1024x1024", output_dir=None):
     """
     Generate an image from a text prompt and save it to a file.
 
-    This function uses the muxi-llm Image API to generate an image based on the provided
+    This function uses the OneLLM Image API to generate an image based on the provided
     text prompt using the specified DALL-E model. The generated image is saved to the
     specified output directory.
 
@@ -97,7 +97,7 @@ async def generate_image_example(prompt, model="dall-e-3", size="1024x1024", out
         print(f"Generating image with prompt: '{prompt}'")
         print(f"Using model: {model}, size: {size}")
 
-        # Generate the image using the muxi-llm Image API
+        # Generate the image using the OneLLM Image API
         # The model name is prefixed with "openai/" to specify the provider
         result = await Image.create(
             prompt=prompt,
@@ -134,7 +134,7 @@ def parse_arguments():
     Returns:
         argparse.Namespace: An object containing the parsed command-line arguments.
     """
-    parser = argparse.ArgumentParser(description="Generate images with DALL-E using muxi-llm")
+    parser = argparse.ArgumentParser(description="Generate images with DALL-E using OneLLM")
     parser.add_argument(
         "--prompt", "-p",
         type=str,

@@ -2,9 +2,9 @@ import pytest
 from unittest import mock
 from typing import List
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm.types.common import Message
-from muxi_llm.errors import AuthenticationError, InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
+from onellm.types.common import Message
+from onellm.errors import AuthenticationError, InvalidRequestError
 
 
 class TestOpenAIProviderAdditionalLines:
@@ -13,7 +13,7 @@ class TestOpenAIProviderAdditionalLines:
     def setup_method(self):
         """Set up the test environment."""
         # Use a patcher to completely mock get_provider_config
-        self.config_patcher = mock.patch('muxi_llm.config.get_provider_config')
+        self.config_patcher = mock.patch('onellm.config.get_provider_config')
         self.mock_get_config = self.config_patcher.start()
         self.mock_get_config.return_value = {"api_key": "test-api-key"}
 

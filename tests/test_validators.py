@@ -4,9 +4,9 @@
 import pytest
 import base64
 
-import muxi_llm
-from muxi_llm.errors import InvalidRequestError
-from muxi_llm.validators import (
+import onellm
+from onellm.errors import InvalidRequestError
+from onellm.validators import (
     validate_type,
     validate_dict,
     validate_list,
@@ -341,13 +341,13 @@ class TestChatCompletionValidation:
             async def create_chat_completion(
                 self, messages, model, stream=False, **kwargs
             ):
-                return muxi_llm.models.ChatCompletionResponse(
+                return onellm.models.ChatCompletionResponse(
                     id="test-id",
                     object="chat.completion",
                     created=1234567890,
                     model=f"test-provider/{model}",
                     choices=[
-                        muxi_llm.models.Choice(
+                        onellm.models.Choice(
                             index=0,
                             message={"role": "assistant", "content": "Test response"},
                             finish_reason="stop",
@@ -373,13 +373,13 @@ class TestChatCompletionValidation:
 
         # Apply monkeypatch at the correct import path
         monkeypatch.setattr(
-            "muxi_llm.chat_completion.get_provider_with_fallbacks",
+            "onellm.chat_completion.get_provider_with_fallbacks",
             mock_get_provider_with_fallbacks,
         )
 
         # Also patch it at the providers.base path to be safe
         monkeypatch.setattr(
-            "muxi_llm.providers.base.get_provider_with_fallbacks",
+            "onellm.providers.base.get_provider_with_fallbacks",
             mock_get_provider_with_fallbacks,
         )
 
@@ -388,7 +388,7 @@ class TestChatCompletionValidation:
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Hello!"},
         ]
-        response = await muxi_llm.ChatCompletion.acreate(
+        response = await onellm.ChatCompletion.acreate(
             model="openai/gpt-4", messages=valid_messages
         )
         assert response.choices[0].message["content"] == "Test response"
@@ -397,13 +397,13 @@ class TestChatCompletionValidation:
         with pytest.raises(
             InvalidRequestError, match="does not contain a provider prefix"
         ):
-            await muxi_llm.ChatCompletion.acreate(
+            await onellm.ChatCompletion.acreate(
                 model="gpt-4", messages=valid_messages
             )
 
         # Test with invalid messages
         with pytest.raises(InvalidRequestError, match="Messages list cannot be empty"):
-            await muxi_llm.ChatCompletion.acreate(model="openai/gpt-4", messages=[])
+            await onellm.ChatCompletion.acreate(model="openai/gpt-4", messages=[])
 
 
 if __name__ == "__main__":

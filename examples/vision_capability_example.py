@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Vision Capability Testing
 # ============================================================================ #
 #
-# This example demonstrates multi-modal capabilities of muxi-llm and how it handles
+# This example demonstrates multi-modal capabilities of OneLLM and how it handles
 # different models' support for image inputs.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Multi-modal inputs in the ChatCompletion API
 # - Automatic content filtering based on model capabilities
 # - Fallback mechanisms across different model types
@@ -49,7 +49,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key with access to vision-capable models
 #
 # EXPECTED OUTPUT:
@@ -62,15 +62,15 @@
 """
 
 import os
-import muxi_llm
+import onellm
 
 # Set API keys from environment
-muxi_llm.openai_api_key = os.environ.get("OPENAI_API_KEY")
+onellm.openai_api_key = os.environ.get("OPENAI_API_KEY")
 
 
 def main():
     """
-    Main function to demonstrate vision capabilities in muxi-llm.
+    Main function to demonstrate vision capabilities in OneLLM.
 
     This function runs three examples:
     1. Using a model with native vision support
@@ -124,7 +124,7 @@ def demonstrate_vision_model():
     ]
 
     # Call a model with vision support (GPT-4o)
-    response = muxi_llm.ChatCompletion.create(
+    response = onellm.ChatCompletion.create(
         model="openai/gpt-4o",  # Using GPT-4o which has vision capabilities
         messages=messages
     )
@@ -141,7 +141,7 @@ def demonstrate_text_only_model():
     This function:
     1. Uses the same multi-modal message with text and image
     2. Sends it to GPT-3.5-turbo which doesn't support vision
-    3. Shows how muxi-llm automatically removes image content and warns the user
+    3. Shows how OneLLM automatically removes image content and warns the user
     """
     print("Example 2: Using a non-vision model with fallback")
     print("-" * 50)
@@ -169,7 +169,7 @@ def demonstrate_text_only_model():
 
     # Using a regular text model (without vision), we'll get a warning
     # and the image content will be removed automatically
-    response = muxi_llm.ChatCompletion.create(
+    response = onellm.ChatCompletion.create(
         model="openai/gpt-3.5-turbo",  # This doesn't support vision
         messages=messages
     )
@@ -186,7 +186,7 @@ def demonstrate_vision_fallback():
     This function:
     1. Attempts to use a vision-capable model first
     2. Configures a text-only model as fallback
-    3. Shows how muxi-llm handles the transition if the vision model fails
+    3. Shows how OneLLM handles the transition if the vision model fails
 
     This is useful for ensuring reliability in production systems.
     """
@@ -215,7 +215,7 @@ def demonstrate_vision_fallback():
     ]
 
     # Try a vision model with fallback to a non-vision model
-    response = muxi_llm.ChatCompletion.create(
+    response = onellm.ChatCompletion.create(
         model="openai/gpt-4-vision-preview",  # Vision model as primary choice
         fallback_models=["openai/gpt-3.5-turbo"],  # Non-vision fallback if primary fails
         messages=messages

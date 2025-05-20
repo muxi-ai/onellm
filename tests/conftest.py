@@ -1,5 +1,5 @@
 """
-Global pytest configuration for muxi-llm tests.
+Global pytest configuration for OneLLM tests.
 
 This file contains fixtures and configuration to ensure proper test isolation
 and consistent behavior, especially for asyncio-based tests.
@@ -11,7 +11,7 @@ import asyncio
 import pathlib
 import pytest
 
-# Add the parent directory to sys.path to allow importing from muxi_llm
+# Add the parent directory to sys.path to allow importing from onellm
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 # Set a consistent event loop policy for all tests

@@ -1,5 +1,5 @@
 [run]
-source = muxi_llm
+source = onellm
 omit =
     # Omit test files
     */tests/*

@@ -11,7 +11,7 @@ import asyncio
 from unittest import mock
 import pytest
 
-from muxi_llm.completion import Completion
+from onellm.completion import Completion
 
 
 class TestCompletionFinalCoverage:
@@ -23,7 +23,7 @@ class TestCompletionFinalCoverage:
         self.original_run = asyncio.run
         # Create a mock for the get_provider_with_fallbacks function
         self.mock_get_provider = mock.patch(
-            "muxi_llm.completion.get_provider_with_fallbacks"
+            "onellm.completion.get_provider_with_fallbacks"
         ).start()
 
         # Create a mock provider
@@ -95,7 +95,7 @@ class TestCompletionFinalCoverage:
     def test_create_streaming_with_fallback_config(self):
         """Test create method with fallback_config to cover line 82."""
         # Mock the FallbackConfig constructor
-        with mock.patch("muxi_llm.completion.FallbackConfig") as mock_fb_config:
+        with mock.patch("onellm.completion.FallbackConfig") as mock_fb_config:
             mock_fb_config.return_value = "mock_fb_config"
 
             # Call the create method with fallback_config
@@ -122,7 +122,7 @@ class TestCompletionFinalCoverage:
     def test_acreate_with_fallback_config(self):
         """Test acreate method with fallback_config to cover line 153."""
         # Mock the FallbackConfig constructor
-        with mock.patch("muxi_llm.completion.FallbackConfig") as mock_fb_config:
+        with mock.patch("onellm.completion.FallbackConfig") as mock_fb_config:
             mock_fb_config.return_value = "mock_fb_config"
 
             # Configure mock to return a response

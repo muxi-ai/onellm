@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Tests for the provider capability flags in muxi-llm.
+Tests for the provider capability flags in OneLLM.
 """
 
 import unittest
 from unittest.mock import patch, AsyncMock, MagicMock
 import warnings
 
-from muxi_llm.chat_completion import ChatCompletion
-from muxi_llm.providers.base import Provider
-from muxi_llm.providers.fallback import FallbackProviderProxy
+from onellm.chat_completion import ChatCompletion
+from onellm.providers.base import Provider
+from onellm.providers.fallback import FallbackProviderProxy
 
 
 class TestProviderCapabilities(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestProviderCapabilities(unittest.TestCase):
         self.basic_provider.token_by_token_support = False
         self.basic_provider.create_chat_completion = AsyncMock()
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_json_mode_capability(self, mock_get_provider):
         """Test that JSON mode is handled correctly based on provider capability."""
         # Mock the provider that doesn't support JSON mode
@@ -69,7 +69,7 @@ class TestProviderCapabilities(unittest.TestCase):
             self.assertEqual(messages_arg[0]["role"], "system")
             self.assertIn("json", messages_arg[0]["content"].lower())
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_streaming_capability(self, mock_get_provider):
         """Test that streaming is handled correctly based on provider capability."""
         # Mock the provider that doesn't support streaming
@@ -95,7 +95,7 @@ class TestProviderCapabilities(unittest.TestCase):
             args, kwargs = self.basic_provider.create_chat_completion.call_args
             self.assertFalse(kwargs["stream"])
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_vision_capability(self, mock_get_provider):
         """Test that vision content is handled correctly based on provider capability."""
         # Mock the provider that doesn't support vision
@@ -134,7 +134,7 @@ class TestProviderCapabilities(unittest.TestCase):
             self.assertEqual(len(processed_messages), 1)
             self.assertEqual(processed_messages[0]["content"], "What's in this image?")
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_audio_capability(self, mock_get_provider):
         """Test that audio content is handled correctly based on provider capability."""
         # Mock the provider that doesn't support audio
@@ -181,7 +181,7 @@ class TestProviderCapabilities(unittest.TestCase):
             else:
                 self.assertEqual(content, "What's in this audio?")
 
-    @patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+    @patch("onellm.chat_completion.get_provider_with_fallbacks")
     def test_all_capabilities_supported(self, mock_get_provider):
         """Test that no warnings or modifications occur when provider supports all capabilities."""
         # Mock the provider that supports all capabilities
@@ -226,7 +226,7 @@ class TestProviderCapabilities(unittest.TestCase):
     def test_fallback_provider_capability_inheritance(self):
         """Test that FallbackProviderProxy correctly inherits capabilities from primary provider."""
         # Mock Provider._get_provider and FallbackProviderProxy._check_provider_capability methods
-        with patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
+        with patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             # Set up the mock to return our capable provider
             mock_get_provider.return_value = self.fully_capable_provider
 

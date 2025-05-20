@@ -12,9 +12,9 @@ import mock
 from typing import Dict, Any
 from unittest.mock import AsyncMock, patch
 
-from muxi_llm.providers import get_provider
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm.errors import AuthenticationError
+from onellm.providers import get_provider
+from onellm.providers.openai import OpenAIProvider
+from onellm.errors import AuthenticationError
 
 
 class MockResponse:
@@ -96,7 +96,7 @@ class TestOpenAIProvider:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
         # Directly patch the config module to remove any API key
-        with patch("muxi_llm.providers.openai.get_provider_config") as mock_get_config:
+        with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
             # Create a configuration with no API key
             mock_config = {
                 "api_key": None,
@@ -113,7 +113,7 @@ class TestOpenAIProvider:
 
     def test_init_with_api_key(self):
         """Test initialization with API key in kwargs."""
-        with patch("muxi_llm.providers.openai.get_provider_config") as mock_get_config:
+        with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
             # Return a config without API key so the test API key takes precedence
             mock_get_config.return_value = {
                 "api_key": None,
@@ -134,7 +134,7 @@ class TestOpenAIProvider:
 
     def test_init_with_env_api_key(self, mock_env_api_key):
         """Test initialization with API key from environment."""
-        with patch("muxi_llm.providers.openai.get_provider_config") as mock_get_config:
+        with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
             # Return a config that will use the environment variable
             mock_config = {
                 "api_key": "sk-test-key",
@@ -149,7 +149,7 @@ class TestOpenAIProvider:
 
     def test_get_headers(self):
         """Test get_headers method."""
-        with patch("muxi_llm.providers.openai.get_provider_config") as mock_get_config:
+        with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
             # Return a config that will use our test key
             mock_config = {
                 "api_key": "sk-test-key",
@@ -166,7 +166,7 @@ class TestOpenAIProvider:
 
     def test_get_headers_with_organization(self):
         """Test get_headers method with organization ID."""
-        with patch("muxi_llm.providers.openai.get_provider_config") as mock_get_config:
+        with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
             # Return a config with organization ID
             mock_config = {
                 "api_key": "sk-test-key",

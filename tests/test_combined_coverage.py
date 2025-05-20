@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Combined coverage test for fallback.py in muxi-llm.
+Combined coverage test for fallback.py in OneLLM.
 
 This test specifically focuses on the remaining uncovered lines:
 - Line 150: Error handling in streaming generator
@@ -16,10 +16,10 @@ import pytest
 from unittest import mock
 import asyncio
 
-from muxi_llm.errors import APIError, FallbackExhaustionError
-from muxi_llm.providers.fallback import FallbackProviderProxy
-from muxi_llm.providers.base import Provider
-from muxi_llm.utils.fallback import FallbackConfig
+from onellm.errors import APIError, FallbackExhaustionError
+from onellm.providers.fallback import FallbackProviderProxy
+from onellm.providers.base import Provider
+from onellm.utils.fallback import FallbackConfig
 
 
 class CombinedCoverageProvider(Provider):
@@ -149,7 +149,7 @@ class TestCombinedCoverage:
     def setup_method(self):
         """Set up test environment."""
         # Patch the get_provider function
-        self.mock_get_provider = mock.patch("muxi_llm.providers.fallback.get_provider").start()
+        self.mock_get_provider = mock.patch("onellm.providers.fallback.get_provider").start()
 
     def teardown_method(self):
         """Clean up test environment."""

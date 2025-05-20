@@ -1,14 +1,14 @@
 import asyncio
 """
-Tests for the fallback mechanism in muxi-llm.
+Tests for the fallback mechanism in OneLLM.
 """
 
 import pytest
 import mock
 
-from muxi_llm.utils.fallback import FallbackConfig
-from muxi_llm.providers.fallback import FallbackProviderProxy
-from muxi_llm.errors import (
+from onellm.utils.fallback import FallbackConfig
+from onellm.providers.fallback import FallbackProviderProxy
+from onellm.errors import (
     APIError, AuthenticationError, RateLimitError, FallbackExhaustionError
 )
 
@@ -67,7 +67,7 @@ class TestFallbackMechanism:
         fallback_provider = MockProvider(should_fail=False)
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
@@ -101,7 +101,7 @@ class TestFallbackMechanism:
         fallback_provider = MockProvider(should_fail=True, error_type="rate_limit")
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
@@ -136,7 +136,7 @@ class TestFallbackMechanism:
         fallback_provider = MockProvider(should_fail=False)
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 primary_provider if provider_name == "openai" else fallback_provider
             )
@@ -169,7 +169,7 @@ class TestFallbackMechanism:
         ]
 
         # Patch get_provider to return our mock providers
-        with mock.patch("muxi_llm.providers.fallback.get_provider") as mock_get_provider:
+        with mock.patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
                 providers[0] if provider_name == "openai" else (
                     providers[1] if provider_name == "anthropic" else providers[2]

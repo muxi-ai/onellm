@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: JSON Mode for Structured Responses
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm's JSON mode feature to get
+# This example demonstrates how to use OneLLM's JSON mode feature to get
 # structured, parseable responses from LLMs.
 # Key features demonstrated:
 #
@@ -34,7 +34,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - ChatCompletion API with response_format parameter
 # - Automatic JSON mode handling across providers
 # - Fallback mechanisms with format requirements
@@ -48,7 +48,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key (for models with native JSON support)
 # - Other provider API keys (optional, for testing fallback behavior)
 #
@@ -62,15 +62,15 @@
 
 import os
 import json
-import muxi_llm
+import onellm
 
 # Set API key from environment
-muxi_llm.openai_api_key = os.environ.get("OPENAI_API_KEY")
+onellm.openai_api_key = os.environ.get("OPENAI_API_KEY")
 
 
 def main():
     """
-    Main function to demonstrate JSON mode capabilities in muxi-llm.
+    Main function to demonstrate JSON mode capabilities in OneLLM.
 
     This function runs three examples:
     1. Using an OpenAI model with native JSON mode support
@@ -110,7 +110,7 @@ def demonstrate_json_mode_with_openai():
     print("-" * 50)
 
     # Make the API call with JSON mode enabled
-    response = muxi_llm.ChatCompletion.create(
+    response = onellm.ChatCompletion.create(
         model="openai/gpt-4o",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -149,10 +149,10 @@ def demonstrate_json_mode_with_other_provider_commented():
     print("-" * 50)
 
     # Set up your API key for other providers
-    # muxi_llm.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+    # onellm.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
 
     try:
-        response = muxi_llm.ChatCompletion.create(
+        response = onellm.ChatCompletion.create(
             model="anthropic/claude-3-opus",  # Use the appropriate model for your provider
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -192,7 +192,7 @@ def demonstrate_json_mode_with_fallbacks():
     print("-" * 50)
 
     # Make API call with primary model and fallback options
-    response = muxi_llm.ChatCompletion.create(
+    response = onellm.ChatCompletion.create(
         model="openai/gpt-4o",  # Primary model
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},

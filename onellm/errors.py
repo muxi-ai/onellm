@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Standardized error types for muxi-llm.
+Standardized error types for OneLLM.
 
 This module provides consistent error classes across different LLM providers
 to help with error handling in client code.
@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional
 
 class MuxiLLMError(Exception):
     """
-    Base exception class for muxi-llm errors.
+    Base exception class for OneLLM errors.
 
     This serves as the parent class for all custom exceptions in the library,
     providing a consistent interface for error handling.

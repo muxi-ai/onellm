@@ -9,9 +9,9 @@ import unittest
 from unittest import mock
 import asyncio
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm import Speech
-from muxi_llm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
+from onellm import Speech
+from onellm.errors import InvalidRequestError
 from tests.test_utils import run_async
 
 
@@ -28,7 +28,7 @@ class TestSpeechCapabilities(unittest.TestCase):
     async def test_create_speech(self):
         """Test creating speech from text."""
         # Mock response from the API
-        mock_patch = "muxi_llm.providers.openai.OpenAIProvider._make_request_raw"
+        mock_patch = "onellm.providers.openai.OpenAIProvider._make_request_raw"
         with mock.patch(mock_patch) as mock_make_request_raw:
             mock_audio_data = b"fake audio data"
             mock_make_request_raw.return_value = mock_audio_data

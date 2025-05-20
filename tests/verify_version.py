@@ -3,17 +3,17 @@
 
 import os
 
-# Version from .version file in the muxi_llm package
-with open(os.path.join('muxi_llm', '.version'), 'r') as f:
+# Version from .version file in the onellm package
+with open(os.path.join('onellm', '.version'), 'r') as f:
     version_from_file = f.read().strip()
 
-# Import from muxi_llm to check __version__
-import muxi_llm
+# Import from onellm to check __version__
+import onellm
 
-print(f"Version from muxi_llm/.version file: {version_from_file}")
-print(f"Version from muxi_llm.__version__: {muxi_llm.__version__}")
+print(f"Version from onellm/.version file: {version_from_file}")
+print(f"Version from onellm.__version__: {onellm.__version__}")
 
-if version_from_file == muxi_llm.__version__:
+if version_from_file == onellm.__version__:
     print("✅ Versions match! Configuration is correct.")
 else:
     print("❌ Versions don't match. Check implementation.")

@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from muxi_llm.files import File
+from onellm.files import File
 
 class TestFileParentDirectoryCreation:
     """Test file operations with specific focus on parent directory creation."""
@@ -27,7 +27,7 @@ class TestFileParentDirectoryCreation:
         mock_provider.download_file.return_value = b"test file content"
 
         # Mock get_provider to return our mock provider
-        with mock.patch("muxi_llm.files.get_provider", return_value=mock_provider):
+        with mock.patch("onellm.files.get_provider", return_value=mock_provider):
             # Create a destination path with nested directories that don't exist
             nested_path = os.path.join(self.temp_dir, "level1", "level2", "level3", "test_file.txt")
 
@@ -55,7 +55,7 @@ class TestFileParentDirectoryCreation:
         mock_provider.download_file.return_value = b"test file content"
 
         # Mock get_provider to return our mock provider
-        with mock.patch("muxi_llm.files.get_provider", return_value=mock_provider):
+        with mock.patch("onellm.files.get_provider", return_value=mock_provider):
             # Create a destination path with nested directories that don't exist
             nested_path = os.path.join(self.temp_dir, "sync_level1", "sync_level2", "test_file.txt")
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Configuration system for muxi-llm.
+Configuration system for OneLLM.
 
 This module handles configuration from environment variables and runtime settings.
 It provides a centralized way to manage API keys, endpoints, and other settings
@@ -57,7 +57,7 @@ DEFAULT_CONFIG = {
 config = DEFAULT_CONFIG.copy()
 
 # Environment variables prefixes
-ENV_PREFIX = "MUXI_LLM_"  # Prefix for muxi-llm specific environment variables
+ENV_PREFIX = "MUXI_LLM_"  # Prefix for OneLLM specific environment variables
 PROVIDER_API_KEY_ENV_MAP = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",

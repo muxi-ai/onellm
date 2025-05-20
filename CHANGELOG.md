@@ -20,7 +20,7 @@
 
 ## 0.1.0 (Initial Release)
 
-The initial release of muxi-llm includes a comprehensive set of features providing a complete provider-agnostic interface for large language models.
+The initial release of OneLLM includes a comprehensive set of features providing a complete provider-agnostic interface for large language models.
 
 ### Core Architecture
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Audio Transcription
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm to transcribe speech in audio files to text.
+# This example demonstrates how to use OneLLM to transcribe speech in audio files to text.
 # Key features demonstrated:
 #
 # - Converting audio files to text using AI transcription
@@ -33,7 +33,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - AudioTranscription API
 # - Synchronous API interface
 # - Provider-specific models (Whisper)
@@ -47,7 +47,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - Audio file to transcribe (examples/audio/sample.mp3)
 # - OpenAI API key with access to Whisper models
 #
@@ -63,8 +63,8 @@ import os
 import sys
 from pathlib import Path
 
-from muxi_llm import AudioTranscription
-from muxi_llm.config import set_api_key
+from onellm import AudioTranscription
+from onellm.config import set_api_key
 
 
 def main():

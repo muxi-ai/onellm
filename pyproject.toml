@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "muxi-llm"
+name = "OneLLM"
 dynamic = ["version"]
 description = "A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"
 readme = "README.md"
@@ -28,23 +28,23 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/muxijs/muxi"
+"Homepage" = "https://github.com/muxi-ai/onellm"
 "Documentation" = "https://docs.muxi.io"
-"Issues" = "https://github.com/muxijs/muxi/issues"
+"Issues" = "https://github.com/muxi-ai/onellm/issues"
 
 # Uncomment if you have CLI commands
 # [project.scripts]
-# muxi-llm = "muxi_llm.cli:main"
+# OneLLM = "onellm.cli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["muxi_llm*"]
+include = ["onellm*"]
 
 [tool.setuptools.dynamic]
-version = {file = ["muxi_llm/.version"]}
+version = {file = ["onellm/.version"]}
 
 [tool.ruff]
 line-length = 100

@@ -10,10 +10,10 @@ import pytest
 from unittest import mock
 from typing import AsyncGenerator, Dict, List
 
-from muxi_llm import Completion
-from muxi_llm.models import CompletionResponse, CompletionChoice
-from muxi_llm.utils.fallback import FallbackConfig
-from muxi_llm.errors import APIError
+from onellm import Completion
+from onellm.models import CompletionResponse, CompletionChoice
+from onellm.utils.fallback import FallbackConfig
+from onellm.errors import APIError
 
 
 class TestCompletionAdvanced:
@@ -44,7 +44,7 @@ class TestCompletionAdvanced:
         self.mock_provider.create_completion.return_value = self.mock_response
 
         # Set up patch for get_provider_with_fallbacks
-        self.provider_patcher = mock.patch("muxi_llm.completion.get_provider_with_fallbacks")
+        self.provider_patcher = mock.patch("onellm.completion.get_provider_with_fallbacks")
         self.mock_get_provider = self.provider_patcher.start()
         self.mock_get_provider.return_value = (self.mock_provider, "test-model")
 

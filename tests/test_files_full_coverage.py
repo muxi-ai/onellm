@@ -4,7 +4,7 @@
 """
 Tests for files.py to achieve 100% test coverage.
 
-This module contains tests for the file handling functionality in muxi-llm
+This module contains tests for the file handling functionality in OneLLM
 with a focus on achieving full coverage of all lines.
 """
 
@@ -16,8 +16,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from muxi_llm.files import File
-from muxi_llm.models import FileObject
+from onellm.files import File
+from onellm.models import FileObject
 
 
 # Create a comprehensive mock provider for file operations
@@ -54,7 +54,7 @@ class TestFilesFullCoverage:
         """Test uploading a file with a path string."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock), \
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock), \
              mock.patch("builtins.open", mock.mock_open(read_data=b"test content")):
             # Call the method with a string path
             result = File.upload(
@@ -74,7 +74,7 @@ class TestFilesFullCoverage:
         """Test uploading a file with a Path object."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock), \
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock), \
              mock.patch("builtins.open", mock.mock_open(read_data=b"test content")):
             # Call the method with a Path object
             file_path = Path("path/to/test.txt")
@@ -95,7 +95,7 @@ class TestFilesFullCoverage:
         """Test uploading a file with a file-like object."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Create a file-like object
             file_obj = io.BytesIO(b"test content")
 
@@ -117,7 +117,7 @@ class TestFilesFullCoverage:
         """Test uploading a file with bytes."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the method with bytes
             result = File.upload(
                 file=b"test content bytes",
@@ -136,7 +136,7 @@ class TestFilesFullCoverage:
         """Test downloading a file without specifying a destination."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the method
             result = File.download(
                 file_id="file-123",
@@ -156,7 +156,7 @@ class TestFilesFullCoverage:
         with tempfile.TemporaryDirectory() as temp_dir:
             dest_path = os.path.join(temp_dir, "download.txt")
 
-            with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+            with mock.patch("onellm.files.get_provider", return_value=provider_mock):
                 # Call the method with destination
                 File.download(
                     file_id="file-456",
@@ -184,7 +184,7 @@ class TestFilesFullCoverage:
             # Ensure directory doesn't exist
             assert not os.path.exists(nested_dir)
 
-            with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+            with mock.patch("onellm.files.get_provider", return_value=provider_mock):
                 # Call the method with nested path
                 File.download(
                     file_id="file-789",
@@ -200,7 +200,7 @@ class TestFilesFullCoverage:
         """Test listing files."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the method
             result = File.list(
                 purpose="assistants",
@@ -218,7 +218,7 @@ class TestFilesFullCoverage:
         """Test deleting a file."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the method
             result = File.delete(
                 file_id="file-123",
@@ -237,7 +237,7 @@ class TestFilesFullCoverage:
         """Test asynchronous file upload."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the async method
             result = await File.aupload(
                 file=b"async test content",
@@ -256,7 +256,7 @@ class TestFilesFullCoverage:
         """Test asynchronous file download."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the async method
             result = await File.adownload(
                 file_id="file-123",
@@ -277,7 +277,7 @@ class TestFilesFullCoverage:
         with tempfile.TemporaryDirectory() as temp_dir:
             dest_path = os.path.join(temp_dir, "async_download.txt")
 
-            with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+            with mock.patch("onellm.files.get_provider", return_value=provider_mock):
                 # Call the async method with destination
                 await File.adownload(
                     file_id="file-123",
@@ -298,7 +298,7 @@ class TestFilesFullCoverage:
         """Test asynchronous file listing."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the async method
             result = await File.alist(
                 purpose="assistants",
@@ -316,7 +316,7 @@ class TestFilesFullCoverage:
         """Test asynchronous file deletion."""
         provider_mock = MockFileProvider()
 
-        with mock.patch("muxi_llm.files.get_provider", return_value=provider_mock):
+        with mock.patch("onellm.files.get_provider", return_value=provider_mock):
             # Call the async method
             result = await File.adelete(
                 file_id="file-456",

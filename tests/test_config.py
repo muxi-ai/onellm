@@ -1,5 +1,5 @@
 """
-Tests for the configuration system in muxi-llm.
+Tests for the configuration system in OneLLM.
 
 These tests verify that the configuration system works correctly,
 especially for edge cases and environment variable handling.
@@ -8,7 +8,7 @@ especially for edge cases and environment variable handling.
 import os
 import pytest
 
-from muxi_llm.config import (
+from onellm.config import (
     _load_env_vars,
     _update_nested_dict,
     config,
@@ -37,7 +37,7 @@ def reset_config_after_test():
 
 
 class TestConfigSystem:
-    """Tests for the muxi-llm configuration system."""
+    """Tests for the OneLLM configuration system."""
 
     def test_direct_api_key_setting(self):
         """Test setting API key directly."""

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Additional test coverage for muxi_llm/providers/openai.py to improve
+Additional test coverage for onellm/providers/openai.py to improve
 overall test coverage with a focus on audio processing, MIME type detection,
 speech generation, and error handling in raw requests.
 """
@@ -11,8 +11,8 @@ import io
 import pytest
 from unittest.mock import AsyncMock, patch, mock_open
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm.errors import APIError, InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
+from onellm.errors import APIError, InvalidRequestError
 
 
 class TestOpenAIAudioProcessing:
@@ -215,7 +215,7 @@ class TestOpenAIRawRequestHandling:
     def setup_method(self):
         self.provider = OpenAIProvider(api_key="sk-test-key")
         # Patch the retry_async function to simplify testing
-        self.retry_patcher = patch("muxi_llm.providers.openai.retry_async")
+        self.retry_patcher = patch("onellm.providers.openai.retry_async")
         self.mock_retry = self.retry_patcher.start()
 
     def teardown_method(self):

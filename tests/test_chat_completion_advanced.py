@@ -9,9 +9,9 @@ related to various edge cases and error handling.
 import pytest
 from unittest import mock
 
-from muxi_llm import ChatCompletion
-from muxi_llm.models import ChatCompletionResponse, ChatCompletionChunk
-from muxi_llm.utils.fallback import FallbackConfig
+from onellm import ChatCompletion
+from onellm.models import ChatCompletionResponse, ChatCompletionChunk
+from onellm.utils.fallback import FallbackConfig
 
 
 class TestChatCompletionAdvanced:
@@ -28,7 +28,7 @@ class TestChatCompletionAdvanced:
         self.mock_provider.create_chat_completion.return_value = self.mock_response
 
         # Set up patch for get_provider_with_fallbacks
-        self.provider_patcher = mock.patch("muxi_llm.chat_completion.get_provider_with_fallbacks")
+        self.provider_patcher = mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
         self.mock_get_provider = self.provider_patcher.start()
         self.mock_get_provider.return_value = (self.mock_provider, "test-model")
 

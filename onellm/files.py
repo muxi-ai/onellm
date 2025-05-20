@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-File handling utilities for muxi-llm.
+File handling utilities for OneLLM.
 
 This module provides a unified interface for working with files across different LLM providers,
 including uploading, retrieving, and listing files.

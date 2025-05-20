@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Fallback Mechanisms for Reliability
 # ============================================================================ #
 #
-# This example demonstrates how to use muxi-llm's fallback mechanisms to create
+# This example demonstrates how to use OneLLM's fallback mechanisms to create
 # robust applications that gracefully handle model failures.
 # Key features demonstrated:
 #
@@ -35,7 +35,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Fallback mechanism in ChatCompletion, Completion, and Embedding APIs
 # - Error handling and retry logic
 # - Custom callback integrations
@@ -49,7 +49,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key
 # - Anthropic API key (optional, for more fallback options)
 # - Cohere API key (optional, for more fallback options)
@@ -69,8 +69,8 @@ import asyncio
 import os
 import logging
 
-from muxi_llm import ChatCompletion, Completion, Embedding
-from muxi_llm.errors import RateLimitError
+from onellm import ChatCompletion, Completion, Embedding
+from onellm.errors import RateLimitError
 
 # Set up logging to see fallback messages
 logging.basicConfig(level=logging.INFO)
@@ -81,9 +81,9 @@ def set_api_keys_from_env():
     Set API keys from environment variables.
 
     This function retrieves API keys from environment variables for different providers
-    and configures them in the muxi_llm library. It supports OpenAI, Anthropic, and Cohere.
+    and configures them in the onellm library. It supports OpenAI, Anthropic, and Cohere.
     """
-    from muxi_llm import set_api_key
+    from onellm import set_api_key
 
     # Set API keys for different providers
     openai_key = os.environ.get("OPENAI_API_KEY")

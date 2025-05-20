@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -19,7 +19,7 @@
 # limitations under the License.
 
 """
-Embedding functionality for muxi-llm.
+Embedding functionality for OneLLM.
 
 This module provides an Embedding class that can be used to create embeddings
 from various providers in a manner compatible with OpenAI's API.

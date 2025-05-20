@@ -1,10 +1,10 @@
-# muxi-llm
+# OneLLM
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.python.org/pypi/muxi-llm)
-[![Version](https://img.shields.io/pypi/v/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
-[![Status](https://img.shields.io/pypi/status/muxi-llm.svg?maxAge=60)](https://pypi.python.org/pypi/muxi-llm)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.python.org/pypi/onellm)
+[![Version](https://img.shields.io/pypi/v/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
+[![Status](https://img.shields.io/pypi/status/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/llm)
+[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/onellm)
 &nbsp;
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
@@ -17,7 +17,7 @@
 >
 > More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
 >
-> <a href="https://github.com/muxi-ai/llm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/muxi-llm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
+> <a href="https://github.com/muxi-ai/onellm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/onellm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
 >
 > Thank you for your support! 🙏
 
@@ -25,33 +25,33 @@
 
 ## 📚 Table of Contents
 
-- [Overview](https://github.com/muxi-ai/llm/blob/main/README.md#-overview)
-- [Getting Started](https://github.com/muxi-ai/llm/blob/main/README.md#-getting-started)
-- [Key Features](https://github.com/muxi-ai/llm/blob/main/README.md#-key-features)
-- [Supported Providers](https://github.com/muxi-ai/llm/blob/main/README.md#-supported-providers)
-- [Architecture](https://github.com/muxi-ai/llm/blob/main/README.md#-architecture)
-- [API Design](https://github.com/muxi-ai/llm/blob/main/README.md#-api-design)
-- [Advanced Features](https://github.com/muxi-ai/llm/blob/main/README.md#-advanced-features)
-- [Migration from OpenAI](https://github.com/muxi-ai/llm/blob/main/README.md#-migration-from-openai)
-- [Model Naming Convention](https://github.com/muxi-ai/llm/blob/main/README.md#-model-naming-convention)
-- [Configuration](https://github.com/muxi-ai/llm/blob/main/README.md#-configuration)
-- [Test Coverage](https://github.com/muxi-ai/llm/blob/main/README.md#-test-coverage)
-- [Documentation](https://github.com/muxi-ai/llm/blob/main/README.md#-documentation)
-- [Call for Contributions](https://github.com/muxi-ai/llm/blob/main/README.md#-call-for-contributions)
-- [License](https://github.com/muxi-ai/llm/blob/main/README.md#-license)
-- [Acknowledgements](https://github.com/muxi-ai/llm/blob/main/README.md#-acknowledgements)
+- [Overview](https://github.com/muxi-ai/onellm/blob/main/README.md#-overview)
+- [Getting Started](https://github.com/muxi-ai/onellm/blob/main/README.md#-getting-started)
+- [Key Features](https://github.com/muxi-ai/onellm/blob/main/README.md#-key-features)
+- [Supported Providers](https://github.com/muxi-ai/onellm/blob/main/README.md#-supported-providers)
+- [Architecture](https://github.com/muxi-ai/onellm/blob/main/README.md#-architecture)
+- [API Design](https://github.com/muxi-ai/onellm/blob/main/README.md#-api-design)
+- [Advanced Features](https://github.com/muxi-ai/onellm/blob/main/README.md#-advanced-features)
+- [Migration from OpenAI](https://github.com/muxi-ai/onellm/blob/main/README.md#-migration-from-openai)
+- [Model Naming Convention](https://github.com/muxi-ai/onellm/blob/main/README.md#-model-naming-convention)
+- [Configuration](https://github.com/muxi-ai/onellm/blob/main/README.md#-configuration)
+- [Test Coverage](https://github.com/muxi-ai/onellm/blob/main/README.md#-test-coverage)
+- [Documentation](https://github.com/muxi-ai/onellm/blob/main/README.md#-documentation)
+- [Call for Contributions](https://github.com/muxi-ai/onellm/blob/main/README.md#-call-for-contributions)
+- [License](https://github.com/muxi-ai/onellm/blob/main/README.md#-license)
+- [Acknowledgements](https://github.com/muxi-ai/onellm/blob/main/README.md#-acknowledgements)
 
 
 ## 👉 Overview
 
-**muxi-llm** is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
+**OneLLM** is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
-With support for 25+ providers, muxi-llm gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+With support for 25+ providers, OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
 > [!NOTE]
-> **Work in Progress**: muxi-llm is currently under active development. The full functionality has been achieved using OpenAI, and I'm now working on adding support for more providers. [Contributions are welcome](./CONTRIBUTING.md) to help expand provider support!
+> **Work in Progress**: OneLLM is currently under active development. The full functionality has been achieved using OpenAI, and I'm now working on adding support for more providers. [Contributions are welcome](./CONTRIBUTING.md) to help expand provider support!
 
 ---
 
@@ -61,17 +61,17 @@ With support for 25+ providers, muxi-llm gives you access to approximately 300+ 
 
 ```bash
 # Basic installation (includes OpenAI compatibility)
-pip install muxi-llm
+pip install OneLLM
 
 # For all providers (includes dependencies for future provider support)
-pip install "muxi-llm[all]"
+pip install "OneLLM[all]"
 ```
 
 ### Quick Win: Your First LLM Call
 
 ```python
 # Basic usage with OpenAI-compatible syntax
-from muxi_llm import ChatCompletion
+from onellm import ChatCompletion
 
 response = ChatCompletion.create(
     model="openai/gpt-4o-mini",
@@ -110,7 +110,7 @@ For more detailed examples, check out the [examples directory](./examples).
 
 ## 🌐 Supported Providers
 
-muxi-llm supports models through three main approaches:
+OneLLM supports models through three main approaches:
 
 1. **Direct integration with provider APIs**
 2. **OpenRouter connectivity for aggregated access**
@@ -164,7 +164,7 @@ Through these providers, you gain access to hundreds of models, including:
 
 ## 🏗️ Architecture
 
-muxi-llm follows a modular architecture with clear separation of concerns:
+OneLLM follows a modular architecture with clear separation of concerns:
 
 ```mermaid
 ---
@@ -291,12 +291,12 @@ flowchart TD
 
 ## 🔌 API Design
 
-muxi-llm mirrors the OpenAI Python client library API for familiarity:
+OneLLM mirrors the OpenAI Python client library API for familiarity:
 
 ### Chat Completions
 
 ```python
-from muxi_llm import ChatCompletion
+from onellm import ChatCompletion
 
 # Basic usage (identical to OpenAI's client)
 response = ChatCompletion.create(
@@ -365,7 +365,7 @@ response = ChatCompletion.create(
 ### Completions
 
 ```python
-from muxi_llm import Completion
+from onellm import Completion
 
 response = Completion.create(
     model="groq/llama3-70b",
@@ -377,7 +377,7 @@ response = Completion.create(
 ### Embeddings
 
 ```python
-from muxi_llm import Embedding
+from onellm import Embedding
 
 response = Embedding.create(
     model="openai/text-embedding-3-small",
@@ -391,7 +391,7 @@ response = Embedding.create(
 
 ### Fallback Chains for Enhanced Reliability
 
-muxi-llm includes built-in fallback support to handle API errors gracefully:
+OneLLM includes built-in fallback support to handle API errors gracefully:
 
 ```python
 response = ChatCompletion.create(
@@ -404,11 +404,11 @@ response = ChatCompletion.create(
 )
 ```
 
-If the primary model fails due to service unavailability, rate limiting, or other retriable errors, muxi-llm automatically tries the fallback models in sequence.
+If the primary model fails due to service unavailability, rate limiting, or other retriable errors, OneLLM automatically tries the fallback models in sequence.
 
 ### Automatic Retries
 
-For transient errors, you can configure muxi-llm to retry the same model multiple times before falling back to alternatives:
+For transient errors, you can configure OneLLM to retry the same model multiple times before falling back to alternatives:
 
 ```python
 response = ChatCompletion.create(
@@ -476,7 +476,7 @@ flowchart TD
 
 ### JSON Mode for Structured Outputs
 
-For applications that require structured data, muxi-llm supports JSON mode with compatible providers:
+For applications that require structured data, OneLLM supports JSON mode with compatible providers:
 
 ```python
 response = ChatCompletion.create(
@@ -496,7 +496,7 @@ import json
 structured_data = json.loads(json_response)
 ```
 
-When using providers that don't natively support JSON mode, muxi-llm automatically adds system instructions requesting JSON-formatted responses.
+When using providers that don't natively support JSON mode, OneLLM automatically adds system instructions requesting JSON-formatted responses.
 
 ### Asynchronous Support
 
@@ -522,11 +522,11 @@ response = await ChatCompletion.acreate(
 
 ## 🔄 Migration from OpenAI
 
-muxi-llm provides multiple ways to migrate from the OpenAI client, including a fully compatible client interface:
+OneLLM provides multiple ways to migrate from the OpenAI client, including a fully compatible client interface:
 
 ### Option 1: Complete Drop-in Replacement (Identical Interface)
 
-muxi-llm is a complete drop-in replacement for the OpenAI client with the OpenAI library included as a default dependency:
+OneLLM is a complete drop-in replacement for the OpenAI client with the OpenAI library included as a default dependency:
 
 ```python
 # Before
@@ -538,7 +538,7 @@ response = client.chat.completions.create(
 )
 
 # After - 100% identical client interface
-from muxi_llm import OpenAI  # or Client
+from onellm import OpenAI  # or Client
 client = OpenAI()            # completely compatible with OpenAI's client
 response = client.chat.completions.create(
     model="gpt-4",  # automatically adds "openai/" prefix when needed
@@ -558,7 +558,7 @@ response = client.chat.completions.create(
 )
 
 # After - more concise
-from muxi_llm import ChatCompletion
+from onellm import ChatCompletion
 response = ChatCompletion.create(
     model="openai/gpt-4",  # explicitly using provider prefix
     messages=[{"role": "user", "content": "Hello world"}]
@@ -569,7 +569,7 @@ response = ChatCompletion.create(
 
 ```python
 # Adding fallback options with ChatCompletion
-from muxi_llm import ChatCompletion
+from onellm import ChatCompletion
 response = ChatCompletion.create(
     model="openai/gpt-4",
     messages=[{"role": "user", "content": "Hello world"}],
@@ -584,7 +584,7 @@ response = ChatCompletion.create(
 )
 
 # Using retries with fallbacks for enhanced reliability
-from muxi_llm import ChatCompletion
+from onellm import ChatCompletion
 response = ChatCompletion.create(
     model="openai/gpt-4",
     messages=[{"role": "user", "content": "Hello world"}],
@@ -596,7 +596,7 @@ response = ChatCompletion.create(
 )
 
 # Using fallback with the client interface
-from muxi_llm import OpenAI
+from onellm import OpenAI
 client = OpenAI()
 response = client.chat.completions.create(
     model="openai/gpt-4",
@@ -662,7 +662,7 @@ Models are specified using a provider prefix to clearly identify the source:
 
 ## ⚙️ Configuration
 
-muxi-llm can be configured through environment variables or at runtime:
+OneLLM can be configured through environment variables or at runtime:
 
 ```python
 # Environment variables
@@ -670,13 +670,13 @@ muxi-llm can be configured through environment variables or at runtime:
 # ANTHROPIC_API_KEY=sk-...
 
 # Runtime configuration
-import muxi_llm
+import onellm
 
-muxi_llm.openai_api_key = "sk-..."  # OpenAI API key
-muxi_llm.anthropic_api_key = "sk-..."  # Anthropic API key
+onellm.openai_api_key = "sk-..."  # OpenAI API key
+onellm.anthropic_api_key = "sk-..."  # Anthropic API key
 
 # Configure fallback behavior
-muxi_llm.config.fallback = {
+onellm.config.fallback = {
     "enabled": True,
     "default_chains": {
         "chat": ["openai/gpt-4", "anthropic/claude-3-opus", "groq/llama3-70b"],
@@ -691,7 +691,7 @@ muxi_llm.config.fallback = {
 
 ## 🧪 Test Coverage
 
-muxi-llm maintains comprehensive test coverage to ensure reliability and compatibility:
+OneLLM maintains comprehensive test coverage to ensure reliability and compatibility:
 
 <!-- Test coverage visualization -->
 <table>
@@ -724,7 +724,7 @@ This extensive test coverage ensures reliable operation across all supported pro
 
 ## 📖 Documentation
 
-muxi-llm uses a code-first documentation approach:
+OneLLM uses a code-first documentation approach:
 
 1. **Examples Directory**: The `examples/` directory contains well-documented example scripts that demonstrate all key features of the library:
    - Each example includes detailed frontmatter explaining its purpose and relationship to the codebase
@@ -748,17 +748,17 @@ This approach keeps documentation tightly coupled with code, ensuring it stays u
 
 ## 🤝 Call for Contributions
 
-We're building something amazing with muxi-llm, and we'd love your help to make it even better! There are many ways to contribute:
+We're building something amazing with OneLLM, and we'd love your help to make it even better! There are many ways to contribute:
 
 - **Code contributions**: Add new providers, enhance existing ones, or improve core functionality
 - **Bug reports**: Help us identify and fix issues
 - **Documentation**: Improve examples, clarify API usage, or fix typos
-- **Feature requests**: Share your ideas for making muxi-llm more powerful
+- **Feature requests**: Share your ideas for making OneLLM more powerful
 - **Testing**: Help ensure reliability across different environments and use cases
 
 **Getting started is easy:**
 
-1. Check out our [open issues](https://github.com/muxijs/muxi/issues) for good first contributions
+1. Check out our [open issues](https://github.com/muxi-ai/onellm/issues) for good first contributions
 2. Fork the repository and create a feature branch
 3. Make your improvements and run tests
 4. Submit a pull request with a clear description of your changes
@@ -769,18 +769,18 @@ For complete details on contribution guidelines, code style, provider developmen
 
 ## 📄 License
 
-muxi-llm is licensed under the [Apache-2.0 license](./LICENSE).
+OneLLM is licensed under the [Apache-2.0 license](./LICENSE).
 
 ### Why Apache 2.0?
 
-I chose the Apache 2.0 license to make muxi-llm easy to adopt, integrate, and build on. This license:
+I chose the Apache 2.0 license to make OneLLM easy to adopt, integrate, and build on. This license:
 
 - Allows you to freely use, modify, and distribute the library in both open-source and proprietary software
 - Encourages wide adoption by individuals, startups, and enterprises alike
 - Includes a clear patent grant for legal peace of mind
 - Enables flexible usage without the complexity of copyleft restrictions
 
-Whether you’re building internal tools or commercial applications, Apache 2.0 gives you the freedom to use muxi-llm however you need – no strings attached.
+Whether you’re building internal tools or commercial applications, Apache 2.0 gives you the freedom to use OneLLM however you need – no strings attached.
 
 ---
 
@@ -792,9 +792,9 @@ Special thanks to all the LLM providers whose APIs this library integrates with,
 
 ## 🙏 Thank You
 
-Thank you for trying out muxi-llm! Your interest and support mean a lot to this project. Whether you're using it in your applications, experimenting with different LLM providers, or just exploring the capabilities, your participation helps drive this project forward.
+Thank you for trying out OneLLM! Your interest and support mean a lot to this project. Whether you're using it in your applications, experimenting with different LLM providers, or just exploring the capabilities, your participation helps drive this project forward.
 
-If you find muxi-llm useful in your work:
+If you find OneLLM useful in your work:
 
 - Consider starring the repository on GitHub
 - Share your experiences or use cases with the community

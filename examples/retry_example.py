@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
-# https://github.com/muxi-ai/llm
+# https://github.com/muxi-ai/onellm
 #
 # Copyright (C) 2025 Ran Aroussi
 #
@@ -23,7 +23,7 @@
 # MUXI-LLM EXAMPLE: Retry Mechanisms and Error Handling
 # ============================================================================ #
 #
-# This example demonstrates how to configure muxi-llm to automatically retry requests
+# This example demonstrates how to configure OneLLM to automatically retry requests
 # with the same model before attempting fallbacks to different models.
 # Key features demonstrated:
 #
@@ -35,7 +35,7 @@
 #
 # CODEBASE RELATIONSHIP:
 # ----------------------
-# This example leverages muxi-llm's support for:
+# This example leverages OneLLM's support for:
 # - Retry mechanisms in API calls
 # - Fallback configurations
 # - Both synchronous and asynchronous interfaces
@@ -49,7 +49,7 @@
 #
 # REQUIREMENTS:
 # ------------
-# - muxi-llm
+# - OneLLM
 # - OpenAI API key
 # - Anthropic API key (optional, for some examples)
 #
@@ -65,7 +65,7 @@
 
 import os
 import asyncio
-from muxi_llm import ChatCompletion, Completion
+from onellm import ChatCompletion, Completion
 
 # Set your API key
 os.environ["OPENAI_API_KEY"] = "your-openai-api-key"

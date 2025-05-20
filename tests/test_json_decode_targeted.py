@@ -12,7 +12,7 @@ import pytest
 import json
 from unittest.mock import patch
 
-from muxi_llm.utils.streaming import StreamingError, json_stream_generator
+from onellm.utils.streaming import StreamingError, json_stream_generator
 
 
 class TestJsonDecodeError:
@@ -33,7 +33,7 @@ class TestJsonDecodeError:
             yield "dummy"
 
         # Call json_stream_generator with our mock
-        with patch('muxi_llm.utils.streaming.stream_generator', side_effect=mock_stream_gen):
+        with patch('onellm.utils.streaming.stream_generator', side_effect=mock_stream_gen):
             # Start the generator (it will never yield anything)
             gen = json_stream_generator(None)
             try:

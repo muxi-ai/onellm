@@ -9,9 +9,9 @@ from unittest import mock
 import io
 from unittest.mock import AsyncMock
 
-from muxi_llm.providers.openai import OpenAIProvider
-from muxi_llm.models import FileObject
-from muxi_llm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
+from onellm.models import FileObject
+from onellm.errors import InvalidRequestError
 
 
 # Create a mock provider for successful file operations testing
