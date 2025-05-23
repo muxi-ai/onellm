@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Vision Capability Testing
+# OneLLM EXAMPLE: Vision Capability Testing
 # ============================================================================ #
 #
 # This example demonstrates multi-modal capabilities of OneLLM and how it handles

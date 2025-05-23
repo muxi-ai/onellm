@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Audio Translation
+# OneLLM EXAMPLE: Audio Translation
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to translate speech in foreign

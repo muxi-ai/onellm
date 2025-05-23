@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Audio Transcription
+# OneLLM EXAMPLE: Audio Transcription
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to transcribe speech in audio files to text.

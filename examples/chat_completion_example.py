@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Chat Completion
+# OneLLM EXAMPLE: Chat Completion
 # ============================================================================ #
 #
 # This example demonstrates the core ChatCompletion functionality of OneLLM,

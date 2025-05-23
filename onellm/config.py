@@ -57,7 +57,7 @@ DEFAULT_CONFIG = {
 config = DEFAULT_CONFIG.copy()
 
 # Environment variables prefixes
-ENV_PREFIX = "MUXI_LLM_"  # Prefix for OneLLM specific environment variables
+ENV_PREFIX = "ONELLM_"  # Prefix for OneLLM specific environment variables
 PROVIDER_API_KEY_ENV_MAP = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
@@ -69,11 +69,11 @@ def _load_env_vars() -> None:
     Load configuration from environment variables.
 
     This function checks for two types of environment variables:
-    1. Variables with MUXI_LLM_ prefix for general configuration
+    1. Variables with ONELLM_ prefix for general configuration
     2. Provider-specific API keys using their standard environment variable names
 
     Environment variables with double underscores (__) are treated as nested configuration.
-    Example: MUXI_LLM_PROVIDERS__OPENAI__TIMEOUT would set config["providers"]["openai"]["timeout"].
+    Example: ONELLM_PROVIDERS__OPENAI__TIMEOUT would set config["providers"]["openai"]["timeout"].
     """
     # General configuration
     for key in os.environ:
@@ -91,7 +91,7 @@ def _load_env_vars() -> None:
                     config[config_key] = os.environ[key]
 
     # Provider API keys (support both prefixed and provider-standard environment variables)
-    # This allows users to use either OPENAI_API_KEY or MUXI_LLM_PROVIDERS__OPENAI__API_KEY
+    # This allows users to use either OPENAI_API_KEY or ONELLM_PROVIDERS__OPENAI__API_KEY
     for provider, env_var in PROVIDER_API_KEY_ENV_MAP.items():
         if env_var in os.environ and provider in config["providers"]:
             config["providers"][provider]["api_key"] = os.environ[env_var]

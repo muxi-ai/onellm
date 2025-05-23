@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Vision Model Usage
+# OneLLM EXAMPLE: Vision Model Usage
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to analyze images using

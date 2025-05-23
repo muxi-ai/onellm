@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: JSON Mode for Structured Responses
+# OneLLM EXAMPLE: JSON Mode for Structured Responses
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM's JSON mode feature to get

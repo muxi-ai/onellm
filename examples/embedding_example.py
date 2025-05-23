@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Text Embeddings and Semantic Search
+# OneLLM EXAMPLE: Text Embeddings and Semantic Search
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to generate vector embeddings

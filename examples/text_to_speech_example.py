@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Text-to-Speech (TTS)
+# OneLLM EXAMPLE: Text-to-Speech (TTS)
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to convert text to speech using

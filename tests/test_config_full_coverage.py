@@ -36,7 +36,7 @@ class TestConfigFullCoverage:
         os.environ.update(self.original_env)
 
     def test_load_env_vars_with_prefixed_vars(self):
-        """Test loading environment variables with MUXI_LLM_ prefix."""
+        """Test loading environment variables with ONELLM_ prefix."""
         # Set environment variables with the prefix
         os.environ[f"{ENV_PREFIX}LOGGING__LEVEL"] = "DEBUG"
 

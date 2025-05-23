@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Image Generation
+# OneLLM EXAMPLE: Image Generation
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to generate images from text

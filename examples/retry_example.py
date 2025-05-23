@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Retry Mechanisms and Error Handling
+# OneLLM EXAMPLE: Retry Mechanisms and Error Handling
 # ============================================================================ #
 #
 # This example demonstrates how to configure OneLLM to automatically retry requests

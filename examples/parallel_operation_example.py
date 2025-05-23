@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Parallel Operations
+# OneLLM EXAMPLE: Parallel Operations
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM to achieve high throughput by

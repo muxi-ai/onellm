@@ -20,7 +20,7 @@
 
 """
 # ============================================================================ #
-# MUXI-LLM EXAMPLE: Fallback Mechanisms for Reliability
+# OneLLM EXAMPLE: Fallback Mechanisms for Reliability
 # ============================================================================ #
 #
 # This example demonstrates how to use OneLLM's fallback mechanisms to create
