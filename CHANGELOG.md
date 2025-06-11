@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.0.7
+
+Added an automatic unicode artifact cleaning to prevent AI detection.
+
+- Universal Coverage: All response types (chat, streaming, completion) automatically cleaned
+- Invisible Character Removal: Eliminates zero-width spaces, directional marks, and other AI-injected artifacts
+- Multi-Modal Support: Handles both text and mixed-content responses
+- Zero Configuration: Applied by default to all providers without code changes
+- Preserves Legitimate Content: Maintains Hebrew, Arabic, Chinese, and other international text
+
+Impact: Prevents plagiarism detectors and AI detection tools from flagging OneLLM responses based on invisible Unicode patterns commonly inserted by AI models.
+
 ## 0.0.6
 
 - PyPi stuff

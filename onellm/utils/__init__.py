@@ -37,10 +37,14 @@ from .retry import retry_async, RetryConfig
 # Import streaming utilities for handling real-time response processing
 from .streaming import stream_generator, StreamingError
 
+# Import text cleaning utilities for processing AI model responses
+from .text_cleaner import clean_unicode_artifacts
+
 # Define the public API for this module
 __all__ = [
-    "retry_async",       # Async function decorator that implements retry logic
-    "RetryConfig",       # Configuration class for customizing retry behavior
-    "stream_generator",  # Generator function for processing streaming responses
-    "StreamingError",    # Exception class for streaming-related errors
+    "retry_async",            # Async function decorator that implements retry logic
+    "RetryConfig",            # Configuration class for customizing retry behavior
+    "stream_generator",       # Generator function for processing streaming responses
+    "StreamingError",         # Exception class for streaming-related errors
+    "clean_unicode_artifacts",  # Function for cleaning Unicode artifacts from text
 ]

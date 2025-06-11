@@ -102,6 +102,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | **📺 Streaming support** | Real-time streaming responses from supported providers |
 | **🖼️ Multi-modal capabilities** | Support for text, images, audio across compatible models |
 | **🖼️ Local LLM support** | Support for local LLMs via Ollama and llama.cpp |
+| **🧹 Unicode artifact cleaning** | Automatic removal of invisible characters to prevent AI detection |
 | **🏷️ Consistent naming** | Clear `provider/model-name` format for attribution |
 | **🧪 Comprehensive tests** | 96% test coverage ensuring reliability |
 | **📄 Apache-2.0 license** | Open-source license that protects contributions |

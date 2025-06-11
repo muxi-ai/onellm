@@ -25,9 +25,46 @@ This module contains the data models used for responses and requests
 across different API endpoints and providers.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 from .types import Message, UsageInfo
+from .utils.text_cleaner import clean_unicode_artifacts
+
+
+def _clean_message_content(
+    content: Union[str, List[Dict[str, Any]], None]
+) -> Union[str, List[Dict[str, Any]], None]:
+    """
+    Clean Unicode artifacts from message content.
+
+    Handles both simple string content and multi-modal content lists.
+
+    Args:
+        content: The message content to clean
+
+    Returns:
+        Cleaned content with Unicode artifacts removed
+    """
+    if content is None:
+        return None
+
+    if isinstance(content, str):
+        return clean_unicode_artifacts(content)
+
+    if isinstance(content, list):
+        # Handle multi-modal content - clean text in ContentItem objects
+        cleaned_content = []
+        for item in content:
+            if isinstance(item, dict) and 'text' in item and isinstance(item['text'], str):
+                # Clean the text field in ContentItem
+                cleaned_item = item.copy()
+                cleaned_item['text'] = clean_unicode_artifacts(item['text'])
+                cleaned_content.append(cleaned_item)
+            else:
+                cleaned_content.append(item)
+        return cleaned_content
+
+    return content
 
 
 @dataclass
@@ -51,6 +88,11 @@ class ChoiceDelta:
     function_call: Optional[Dict[str, Any]] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
     finish_reason: Optional[str] = None
+
+    def __post_init__(self):
+        """Clean Unicode artifacts from content after initialization."""
+        if self.content is not None:
+            self.content = clean_unicode_artifacts(self.content)
 
 
 @dataclass
@@ -90,6 +132,10 @@ class Choice:
         self.message = message or {}  # Default to empty dict if None
         self.finish_reason = finish_reason
         self.index = index
+
+        # Clean Unicode artifacts from message content
+        if self.message and 'content' in self.message:
+            self.message['content'] = _clean_message_content(self.message['content'])
 
 
 @dataclass
@@ -262,6 +308,11 @@ class CompletionChoice:
     index: int = 0
     logprobs: Optional[Dict[str, Any]] = None
     finish_reason: Optional[str] = None
+
+    def __post_init__(self):
+        """Clean Unicode artifacts from text after initialization."""
+        if self.text:
+            self.text = clean_unicode_artifacts(self.text)
 
 
 @dataclass
