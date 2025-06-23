@@ -45,6 +45,12 @@ DEFAULT_CONFIG = {
             "timeout": 60,
             "max_retries": 3,
         },
+        "mistral": {
+            "api_key": None,
+            "api_base": "https://api.mistral.ai/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
         # Other providers will be added in future phases
     },
     "logging": {
@@ -61,6 +67,7 @@ ENV_PREFIX = "ONELLM_"  # Prefix for OneLLM specific environment variables
 PROVIDER_API_KEY_ENV_MAP = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
 }
 
 
@@ -79,7 +86,7 @@ def _load_env_vars() -> None:
     for key in os.environ:
         if key.startswith(ENV_PREFIX):
             # Extract the config key by removing the prefix
-            config_key = key[len(ENV_PREFIX):].lower()
+            config_key = key[len(ENV_PREFIX) :].lower()
 
             # Handle nested configuration with double underscores
             if "__" in config_key:

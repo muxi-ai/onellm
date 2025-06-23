@@ -31,18 +31,22 @@ to be added by implementing the Provider interface and registering them.
 from .base import get_provider, list_providers, parse_model_name, register_provider
 from .fallback import FallbackProviderProxy
 from .openai import OpenAIProvider
+from .mistral import MistralProvider
+from .anthropic import AnthropicProvider
 
 # Register provider implementations with the provider registry
-# This makes the OpenAI provider available through the get_provider function
+# This makes the providers available through the get_provider function
 # Additional providers should be registered here as they are implemented
 register_provider("openai", OpenAIProvider)
+register_provider("mistral", MistralProvider)
+register_provider("anthropic", AnthropicProvider)
 
 # Convenience export - these symbols will be available when importing from onellm.providers
 # This allows users to access core provider functionality directly
 __all__ = [
-    "get_provider",           # Function to get a provider instance by name
-    "parse_model_name",       # Function to parse "provider/model" format strings
-    "register_provider",      # Function to register new provider implementations
-    "list_providers",         # Function to list all registered providers
+    "get_provider",  # Function to get a provider instance by name
+    "parse_model_name",  # Function to parse "provider/model" format strings
+    "register_provider",  # Function to register new provider implementations
+    "list_providers",  # Function to list all registered providers
     "FallbackProviderProxy",  # Class for implementing provider fallback chains
 ]
