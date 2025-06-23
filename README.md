@@ -132,7 +132,7 @@ OneLLM currently supports **17 providers** with more on the way:
 - **Google AI Studio** - Gemini models via API key
 - **Mistral** - Mistral Large, Medium, Small
 - **Groq** - Ultra-fast inference for Llama, Mixtral
-- **XAI** - Grok models with 128K context
+- **X.AI** - Grok models
 - **Together AI** - Open-source model hosting
 - **Fireworks** - Fast inference platform
 - **OpenRouter** - Gateway to 100+ models
