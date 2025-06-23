@@ -51,6 +51,94 @@ DEFAULT_CONFIG = {
             "timeout": 30,
             "max_retries": 3,
         },
+        "groq": {
+            "api_key": None,
+            "api_base": "https://api.groq.com/openai/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "xai": {
+            "api_key": None,
+            "api_base": "https://api.x.ai/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "openrouter": {
+            "api_key": None,
+            "api_base": "https://openrouter.ai/api/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "together": {
+            "api_key": None,
+            "api_base": "https://api.together.xyz/v1",
+            "timeout": 60,
+            "max_retries": 3,
+        },
+        "fireworks": {
+            "api_key": None,
+            "api_base": "https://api.fireworks.ai/inference/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "perplexity": {
+            "api_key": None,
+            "api_base": "https://api.perplexity.ai",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "deepseek": {
+            "api_key": None,
+            "api_base": "https://api.deepseek.com/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "google": {
+            "api_key": None,
+            "api_base": "https://generativelanguage.googleapis.com/v1beta",
+            "timeout": 30,
+            "max_retries": 3,
+        },
+        "cohere": {
+            "api_key": None,
+            "api_base": "https://api.cohere.ai/v1",
+            "timeout": 60,
+            "max_retries": 3,
+        },
+        "vertexai": {
+            "service_account_json": None,
+            "project_id": None,
+            "location": "us-central1",
+            "timeout": 60,
+            "max_retries": 3,
+        },
+        "azure": {
+            "azure_config_path": None,
+            "timeout": 60,
+            "max_retries": 3,
+            "api_version": "2024-12-01-preview",
+        },
+        "bedrock": {
+            "profile": None,
+            "region": "us-east-1",
+            "timeout": 60,
+            "max_retries": 3,
+        },
+        "ollama": {
+            "api_key": None,  # Not used, but kept for consistency
+            "api_base": "http://localhost:11434",
+            "timeout": 120,  # Longer timeout for local model inference
+            "max_retries": 3,
+            "auto_pull": False,  # Whether to auto-pull missing models
+        },
+        "llama_cpp": {
+            "model_dir": None,  # Defaults to ~/llama_models or LLAMA_CPP_MODEL_DIR
+            "n_ctx": 2048,      # Context window
+            "n_gpu_layers": 0,  # GPU layers (0 = CPU only)
+            "n_threads": None,  # Auto-detect CPU cores
+            "temperature": 0.7, # Default temperature
+            "timeout": 300,     # 5 minutes for model loading
+        },
         # Other providers will be added in future phases
     },
     "logging": {
@@ -68,6 +156,15 @@ PROVIDER_API_KEY_ENV_MAP = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "mistral": "MISTRAL_API_KEY",
+    "groq": "GROQ_API_KEY",
+    "xai": "XAI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "together": "TOGETHER_API_KEY",
+    "fireworks": "FIREWORKS_API_KEY",
+    "perplexity": "PERPLEXITY_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
+    "google": "GOOGLE_API_KEY",
+    "cohere": "COHERE_API_KEY",
 }
 
 
@@ -86,7 +183,7 @@ def _load_env_vars() -> None:
     for key in os.environ:
         if key.startswith(ENV_PREFIX):
             # Extract the config key by removing the prefix
-            config_key = key[len(ENV_PREFIX) :].lower()
+            config_key = key[len(ENV_PREFIX):].lower()
 
             # Handle nested configuration with double underscores
             if "__" in config_key:
@@ -102,6 +199,10 @@ def _load_env_vars() -> None:
     for provider, env_var in PROVIDER_API_KEY_ENV_MAP.items():
         if env_var in os.environ and provider in config["providers"]:
             config["providers"][provider]["api_key"] = os.environ[env_var]
+    
+    # Special handling for Vertex AI service account JSON file
+    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ and "vertexai" in config["providers"]:
+        config["providers"]["vertexai"]["service_account_json"] = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 
 def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
@@ -143,7 +244,7 @@ def get_api_key(provider: str) -> Optional[str]:
         The API key as a string if found, None otherwise
     """
     if provider in config["providers"]:
-        return config["providers"][provider]["api_key"]
+        return config["providers"][provider].get("api_key")
     return None
 
 
@@ -195,4 +296,7 @@ def update_provider_config(provider: str, **kwargs) -> None:
 # Initialize global variables for all providers for easy access
 # This creates variables like openai_api_key, anthropic_api_key, etc.
 for provider in config["providers"]:
+    # Skip providers that don't use API keys
+    if provider == "vertexai":
+        continue
     globals()[f"{provider}_api_key"] = get_api_key(provider)

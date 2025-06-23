@@ -30,16 +30,63 @@ to be added by implementing the Provider interface and registering them.
 
 from .base import get_provider, list_providers, parse_model_name, register_provider
 from .fallback import FallbackProviderProxy
+
+# Import provider implementations
 from .openai import OpenAIProvider
 from .mistral import MistralProvider
 from .anthropic import AnthropicProvider
 
-# Register provider implementations with the provider registry
+# OpenAI-compatible providers
+from .groq import GroqProvider
+from .xai import XAIProvider
+from .openrouter import OpenRouterProvider
+from .together import TogetherProvider
+from .fireworks import FireworksProvider
+from .perplexity import PerplexityProvider
+from .deepseek import DeepSeekProvider
+from .google import GoogleProvider
+from .azure import AzureProvider
+
+# Native API providers
+from .cohere import CohereProvider
+from .vertexai import VertexAIProvider
+
+# Local providers
+from .ollama import OllamaProvider
+from .llama_cpp import LlamaCppProvider
+
+# Cloud provider integrations
+from .bedrock import BedrockProvider
+
+# Register all provider implementations with the provider registry
 # This makes the providers available through the get_provider function
-# Additional providers should be registered here as they are implemented
+
+# Original providers
 register_provider("openai", OpenAIProvider)
 register_provider("mistral", MistralProvider)
 register_provider("anthropic", AnthropicProvider)
+
+# OpenAI-compatible providers
+register_provider("groq", GroqProvider)
+register_provider("xai", XAIProvider)
+register_provider("openrouter", OpenRouterProvider)
+register_provider("together", TogetherProvider)
+register_provider("fireworks", FireworksProvider)
+register_provider("perplexity", PerplexityProvider)
+register_provider("deepseek", DeepSeekProvider)
+register_provider("google", GoogleProvider)
+register_provider("azure", AzureProvider)
+
+# Native API providers
+register_provider("cohere", CohereProvider)
+register_provider("vertexai", VertexAIProvider)
+
+# Local providers
+register_provider("ollama", OllamaProvider)
+register_provider("llama_cpp", LlamaCppProvider)
+
+# Cloud provider integrations
+register_provider("bedrock", BedrockProvider)
 
 # Convenience export - these symbols will be available when importing from onellm.providers
 # This allows users to access core provider functionality directly
