@@ -160,3 +160,7 @@ logs/
 examples/frontmatter_template.py
 CLAUDE.md
 .claude/settings.local.json
+azure.json
+bedrock.json
+vertexai.json
+meta-llama-3-8b-instruct-q4_k_m.gguf

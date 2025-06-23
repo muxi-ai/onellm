@@ -52,6 +52,8 @@ setup(
         "openai>=1.0.0",
         # Optional (but recommended) dependencies
         "tiktoken>=0.3.0; python_version >= '3.7'",
+        # HuggingFace Hub for model downloads
+        "huggingface-hub>=0.19.0",
     ],
     extras_require={
         "dev": [
@@ -65,10 +67,14 @@ setup(
         "all": [
             "anthropic>=0.5.0",  # For future Anthropic provider support
             "google-generativeai>=0.3.0",  # For future Google Gemini support
+            "boto3>=1.26.0",  # For AWS Bedrock support
+        ],
+        "bedrock": [
+            "boto3>=1.26.0",  # AWS SDK for Python
         ],
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Information Technology",
@@ -93,6 +99,11 @@ setup(
         "Documentation": "https://github.com/muxi-ai/onellm",
         "Changelog": "https://github.com/muxi-ai/onellm/blob/main/CHANGELOG.md",
         "Funding": "https://github.com/sponsors/ranaroussi",
+    },
+    entry_points={
+        'console_scripts': [
+            'onellm=onellm.cli:main',
+        ],
     },
     python_requires=">=3.10"
 )

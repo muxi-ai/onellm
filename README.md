@@ -8,7 +8,7 @@
 &nbsp;
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-### A "drop-in replacement" for OpenAI's client that offers a unified interface for interacting with large language models from various providers,  with support for hundreds of models, built-in fallback mechanisms, and enhanced reliability features.
+### A "drop-in" replacement for OpenAI's client that offers a unified interface for interacting with large language models from various providers,  with support for hundreds of models, built-in fallback mechanisms, and enhanced reliability features.
 
 ---
 
@@ -48,10 +48,10 @@
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
-With support for 25+ providers, OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+With support for 17 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
 > [!NOTE]
-> **Work in Progress**: OneLLM is currently under active development. The full functionality has been achieved using OpenAI, and I'm now working on adding support for more providers. [Contributions are welcome](./CONTRIBUTING.md) to help expand provider support!
+> **Ready for Use**: OneLLM now supports 17 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
 
 ---
 
@@ -60,11 +60,23 @@ With support for 25+ providers, OneLLM gives you access to approximately 300+ un
 ### Installation
 
 ```bash
-# Basic installation (includes OpenAI compatibility)
+# Basic installation (includes OpenAI compatibility and download utility)
 pip install OneLLM
 
 # For all providers (includes dependencies for future provider support)
 pip install "OneLLM[all]"
+```
+
+### Download Models for Local Use
+
+OneLLM includes a built-in utility for downloading GGUF models:
+
+```bash
+# Download a model from HuggingFace (saves to ~/llama_models by default)
+onellm download --repo-id "TheBloke/Llama-2-7B-GGUF" --filename "llama-2-7b.Q4_K_M.gguf"
+
+# Download to a custom directory
+onellm download -r "microsoft/Phi-3-mini-4k-instruct-gguf" -f "Phi-3-mini-4k-instruct-q4.gguf" -o /path/to/models
 ```
 
 ### Quick Win: Your First LLM Call
@@ -95,13 +107,14 @@ For more detailed examples, check out the [examples directory](./examples).
 | Feature | Description |
 |---------|-------------|
 | **📦 Drop-in replacement** | Use your existing OpenAI code with minimal changes |
-| **🔄 Provider-agnostic** | Support for 300+ models across 25+ LLM providers |
+| **🔄 Provider-agnostic** | Support for 300+ models across 17 implemented providers |
 | **🔁 Automatic fallback** | Seamlessly switch to alternative models when needed |
 | **🔄 Auto-retry mechanism** | Retry the same model multiple times before failing |
 | **🧩 OpenAI-compatible** | Familiar interface for developers used to OpenAI |
 | **📺 Streaming support** | Real-time streaming responses from supported providers |
 | **🖼️ Multi-modal capabilities** | Support for text, images, audio across compatible models |
-| **🖼️ Local LLM support** | Support for local LLMs via Ollama and llama.cpp |
+| **🏠 Local LLM support** | Run models locally via Ollama and llama.cpp |
+| **⬇️ Model downloads** | Built-in CLI to download GGUF models from HuggingFace |
 | **🧹 Unicode artifact cleaning** | Automatic removal of invisible characters to prevent AI detection |
 | **🏷️ Consistent naming** | Clear `provider/model-name` format for attribution |
 | **🧪 Comprehensive tests** | 96% test coverage ensuring reliability |
@@ -111,11 +124,30 @@ For more detailed examples, check out the [examples directory](./examples).
 
 ## 🌐 Supported Providers
 
-OneLLM supports models through three main approaches:
+OneLLM currently supports **17 providers** with more on the way:
 
-1. **Direct integration with provider APIs**
-2. **OpenRouter connectivity for aggregated access**
-3. **Local model support via Ollama and llama.cpp**
+### Cloud API Providers (14)
+- **OpenAI** - GPT-4, GPT-3.5, DALL-E, Whisper
+- **Anthropic** - Claude 3 (Opus, Sonnet, Haiku)
+- **Google AI Studio** - Gemini models via API key
+- **Mistral** - Mistral Large, Medium, Small
+- **Groq** - Ultra-fast inference for Llama, Mixtral
+- **XAI** - Grok models with 128K context
+- **Together AI** - Open-source model hosting
+- **Fireworks** - Fast inference platform
+- **OpenRouter** - Gateway to 100+ models
+- **Perplexity** - Search-augmented models
+- **DeepSeek** - Chinese LLM provider
+- **Cohere** - Command models with RAG
+- **Azure OpenAI** - Microsoft-hosted OpenAI models
+- **AWS Bedrock** - Access to multiple model families
+
+### Local Providers (2)
+- **Ollama** - Run models locally with easy management
+- **llama.cpp** - Direct GGUF model execution
+
+### Enterprise Cloud (1)
+- **Vertex AI** - Google Cloud's enterprise Gemini
 
 ### Notable Models Available
 
@@ -648,14 +680,29 @@ Models are specified using a provider prefix to clearly identify the source:
     <td><code>mistral/mistral-large</code></td>
   </tr>
   <tr>
-    <td>Local via Ollama</td>
-    <td><code>ollama/{model}</code></td>
-    <td><code>ollama/llama3</code></td>
+    <td>Ollama</td>
+    <td><code>ollama/{model}@host:port</code></td>
+    <td><code>ollama/llama3:8b@localhost:11434</code></td>
   </tr>
   <tr>
-    <td>Via OpenRouter</td>
-    <td><code>openrouter/{provider}/{model}</code></td>
-    <td><code>openrouter/anthropic/claude-3</code></td>
+    <td>llama.cpp</td>
+    <td><code>llama_cpp/{model.gguf}</code></td>
+    <td><code>llama_cpp/llama-3-8b-q4_K_M.gguf</code></td>
+  </tr>
+  <tr>
+    <td>XAI (Grok)</td>
+    <td><code>xai/{model}</code></td>
+    <td><code>xai/grok-beta</code></td>
+  </tr>
+  <tr>
+    <td>Cohere</td>
+    <td><code>cohere/{model}</code></td>
+    <td><code>cohere/command-r-plus</code></td>
+  </tr>
+  <tr>
+    <td>AWS Bedrock</td>
+    <td><code>bedrock/{model}</code></td>
+    <td><code>bedrock/claude-3-5-sonnet</code></td>
   </tr>
 </table>
 
