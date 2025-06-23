@@ -48,10 +48,10 @@
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
-With support for 17 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+With support for 18 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
 > [!NOTE]
-> **Ready for Use**: OneLLM now supports 17 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
+> **Ready for Use**: OneLLM now supports 18 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
 
 ---
 
@@ -107,7 +107,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | Feature | Description |
 |---------|-------------|
 | **📦 Drop-in replacement** | Use your existing OpenAI code with minimal changes |
-| **🔄 Provider-agnostic** | Support for 300+ models across 17 implemented providers |
+| **🔄 Provider-agnostic** | Support for 300+ models across 18 implemented providers |
 | **🔁 Automatic fallback** | Seamlessly switch to alternative models when needed |
 | **🔄 Auto-retry mechanism** | Retry the same model multiple times before failing |
 | **🧩 OpenAI-compatible** | Familiar interface for developers used to OpenAI |
@@ -124,30 +124,29 @@ For more detailed examples, check out the [examples directory](./examples).
 
 ## 🌐 Supported Providers
 
-OneLLM currently supports **17 providers** with more on the way:
+OneLLM currently supports **18 providers** with more on the way:
 
-### Cloud API Providers (14)
-- **OpenAI** - GPT-4, GPT-3.5, DALL-E, Whisper
-- **Anthropic** - Claude 3 (Opus, Sonnet, Haiku)
-- **Google AI Studio** - Gemini models via API key
-- **Mistral** - Mistral Large, Medium, Small
-- **Groq** - Ultra-fast inference for Llama, Mixtral
-- **X.AI** - Grok models
-- **Together AI** - Open-source model hosting
+### Cloud API Providers (16)
+- **Anthropic** - Claude family of models
+- **Anyscale** - Configurable AI platform
+- **AWS Bedrock** - Access to multiple model families
+- **Azure OpenAI** - Microsoft-hosted OpenAI models
+- **Cohere** - Command models with RAG
+- **DeepSeek** - Chinese LLM provider
 - **Fireworks** - Fast inference platform
+- **Google AI Studio** - Gemini models via API key
+- **Groq** - Ultra-fast inference for Llama, Mixtral
+- **Mistral** - Mistral Large, Medium, Small
+- **OpenAI** - GPT-4o, 3o-mini, DALL-E, Whisper, etc.
 - **OpenRouter** - Gateway to 100+ models
 - **Perplexity** - Search-augmented models
-- **DeepSeek** - Chinese LLM provider
-- **Cohere** - Command models with RAG
-- **Azure OpenAI** - Microsoft-hosted OpenAI models
-- **AWS Bedrock** - Access to multiple model families
+- **Together AI** - Open-source model hosting
+- **Vertex AI** - Google Cloud's enterprise Gemini
+- **X.AI** - Grok models
 
 ### Local Providers (2)
 - **Ollama** - Run models locally with easy management
 - **llama.cpp** - Direct GGUF model execution
-
-### Enterprise Cloud (1)
-- **Vertex AI** - Google Cloud's enterprise Gemini
 
 ### Notable Models Available
 
