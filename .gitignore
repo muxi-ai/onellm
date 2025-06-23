@@ -158,3 +158,5 @@ logs/
 .specstory/
 .specstory/
 examples/frontmatter_template.py
+CLAUDE.md
+.claude/settings.local.json
