@@ -1,0 +1,22 @@
+{
+    "key1": "",
+    "key2": "",
+    "region": "REGION",
+    "endpoint": "https://DOMAIN.openai.azure.com/",
+    "deployment": {
+        "o4-mini": {
+            "endpoint": "https://DOMAIN.cognitiveservices.azure.com/",
+            "model_name": "o4-mini",
+            "deployment": "DEPLOYMENT",
+            "subscription_key": "",
+            "api_version": "2024-12-01-preview"
+        },
+        "gpt-4o-mini": {
+            "endpoint": "https://DOMAIN.cognitiveservices.azure.com/",
+            "model_name": "gpt-4o-mini",
+            "deployment": "DEPLOYMENT",
+            "subscription_key": "",
+            "api_version": "2024-12-01-preview"
+        }
+    }
+}
