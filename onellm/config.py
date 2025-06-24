@@ -41,7 +41,7 @@ DEFAULT_CONFIG = {
         },
         "anthropic": {
             "api_key": None,
-            "api_base": "https://api.anthropic.com",
+            "api_base": "https://api.anthropic.com/v1",
             "timeout": 60,
             "max_retries": 3,
         },
@@ -101,7 +101,7 @@ DEFAULT_CONFIG = {
         },
         "cohere": {
             "api_key": None,
-            "api_base": "https://api.cohere.ai/v1",
+            "api_base": "https://api.cohere.com/v2",
             "timeout": 60,
             "max_retries": 3,
         },
@@ -126,18 +126,24 @@ DEFAULT_CONFIG = {
         },
         "ollama": {
             "api_key": None,  # Not used, but kept for consistency
-            "api_base": "http://localhost:11434",
+            "api_base": "http://localhost:11434/v1",
             "timeout": 120,  # Longer timeout for local model inference
             "max_retries": 3,
             "auto_pull": False,  # Whether to auto-pull missing models
         },
         "llama_cpp": {
             "model_dir": None,  # Defaults to ~/llama_models or LLAMA_CPP_MODEL_DIR
-            "n_ctx": 2048,      # Context window
+            "n_ctx": 2048,  # Context window
             "n_gpu_layers": 0,  # GPU layers (0 = CPU only)
             "n_threads": None,  # Auto-detect CPU cores
-            "temperature": 0.7, # Default temperature
-            "timeout": 300,     # 5 minutes for model loading
+            "temperature": 0.7,  # Default temperature
+            "timeout": 300,  # 5 minutes for model loading
+        },
+        "anyscale": {
+            "api_key": None,
+            "api_base": "https://api.endpoints.anyscale.com/v1",
+            "timeout": 60,
+            "max_retries": 3,
         },
         # Other providers will be added in future phases
     },
@@ -165,6 +171,7 @@ PROVIDER_API_KEY_ENV_MAP = {
     "deepseek": "DEEPSEEK_API_KEY",
     "google": "GOOGLE_API_KEY",
     "cohere": "COHERE_API_KEY",
+    "anyscale": "ANYSCALE_API_KEY",
 }
 
 
@@ -199,10 +206,12 @@ def _load_env_vars() -> None:
     for provider, env_var in PROVIDER_API_KEY_ENV_MAP.items():
         if env_var in os.environ and provider in config["providers"]:
             config["providers"][provider]["api_key"] = os.environ[env_var]
-    
+
     # Special handling for Vertex AI service account JSON file
     if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ and "vertexai" in config["providers"]:
-        config["providers"]["vertexai"]["service_account_json"] = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+        config["providers"]["vertexai"]["service_account_json"] = os.environ[
+            "GOOGLE_APPLICATION_CREDENTIALS"
+        ]
 
 
 def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:

@@ -29,7 +29,7 @@ NLP with advanced RAG capabilities and multilingual support.
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -37,13 +37,10 @@ from ..config import get_provider_config
 from ..errors import (
     APIError,
     AuthenticationError,
-    BadGatewayError,
     InvalidRequestError,
-    PermissionError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    TimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -58,7 +55,7 @@ from ..models import (
     StreamingChoice,
 )
 from ..types import Message
-from ..utils.retry import RetryConfig, retry_async
+from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
 
 
@@ -69,17 +66,17 @@ class CohereProvider(Provider):
     json_mode_support = False  # No explicit JSON mode
 
     # Multi-modal capabilities
-    vision_support = True          # Aya Vision model supports images
-    audio_input_support = False    # No audio support
-    video_input_support = False    # No video support
+    vision_support = False  # Currently no vision support in chat
+    audio_input_support = False  # No audio support
+    video_input_support = False  # No video support
 
     # Streaming capabilities
-    streaming_support = True       # All models support streaming
+    streaming_support = True  # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
 
     # Realtime capabilities
-    realtime_support = False       # No realtime API
-    
+    realtime_support = False  # No realtime API
+
     # Additional capabilities
     function_calling_support = True  # Advanced tool use support
 
@@ -91,19 +88,16 @@ class CohereProvider(Provider):
             api_key: Optional API key
             **kwargs: Additional configuration options
         """
-        # Get configuration with potential overrides from global config only
+        # Get configuration
         self.config = get_provider_config("cohere")
 
         # Extract credential parameters
         api_key = kwargs.pop("api_key", None)
 
-        # Filter out any other credential parameters
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k not in ["api_key"]}
+        # Update configuration
+        self.config.update(kwargs)
 
-        # Update non-credential configuration
-        self.config.update(filtered_kwargs)
-
-        # Apply credentials explicitly provided to the constructor
+        # Apply credentials explicitly provided
         if api_key:
             self.config["api_key"] = api_key
 
@@ -115,9 +109,9 @@ class CohereProvider(Provider):
                 provider="cohere",
             )
 
-        # Store relevant configuration as instance variables
+        # Store configuration
         self.api_key = self.config["api_key"]
-        self.api_base = self.config.get("api_base", "https://api.cohere.com")
+        self.api_base = self.config.get("api_base", "https://api.cohere.com/v2")
         self.timeout = self.config.get("timeout", 60.0)
         self.max_retries = self.config.get("max_retries", 3)
 
@@ -126,103 +120,125 @@ class CohereProvider(Provider):
             max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
 
-    def _get_headers(self) -> dict[str, str]:
+    def _get_headers(self) -> Dict[str, str]:
         """
-        Get the headers for API requests.
+        Get headers for API requests.
 
         Returns:
             Dict of headers
         """
         return {
-            "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
-            "X-Client-Name": "onellm"
+            "Content-Type": "application/json",
+            "X-Client-Name": "onellm",
         }
+
+    def _convert_messages_to_cohere(
+        self, messages: List[Message]
+    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+        """
+        Convert OpenAI-style messages to Cohere format.
+
+        Cohere API v2 format:
+        - System messages become system parameter
+        - User/assistant messages become messages array
+
+        Args:
+            messages: OpenAI-style messages
+
+        Returns:
+            Tuple of (system, messages)
+        """
+        system = None
+        cohere_messages = []
+
+        for message in messages:
+            role = message.get("role", "user")
+            content = message.get("content", "")
+
+            if role == "system":
+                # System messages become system parameter
+                if system:
+                    system += "\n\n" + content
+                else:
+                    system = content
+            else:
+                # Convert role names
+                cohere_role = "user" if role == "user" else "assistant"
+
+                # Handle content
+                if isinstance(content, str):
+                    cohere_messages.append({"role": cohere_role, "content": content})
+                elif isinstance(content, list):
+                    # Extract text content
+                    text_content = ""
+                    for item in content:
+                        if item.get("type") == "text":
+                            text_content += item.get("text", "") + "\n"
+
+                    if text_content:
+                        cohere_messages.append(
+                            {"role": cohere_role, "content": text_content.strip()}
+                        )
+                else:
+                    cohere_messages.append({"role": cohere_role, "content": str(content)})
+
+        return system, cohere_messages
 
     async def _make_request(
         self,
         method: str,
         path: str,
-        data: dict[str, Any] | None = None,
+        data: Dict[str, Any] | None = None,
         stream: bool = False,
         timeout: float | None = None,
-        files: dict[str, Any] | None = None,
-    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
+    ) -> Dict[str, Any] | AsyncGenerator[Dict[str, Any], None]:
         """
         Make a request to the Cohere API.
 
         Args:
-            method: HTTP method (GET, POST, etc.)
+            method: HTTP method
             path: API path
             data: Request data
             stream: Whether to stream the response
-            timeout: Request timeout in seconds
-            files: Files to upload
+            timeout: Request timeout
 
         Returns:
-            Response data or streaming response
-
-        Raises:
-            MuxiLLMError: On API errors
+            Response data or async generator for streaming
         """
-        # Construct the full URL
-        url = f"{self.api_base}/{path.lstrip('/')}"
-        timeout = timeout or self.timeout
+        url = f"{self.api_base}/{path}"
         headers = self._get_headers()
 
-        # For regular JSON requests, serialize the data
-        body = json.dumps(data) if data else None
+        timeout_obj = aiohttp.ClientTimeout(total=timeout or self.timeout)
 
-        async def execute_request():
-            """Inner function to execute the HTTP request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+            try:
                 async with session.request(
                     method=method,
                     url=url,
+                    json=data,
                     headers=headers,
-                    data=body,
-                    timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
+                    if response.status not in (200, 201):
+                        try:
+                            error_data = await response.json()
+                        except Exception:
+                            error_data = {"message": await response.text()}
+                        self._handle_error_response(response.status, error_data)
+
                     if stream:
-                        # For streaming responses, return a generator
                         return self._handle_streaming_response(response)
                     else:
-                        # For regular responses, parse JSON and handle errors
-                        return await self._handle_response(response)
+                        return await response.json()
 
-        # Use retry mechanism for non-streaming requests
-        if not stream:
-            return await retry_async(execute_request, config=self.retry_config)
-        else:
-            # Streaming requests don't use retry mechanism
-            return await execute_request()
-
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
-        """
-        Handle an API response.
-
-        Args:
-            response: API response
-
-        Returns:
-            Response data
-
-        Raises:
-            MuxiLLMError: On API errors
-        """
-        # Parse the JSON response
-        response_data = await response.json()
-
-        # Check for error status codes
-        if response.status != 200:
-            self._handle_error_response(response.status, response_data)
-
-        return response_data
+            except aiohttp.ClientError as e:
+                raise ServiceUnavailableError(
+                    f"Failed to connect to Cohere API: {str(e)}", provider="cohere"
+                )
 
     async def _handle_streaming_response(
         self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[dict[str, Any], None]:
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -231,27 +247,17 @@ class CohereProvider(Provider):
 
         Yields:
             Parsed JSON chunks
-
-        Raises:
-            MuxiLLMError: On API errors
         """
-        # Check for error status codes
-        if response.status != 200:
-            error_data = await response.json()
-            self._handle_error_response(response.status, error_data)
-
-        # Process the stream line by line
         async for line in response.content:
             line = line.decode("utf-8").strip()
             if line:
                 try:
-                    # Parse the JSON chunk
+                    # Cohere sends JSON objects directly
                     yield json.loads(line)
                 except json.JSONDecodeError:
-                    # Skip invalid lines
                     continue
 
-    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
+    def _handle_error_response(self, status_code: int, response_data: Dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -260,225 +266,208 @@ class CohereProvider(Provider):
             response_data: Error response data
 
         Raises:
-            MuxiLLMError: Appropriate error based on the status code
+            Appropriate error based on status code
         """
-        # Extract error details from the response
         message = response_data.get("message", "Unknown error")
 
-        # Map HTTP status codes to appropriate error types
         if status_code == 401:
             raise AuthenticationError(message, provider="cohere", status_code=status_code)
-        elif status_code == 403:
-            raise PermissionError(message, provider="cohere", status_code=status_code)
         elif status_code == 404:
             raise ResourceNotFoundError(message, provider="cohere", status_code=status_code)
         elif status_code == 429:
             raise RateLimitError(message, provider="cohere", status_code=status_code)
         elif status_code == 400:
             raise InvalidRequestError(message, provider="cohere", status_code=status_code)
-        elif status_code == 500:
-            raise ServiceUnavailableError(message, provider="cohere", status_code=status_code)
-        elif status_code == 502:
-            raise BadGatewayError(message, provider="cohere", status_code=status_code)
-        elif status_code == 504:
-            raise TimeoutError(message, provider="cohere", status_code=status_code)
         else:
-            # Generic error for unhandled status codes
             raise APIError(
                 f"Cohere API error: {message} (status code: {status_code})",
                 provider="cohere",
                 status_code=status_code,
-                error_data=response_data,
             )
 
-    def _convert_openai_to_cohere_messages(self, messages: list[Message]) -> tuple[list[dict], str | None]:
-        """
-        Convert OpenAI-style messages to Cohere's format.
-
-        Args:
-            messages: OpenAI-style messages
-
-        Returns:
-            Tuple of (cohere_messages, system_prompt)
-        """
-        cohere_messages = []
-        system_prompt = None
-        
-        for message in messages:
-            role = message.get("role", "user")
-            content = message.get("content", "")
-            
-            if role == "system":
-                # Cohere uses a separate system parameter
-                system_prompt = content
-            elif role == "assistant":
-                cohere_messages.append({
-                    "role": "assistant",
-                    "message": content
-                })
-            else:  # user
-                cohere_messages.append({
-                    "role": "user",
-                    "message": content
-                })
-        
-        return cohere_messages, system_prompt
-
     def _convert_cohere_to_openai_response(
-        self, cohere_response: dict[str, Any], model: str
+        self, cohere_response: Dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Cohere response to OpenAI format.
 
         Args:
-            cohere_response: Native Cohere response
+            cohere_response: Response from Cohere API
             model: Model name
 
         Returns:
             OpenAI-compatible response
         """
-        # Extract text from Cohere response
-        text = cohere_response.get("text", "")
-        
-        # Create choice in OpenAI format
+        # Extract message content
+        message = cohere_response.get("message", {})
+        content = message.get("content", [])
+
+        # Combine content blocks
+        text = ""
+        if isinstance(content, list):
+            for block in content:
+                if block.get("type") == "text":
+                    text += block.get("text", "")
+        elif isinstance(content, str):
+            text = content
+
+        # Get finish reason
+        finish_reason = cohere_response.get("finish_reason", "complete")
+        if finish_reason == "complete":
+            finish_reason = "stop"
+        elif finish_reason == "max_tokens":
+            finish_reason = "length"
+
         choice = Choice(
-            message={
-                "role": "assistant",
-                "content": text
-            },
-            finish_reason=cohere_response.get("finish_reason", "complete"),
+            message={"role": "assistant", "content": text},
+            finish_reason=finish_reason,
             index=0,
         )
-        
-        # Create usage information
-        usage = None
-        if "usage" in cohere_response:
-            usage = {
-                "prompt_tokens": cohere_response["usage"].get("input_tokens", 0),
-                "completion_tokens": cohere_response["usage"].get("output_tokens", 0),
-                "total_tokens": cohere_response["usage"].get("total_tokens", 0)
-            }
-        
-        # Create the response object
+
+        # Get token usage
+        usage = cohere_response.get("usage", {})
+        usage_dict = {
+            "prompt_tokens": usage.get("billed_units", {}).get("input_tokens", 0),
+            "completion_tokens": usage.get("billed_units", {}).get("output_tokens", 0),
+            "total_tokens": 0,
+        }
+        usage_dict["total_tokens"] = usage_dict["prompt_tokens"] + usage_dict["completion_tokens"]
+
         return ChatCompletionResponse(
             id=cohere_response.get("id", f"cohere-{int(time.time())}"),
             object="chat.completion",
             created=int(time.time()),
             model=model,
             choices=[choice],
-            usage=usage,
+            usage=usage_dict,
             system_fingerprint=None,
         )
 
     async def create_chat_completion(
-        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+        self, messages: List[Message], model: str, stream: bool = False, **kwargs
     ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with Cohere.
 
         Args:
-            messages: List of messages in the conversation
-            model: Model name (without provider prefix)
+            messages: List of messages
+            model: Model name
             stream: Whether to stream the response
-            **kwargs: Additional model parameters
+            **kwargs: Additional parameters
 
         Returns:
-            ChatCompletionResponse or a generator yielding ChatCompletionChunk objects
+            ChatCompletionResponse or async generator
         """
-        # Convert OpenAI messages to Cohere format
-        cohere_messages, system_prompt = self._convert_openai_to_cohere_messages(messages)
-        
-        # Set up the request data in Cohere's format
-        data = {
-            "model": model,
-            "messages": cohere_messages,
-            "stream": stream,
-        }
-        
-        # Add system prompt if present
-        if system_prompt:
-            data["system"] = system_prompt
-        
-        # Add other supported parameters
-        if "temperature" in kwargs:
-            data["temperature"] = kwargs["temperature"]
+        # Convert messages to Cohere format
+        system, cohere_messages = self._convert_messages_to_cohere(messages)
+
+        # Build request data
+        data = {"model": model, "messages": cohere_messages}
+
+        # Only add stream parameter when streaming
+        if stream:
+            data["stream"] = True
+
+        # Add system message if present
+        if system:
+            data["system"] = system
+
+        # Add optional parameters
         if "max_tokens" in kwargs:
             data["max_tokens"] = kwargs["max_tokens"]
+        if "temperature" in kwargs:
+            data["temperature"] = kwargs["temperature"]
+        if "top_p" in kwargs:
+            data["p"] = kwargs["top_p"]
+        if "top_k" in kwargs:
+            data["k"] = kwargs["top_k"]
         if "stop" in kwargs:
-            data["stop_sequences"] = kwargs["stop"] if isinstance(kwargs["stop"], list) else [kwargs["stop"]]
-        
-        # Make the request
-        if stream:
-            # Handle streaming response
-            async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
-                """Generator function to process streaming chunks"""
-                async for chunk in await self._make_request(
-                    method="POST", path="v2/chat", data=data, stream=True
-                ):
-                    if chunk:
-                        # Convert Cohere streaming format to OpenAI format
-                        event_type = chunk.get("event_type")
-                        
-                        if event_type == "text-generation":
-                            # Create a ChoiceDelta object
-                            delta = ChoiceDelta(
-                                content=chunk.get("text", ""),
-                                role=None,
-                                function_call=None,
-                                tool_calls=None,
-                                finish_reason=None,
-                            )
-                            # Create a StreamingChoice object
-                            choice = StreamingChoice(
-                                delta=delta,
-                                finish_reason=None,
-                                index=0,
-                            )
-                            
-                            # Create the chunk response object
-                            chunk_resp = ChatCompletionChunk(
-                                id=chunk.get("id", ""),
-                                object="chat.completion.chunk",
-                                created=int(time.time()),
-                                model=model,
-                                choices=[choice],
-                                system_fingerprint=None,
-                            )
-                            yield chunk_resp
-                        elif event_type == "stream-end":
-                            # Send final chunk with finish_reason
-                            delta = ChoiceDelta(
-                                content=None,
-                                role=None,
-                                function_call=None,
-                                tool_calls=None,
-                                finish_reason="stop",
-                            )
-                            choice = StreamingChoice(
-                                delta=delta,
-                                finish_reason="stop",
-                                index=0,
-                            )
-                            
-                            chunk_resp = ChatCompletionChunk(
-                                id=chunk.get("id", ""),
-                                object="chat.completion.chunk",
-                                created=int(time.time()),
-                                model=model,
-                                choices=[choice],
-                                system_fingerprint=None,
-                            )
-                            yield chunk_resp
-
-            return chunk_generator()
-        else:
-            # Handle non-streaming response
-            response_data = await self._make_request(
-                method="POST", path="v2/chat", data=data
+            data["stop_sequences"] = (
+                kwargs["stop"] if isinstance(kwargs["stop"], list) else [kwargs["stop"]]
             )
 
-            # Convert Cohere response to OpenAI format
-            return self._convert_cohere_to_openai_response(response_data, model)
+        # Make request
+        if stream:
+            # Handle streaming
+            async def stream_generator():
+                response_text = ""
+                async for chunk in await self._make_request(
+                    method="POST",
+                    path="chat",
+                    data=data,
+                    stream=True,
+                ):
+                    event_type = chunk.get("type")
+
+                    if event_type == "content-delta":
+                        delta = chunk.get("delta", {})
+                        message = delta.get("message", {})
+                        content = message.get("content", {})
+
+                        if content.get("type") == "text":
+                            text = content.get("text", "")
+                            response_text += text
+
+                            delta_obj = ChoiceDelta(
+                                content=text,
+                                role=None,
+                                function_call=None,
+                                tool_calls=None,
+                            )
+
+                            choice = StreamingChoice(
+                                delta=delta_obj,
+                                finish_reason=None,
+                                index=0,
+                            )
+
+                            chunk_obj = ChatCompletionChunk(
+                                id=f"cohere-{int(time.time())}",
+                                object="chat.completion.chunk",
+                                created=int(time.time()),
+                                model=model,
+                                choices=[choice],
+                                system_fingerprint=None,
+                            )
+
+                            yield chunk_obj
+
+                    elif event_type == "message-end":
+                        # Final chunk with finish reason
+                        delta_obj = ChoiceDelta(
+                            content=None,
+                            role=None,
+                            function_call=None,
+                            tool_calls=None,
+                        )
+
+                        choice = StreamingChoice(
+                            delta=delta_obj,
+                            finish_reason="stop",
+                            index=0,
+                        )
+
+                        chunk_obj = ChatCompletionChunk(
+                            id=f"cohere-{int(time.time())}",
+                            object="chat.completion.chunk",
+                            created=int(time.time()),
+                            model=model,
+                            choices=[choice],
+                            system_fingerprint=None,
+                        )
+
+                        yield chunk_obj
+
+            return stream_generator()
+        else:
+            # Non-streaming request
+            response = await self._make_request(
+                method="POST",
+                path="chat",
+                data=data,
+            )
+
+            return self._convert_cohere_to_openai_response(response, model)
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
@@ -486,56 +475,54 @@ class CohereProvider(Provider):
         """
         Create a text completion.
 
-        Note: Cohere's v2 API primarily uses chat format, so we convert
-        this to a chat completion with the prompt as a user message.
-
         Args:
-            prompt: Text prompt to complete
+            prompt: Text prompt
             model: Model name
-            stream: Whether to stream the response
+            stream: Whether to stream
             **kwargs: Additional parameters
 
         Returns:
-            CompletionResponse or generator yielding completion chunks
+            CompletionResponse or generator
         """
-        # Convert completion to chat completion
+        # Convert to chat format
         messages = [{"role": "user", "content": prompt}]
-        
+
+        # Use chat completion
         if stream:
-            # Handle streaming case
+
             async def completion_generator():
                 async for chunk in await self.create_chat_completion(
                     messages, model, stream=True, **kwargs
                 ):
-                    # Convert chat completion chunk to completion format
+                    # Convert chat chunk to completion format
                     if chunk.choices and chunk.choices[0].delta.content:
                         yield {
                             "id": chunk.id,
                             "object": "text_completion",
                             "created": chunk.created,
                             "model": chunk.model,
-                            "choices": [{
-                                "text": chunk.choices[0].delta.content,
-                                "index": 0,
-                                "finish_reason": chunk.choices[0].finish_reason,
-                            }]
+                            "choices": [
+                                {
+                                    "text": chunk.choices[0].delta.content,
+                                    "index": 0,
+                                    "finish_reason": chunk.choices[0].finish_reason,
+                                }
+                            ],
                         }
-            
+
             return completion_generator()
         else:
-            # Handle non-streaming case
             chat_response = await self.create_chat_completion(
                 messages, model, stream=False, **kwargs
             )
-            
-            # Convert chat completion to text completion
+
             choice = CompletionChoice(
                 text=chat_response.choices[0].message.get("content", ""),
                 index=0,
                 logprobs=None,
                 finish_reason=chat_response.choices[0].finish_reason,
             )
-            
+
             return CompletionResponse(
                 id=chat_response.id,
                 object="text_completion",
@@ -543,62 +530,73 @@ class CohereProvider(Provider):
                 model=chat_response.model,
                 choices=[choice],
                 usage=chat_response.usage,
-                system_fingerprint=chat_response.system_fingerprint,
+                system_fingerprint=None,
             )
 
     async def create_embedding(
-        self, input: str | list[str], model: str, **kwargs
+        self, input: str | List[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
-        Create embeddings for the provided input.
+        Create embeddings.
 
         Args:
-            input: Text or list of texts to embed
+            input: Text or list of texts
             model: Model name
             **kwargs: Additional parameters
 
         Returns:
-            EmbeddingResponse containing the generated embeddings
+            EmbeddingResponse
         """
         # Ensure input is a list
-        texts = input if isinstance(input, list) else [input]
-        
-        # Prepare request data
-        request_data = {
+        texts = [input] if isinstance(input, str) else input
+
+        # Build request data
+        data = {
             "model": model,
             "texts": texts,
-            **{k: v for k, v in kwargs.items() if k in ["input_type", "truncate"]}
+            "input_type": kwargs.get("input_type", "search_document"),
+            "embedding_types": ["float"],
         }
 
-        # Make API request to embeddings endpoint
-        response_data = await self._make_request(
-            method="POST", path="v2/embed", data=request_data
+        # Make request
+        response = await self._make_request(
+            method="POST",
+            path="embed",
+            data=data,
         )
 
-        # Convert API response to EmbeddingResponse model
-        embedding_data = []
-        for idx, embedding in enumerate(response_data.get("embeddings", [])):
-            embed = EmbeddingData(
-                embedding=embedding,
-                index=idx,
-                object="embedding",
-            )
-            embedding_data.append(embed)
+        # Extract embeddings
+        embeddings_data = response.get("embeddings", {})
+        float_embeddings = embeddings_data.get("float", [])
 
-        # Create and return the structured response object
+        embeddings = []
+        for i, embedding in enumerate(float_embeddings):
+            embedding_obj = EmbeddingData(
+                object="embedding",
+                embedding=embedding,
+                index=i,
+            )
+            embeddings.append(embedding_obj)
+
+        # Get token usage
+        meta = response.get("meta", {})
+        usage = meta.get("billed_units", {})
+
         return EmbeddingResponse(
             object="list",
-            data=embedding_data,
-            model=response_data.get("model", model),
-            usage=response_data.get("usage"),
+            data=embeddings,
+            model=model,
+            usage={
+                "prompt_tokens": usage.get("input_tokens", 0),
+                "total_tokens": usage.get("input_tokens", 0),
+            },
         )
 
     async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
         """
-        Upload a file to Cohere.
+        Upload a file.
 
-        Note: Cohere doesn't have a general file upload API like OpenAI.
-        This method is provided for compatibility but will raise an error.
+        Note: Cohere doesn't support file uploads.
 
         Args:
             file: File to upload
@@ -606,39 +604,32 @@ class CohereProvider(Provider):
             **kwargs: Additional parameters
 
         Returns:
-            FileObject representing the uploaded file
+            FileObject
 
         Raises:
-            InvalidRequestError: Cohere doesn't support file uploads
+            InvalidRequestError: Not supported
         """
         raise InvalidRequestError(
-            "Cohere does not support file uploads through the API. "
-            "Files should be processed locally and sent as part of the request.",
-            provider="cohere"
+            "File upload is not supported by Cohere. " "Use text content directly in messages.",
+            provider="cohere",
         )
 
     async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
-        Download a file from Cohere.
-
-        Note: Cohere doesn't have a file storage API.
-        This method is provided for compatibility but will raise an error.
+        Download a file.
 
         Args:
-            file_id: ID of the file to download
+            file_id: ID of the file
             **kwargs: Additional parameters
 
         Returns:
-            Bytes content of the file
+            File bytes
 
         Raises:
-            InvalidRequestError: Cohere doesn't support file downloads
+            InvalidRequestError: Not supported
         """
-        raise InvalidRequestError(
-            "Cohere does not support file downloads through the API.",
-            provider="cohere"
-        )
+        raise InvalidRequestError("File download is not supported by Cohere.", provider="cohere")
 
 
-# Register the Cohere provider
+# Register the provider
 register_provider("cohere", CohereProvider)

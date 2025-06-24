@@ -46,6 +46,7 @@ from .perplexity import PerplexityProvider
 from .deepseek import DeepSeekProvider
 from .google import GoogleProvider
 from .azure import AzureProvider
+from .anyscale import AnyscaleProvider
 
 # Native API providers
 from .cohere import CohereProvider
@@ -76,6 +77,7 @@ register_provider("perplexity", PerplexityProvider)
 register_provider("deepseek", DeepSeekProvider)
 register_provider("google", GoogleProvider)
 register_provider("azure", AzureProvider)
+register_provider("anyscale", AnyscaleProvider)
 
 # Native API providers
 register_provider("cohere", CohereProvider)

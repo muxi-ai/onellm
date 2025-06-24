@@ -27,8 +27,6 @@ providers to customize only the necessary parts (API key, base URL, etc.)
 while reusing all the OpenAI implementation logic.
 """
 
-from typing import Optional
-
 from ..config import get_provider_config
 from ..errors import AuthenticationError
 from .openai import OpenAIProvider
@@ -37,51 +35,49 @@ from .openai import OpenAIProvider
 class OpenAICompatibleProvider(OpenAIProvider):
     """
     Base class for OpenAI-compatible providers.
-    
+
     This class extends OpenAIProvider and allows subclasses to customize
     provider-specific details while inheriting all OpenAI functionality.
     """
-    
+
     # Provider name to be set by subclasses
     provider_name: str = None
-    
+
     # Default API base URL (can be overridden by subclasses)
     default_api_base: str = None
-    
+
     # Whether this provider requires special headers
     requires_special_headers: bool = False
-    
+
     def __init__(self, **kwargs):
         """
         Initialize the OpenAI-compatible provider.
-        
+
         Args:
             api_key: Optional API key
             **kwargs: Additional configuration options
         """
         if self.provider_name is None:
             raise NotImplementedError("Subclasses must set provider_name")
-            
+
         # Get configuration for the specific provider
         self.config = get_provider_config(self.provider_name)
-        
+
         # Extract credential parameters
         api_key = kwargs.pop("api_key", None)
-        
+
         # Filter out any credential parameters
-        filtered_kwargs = {
-            k: v for k, v in kwargs.items() if k not in ["api_key"]
-        }
-        
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k not in ["api_key"]}
+
         # Update non-credential configuration
         self.config.update(filtered_kwargs)
-        
+
         # Apply credentials explicitly provided to the constructor
         if api_key:
             self.config["api_key"] = api_key
-            
-        # Check for required configuration
-        if not self.config.get("api_key"):
+
+        # Check for required configuration (only if API key is required)
+        if getattr(self, "requires_api_key", True) and not self.config.get("api_key"):
             env_var_name = f"{self.provider_name.upper()}_API_KEY"
             raise AuthenticationError(
                 f"{self.provider_name.title()} API key is required. "
@@ -89,45 +85,47 @@ class OpenAICompatibleProvider(OpenAIProvider):
                 f"or with onellm.{self.provider_name}_api_key = 'your-key'.",
                 provider=self.provider_name,
             )
-            
+
         # Store relevant configuration as instance variables
-        self.api_key = self.config["api_key"]
+        self.api_key = self.config.get(
+            "api_key", "not-required" if not getattr(self, "requires_api_key", True) else None
+        )
         self.api_base = self.config.get("api_base", self.default_api_base)
         self.timeout = self.config.get("timeout", 30.0)
         self.max_retries = self.config.get("max_retries", 3)
-        
+        self.organization_id = self.config.get("organization_id", None)
+
         # Skip the parent __init__ since we're handling everything here
         # Instead, initialize retry config directly
         from ..utils.retry import RetryConfig
+
         self.retry_config = RetryConfig(
-            max_retries=self.max_retries, 
-            initial_backoff=1.0, 
-            max_backoff=60.0
+            max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
-    
+
     def _get_headers(self) -> dict[str, str]:
         """
         Get headers for API requests.
-        
+
         Can be overridden by subclasses to add provider-specific headers.
-        
+
         Returns:
             Dict of headers
         """
         headers = super()._get_headers()
-        
+
         # Allow subclasses to add custom headers
         if self.requires_special_headers:
             headers.update(self._get_special_headers())
-            
+
         return headers
-    
+
     def _get_special_headers(self) -> dict[str, str]:
         """
         Get provider-specific headers.
-        
+
         To be overridden by subclasses that need special headers.
-        
+
         Returns:
             Dict of special headers
         """

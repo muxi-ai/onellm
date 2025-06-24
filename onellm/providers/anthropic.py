@@ -211,7 +211,6 @@ class AnthropicProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if stream:
                         # For streaming responses, return a generator
@@ -773,7 +772,6 @@ class AnthropicProvider(Provider):
                     url=url,
                     headers=headers,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     # Check for error status codes
                     if response.status != 200:

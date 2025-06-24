@@ -93,42 +93,46 @@ class AzureProvider(Provider):
         """
         # Get configuration with potential overrides from global config only
         self.config = get_provider_config("azure")
-        
+
         # Check if azure config path is provided
-        azure_config_path = kwargs.pop("azure_config_path", None) or os.environ.get("AZURE_OPENAI_CONFIG_PATH")
-        
+        azure_config_path = (
+            kwargs.pop("azure_config_path", None)
+            or os.environ.get("AZURE_OPENAI_CONFIG_PATH")
+        )
+
         if not azure_config_path:
             # Try default location
             azure_config_path = os.path.join(os.path.dirname(__file__), "..", "..", "azure.json")
-        
+
         if not os.path.exists(azure_config_path):
             raise AuthenticationError(
-                "Azure configuration file not found. Set it via environment variable AZURE_OPENAI_CONFIG_PATH "
+                "Azure configuration file not found. "
+                "Set it via environment variable AZURE_OPENAI_CONFIG_PATH "
                 "or provide azure_config_path parameter.",
                 provider="azure",
             )
-        
+
         # Load Azure configuration
         with open(azure_config_path, 'r') as f:
             self.azure_config = json.load(f)
-        
+
         # Store relevant configuration
         self.key1 = self.azure_config.get("key1")
         self.key2 = self.azure_config.get("key2")
         self.region = self.azure_config.get("region")
         self.endpoint = self.azure_config.get("endpoint", "").rstrip("/")
         self.deployments = self.azure_config.get("deployment", {})
-        
+
         # Default configuration
         self.timeout = kwargs.get("timeout", 60)
         self.max_retries = kwargs.get("max_retries", 3)
         self.api_version = kwargs.get("api_version", "2024-12-01-preview")
-        
+
         # Create retry configuration
         self.retry_config = RetryConfig(
             max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
-        
+
         # Check for required configuration
         if not self.key1 and not self.key2:
             raise AuthenticationError(
@@ -149,7 +153,7 @@ class AzureProvider(Provider):
         # Check if model has specific deployment configuration
         if model in self.deployments:
             return self.deployments[model]
-        
+
         # Fallback to default configuration
         return {
             "endpoint": self.endpoint,
@@ -173,7 +177,7 @@ class AzureProvider(Provider):
             "Content-Type": "application/json",
             "api-key": deployment_config.get("subscription_key", self.key1 or self.key2),
         }
-        
+
         return headers
 
     def _get_url(self, deployment_config: Dict[str, Any], path: str) -> str:
@@ -190,11 +194,11 @@ class AzureProvider(Provider):
         endpoint = deployment_config.get("endpoint", self.endpoint).rstrip("/")
         deployment = deployment_config.get("deployment")
         api_version = deployment_config.get("api_version", self.api_version)
-        
+
         # Azure OpenAI URL format
         base_path = f"/openai/deployments/{deployment}{path}"
         url = f"{endpoint}{base_path}?api-version={api_version}"
-        
+
         return url
 
     async def _make_request(
@@ -227,13 +231,13 @@ class AzureProvider(Provider):
         """
         # Get deployment configuration
         deployment_config = self._get_deployment_config(model)
-        
+
         # Construct the full URL
         url = self._get_url(deployment_config, path)
-        
+
         # Use provided timeout or fall back to default
         timeout = timeout or self.timeout
-        
+
         # Get authentication headers
         headers = self._get_headers(deployment_config)
 
@@ -280,7 +284,6 @@ class AzureProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if stream:
                         # For streaming responses, return a generator
@@ -983,10 +986,10 @@ class AzureProvider(Provider):
         """
         # Get deployment configuration
         deployment_config = self._get_deployment_config(model)
-        
+
         # Construct the full URL
         url = self._get_url(deployment_config, path)
-        
+
         timeout = timeout or self.timeout
         headers = self._get_headers(deployment_config)
         body = json.dumps(data) if data else None
@@ -1000,7 +1003,6 @@ class AzureProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if response.status != 200:
                         # Handle error response as JSON
@@ -1011,7 +1013,8 @@ class AzureProvider(Provider):
                             # If not valid JSON, raise a generic error with the status code
                             error_text = await response.text()
                             raise APIError(
-                                f"Azure OpenAI API error: {error_text} (status code: {response.status})",
+                                f"Azure OpenAI API error: {error_text} "
+                                f"(status code: {response.status})",
                                 provider="azure",
                                 status_code=response.status,
                             )
@@ -1052,10 +1055,10 @@ class AzureProvider(Provider):
             "dall-e-2": {"256x256", "512x512", "1024x1024"},
             "dall-e-3": {"1024x1024", "1792x1024", "1024x1792"},
         }
-        
+
         # Determine which DALL-E version based on deployment name
         dalle_version = "dall-e-3" if "3" in model else "dall-e-2"
-        
+
         if size not in supported_sizes[dalle_version]:
             raise InvalidRequestError(
                 f"Size '{size}' is not supported for {dalle_version}. "

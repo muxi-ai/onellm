@@ -27,6 +27,7 @@ endpoints including chat completions, completions, embeddings, and file operatio
 """
 
 import json
+import os
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union, IO
 
@@ -226,7 +227,6 @@ class OpenAIProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if stream:
                         # For streaming responses, return a generator
@@ -319,7 +319,10 @@ class OpenAIProvider(Provider):
         """
         # Extract error details from the response
         error = response_data.get("error", {})
-        message = error.get("message", "Unknown error")
+        if isinstance(error, str):
+            message = error
+        else:
+            message = error.get("message", "Unknown error")
 
         # Map HTTP status codes to appropriate error types
         if status_code == 401:
@@ -666,7 +669,7 @@ class OpenAIProvider(Provider):
             # File path - read the file from disk
             with open(file, "rb") as f:
                 file_data = f.read()
-            filename = file.split("/")[-1]  # Extract filename from path
+            filename = os.path.basename(file)  # Extract filename from path
         elif isinstance(file, bytes):
             # Bytes data - use directly
             file_data = file
@@ -739,7 +742,6 @@ class OpenAIProvider(Provider):
                     url=url,
                     headers=headers,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     # Check for error status codes
                     if response.status != 200:
@@ -1020,7 +1022,6 @@ class OpenAIProvider(Provider):
                     headers=headers,
                     data=body,
                     timeout=timeout,
-                    ssl=None,  # Use default SSL settings
                 ) as response:
                     if response.status != 200:
                         # Handle error response as JSON
