@@ -1,3 +1,9 @@
+---
+layout: default
+title: Installation
+nav_order: 2
+---
+
 # Installation
 
 This guide covers how to install OneLLM and its dependencies.

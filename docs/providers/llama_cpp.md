@@ -1,3 +1,10 @@
+---
+layout: default
+title: Llama.cpp
+parent: Providers
+nav_order: 6
+---
+
 # llama.cpp Provider
 
 The llama.cpp provider enables OneLLM to run Large Language Models locally using GGUF format files, with optional GPU acceleration.

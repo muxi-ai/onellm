@@ -1,0 +1,57 @@
+<script src="https://cdn.jsdelivr.net/npm/mermaid@9.3.0/dist/mermaid.min.js"></script>
+<script>window.addEventListener("load", function() { mermaid.initialize({ startOnLoad: true }); });</script>
+<style>
+  .mermaid {
+    text-align: center;
+    margin: 2rem auto;
+    max-width: 100%;
+    padding: 1rem;
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .site-logo {
+    width: 40px;
+    height: 40px;
+    padding-right: 10px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    height: 60px;
+  }
+  .site-header .site-title {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+  }
+  .site-header .site-title:hover {
+    background-image: none;
+  }
+</style>
+
+<!-- Favicon links -->
+<link rel="apple-touch-icon" sizes="180x180" href="{{ '/assets/images/apple-touch-icon.png' | relative_url }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ '/assets/images/favicon-32x32.png' | relative_url }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ '/assets/images/favicon-16x16.png' | relative_url }}">
+<link rel="manifest" href="{{ '/assets/images/site.webmanifest' | relative_url }}">
+<link rel="shortcut icon" href="{{ '/assets/images/favicon.ico' | relative_url }}">
+
+
+<title>{{ page.title }} | OneLLM</title>
+<meta name="description" content="A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"/>
+
+<meta property="og:title" content="{{ page.title }} | OneLLM"/>
+<meta property="og:locale" content="en_US"/>
+<meta property="og:description" content="An extensible framework for building AI agents with real-time communication capabilities, memory persistence, and tool integration"/>
+<meta property="og:url" content="{{ page.url | absolute_url }}"/>
+<meta property="og:site_name" content="OneLLM"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://opengraph.githubassets.com/1/muxi-ai/onellm" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:creator" content="@aroussi"/>
+<meta name="twitter:title" content="{{ page.title }} | OneLLM"/>
+<meta name="twitter:description" content="A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client"/>
+<meta name="twitter:image" content="https://opengraph.githubassets.com/1/muxi-ai/onellm" />

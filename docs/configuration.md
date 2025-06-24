@@ -1,3 +1,9 @@
+---
+layout: default
+title: Configuration
+nav_order: 4
+---
+
 # Configuration
 
 This guide covers how to configure OneLLM for different providers and use cases.
@@ -51,7 +57,7 @@ export ONELLM_LOG_LEVEL=INFO
 
 Create a `.env` file in your project:
 
-```env
+```
 # Provider API Keys
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...

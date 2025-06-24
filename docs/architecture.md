@@ -1,3 +1,9 @@
+---
+layout: default
+title: Architecture
+nav_order: 5
+---
+
 # Architecture
 
 This document explains the internal architecture and design principles of OneLLM.
@@ -54,7 +60,7 @@ class Provider(ABC):
     json_mode_support = False
     vision_support = False
     streaming_support = True
-    
+
     @abstractmethod
     async def create_chat_completion(self, messages, model, **kwargs):
         """Create a chat completion."""
@@ -164,7 +170,7 @@ Fallback provider acts as proxy:
 class FallbackProvider(Provider):
     def __init__(self, providers):
         self.providers = providers
-    
+
     async def create_chat_completion(self, **kwargs):
         for provider in self.providers:
             try:
@@ -178,7 +184,7 @@ class FallbackProvider(Provider):
 
 ### Error Hierarchy
 
-```python
+```
 OneLLMError
 ├── APIError
 │   ├── AuthenticationError
@@ -218,7 +224,7 @@ class AsyncOpenAI:
 class Provider:
     def __init__(self):
         self.session = None
-    
+
     async def _ensure_session(self):
         if not self.session:
             self.session = aiohttp.ClientSession()
@@ -300,7 +306,7 @@ HTTP connections are reused:
 ```python
 class Provider:
     _session = None
-    
+
     @classmethod
     async def get_session(cls):
         if not cls._session:
@@ -327,7 +333,7 @@ async def stream_response(self):
 ```python
 class NewProvider(Provider):
     json_mode_support = True
-    
+
     async def create_chat_completion(self, ...):
         # Implementation
 ```
@@ -349,7 +355,7 @@ class Provider:
 ```python
 class AdvancedProvider(Provider):
     new_capability_support = True
-    
+
     def use_new_capability(self):
         # Implementation
 ```

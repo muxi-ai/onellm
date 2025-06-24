@@ -1,3 +1,10 @@
+---
+layout: default
+title: AWS Bedrock
+parent: Providers
+nav_order: 4
+---
+
 # AWS Bedrock Provider
 
 The AWS Bedrock provider enables access to foundation models from multiple providers (Anthropic, Meta, Mistral, Amazon, AI21 Labs, Cohere) through AWS's fully managed service.

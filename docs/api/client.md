@@ -1,3 +1,10 @@
+---
+layout: default
+title: Client API
+nav_order: 8
+has_children: true
+---
+
 # Client API Reference
 
 The main client interface for OneLLM, providing OpenAI-compatible methods for all providers.

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Chat Completions
+parent: Client API
+nav_order: 1
+---
+
 # Chat Completions API
 
 The chat completions API is the primary interface for conversational AI interactions.

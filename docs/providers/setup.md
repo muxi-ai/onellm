@@ -1,3 +1,10 @@
+---
+layout: default
+title: Provider Setup
+parent: Providers
+nav_order: 1
+---
+
 # Provider Setup Guide
 
 Detailed setup instructions for each provider supported by OneLLM.

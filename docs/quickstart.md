@@ -1,3 +1,9 @@
+---
+layout: default
+title: Quick Start
+nav_order: 3
+---
+
 # Quick Start Guide
 
 Get up and running with OneLLM in 5 minutes!

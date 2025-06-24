@@ -1,3 +1,9 @@
+---
+layout: default
+title: Error Handling
+nav_order: 6
+---
+
 # Error Handling
 
 This guide covers error handling in OneLLM, including error types, handling strategies, and best practices.

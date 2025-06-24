@@ -1,0 +1,41 @@
+/* Custom styling for Mermaid diagrams */
+.mermaid {
+  text-align: center;
+  margin: 2rem auto;
+  overflow-x: auto;
+  max-width: 100%;
+  background-color: rgba(240, 240, 240, 0.3);
+  padding: 1rem;
+  border-radius: 5px;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .mermaid {
+    background-color: rgba(40, 40, 40, 0.3);
+  }
+}
+a {
+  font-weight: 500;
+}
+pre, code {
+  font-smoothing: subpixel-antialiased;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: subpixel-antialiased;
+}
+pre {
+  line-height: 1
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+}
+h4 {
+  font-size: 0.95rem !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+h1 {
+  font-size: 2rem;
+}

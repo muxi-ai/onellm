@@ -1,3 +1,10 @@
+---
+layout: default
+title: Azure OpenAI
+parent: Providers
+nav_order: 3
+---
+
 # Azure OpenAI Provider
 
 The Azure OpenAI provider allows you to use Azure OpenAI Service through OneLLM's unified interface.

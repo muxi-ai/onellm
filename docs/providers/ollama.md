@@ -1,3 +1,10 @@
+---
+layout: default
+title: Ollama
+parent: Providers
+nav_order: 5
+---
+
 # Ollama Provider
 
 The Ollama provider enables OneLLM to work with locally running Ollama servers, supporting dynamic endpoint routing for using multiple Ollama instances.

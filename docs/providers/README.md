@@ -1,3 +1,10 @@
+---
+layout: default
+title: Providers
+nav_order: 7
+has_children: true
+---
+
 # Providers
 
 OneLLM supports 18 providers, giving you access to 300+ language models through a unified interface.

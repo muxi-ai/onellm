@@ -1,3 +1,10 @@
+---
+layout: default
+title: Capabilities
+parent: Providers
+nav_order: 2
+---
+
 # Provider Capabilities
 
 Comprehensive comparison of features and capabilities across all OneLLM providers.

@@ -1,0 +1,94 @@
+# MUXI Documentation Site Configuration
+title: OneLLM
+description: A unified interface for interacting with large language models from various providers - a complete drop-in replacement for OpenAI's client
+url: https://github.com/muxi-ai/onellm
+baseurl: "/onellm"
+repository: muxi-ai/onellm
+
+# Theme settings
+remote_theme: just-the-docs/just-the-docs
+color_scheme: light
+# logo: "/assets/images/logo.webp"
+aux_links_new_tab: true
+heading_anchors: true
+search_enabled: true
+
+# Custom CSS
+sass:
+  style: compressed
+  sass_dir: _sass
+
+# Enable search
+search:
+  # Split pages into sections that can be searched individually
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Auxiliary links (shown at top right)
+aux_links:
+  "OneLLM on GitHub":
+    - "https://github.com/muxi-ai/onellm"
+
+# Enable copy buttons on code blocks
+enable_copy_code_button: true
+
+# Navigation structure
+nav_external_links:
+  - title: OneLLM on GitHub
+    url: https://github.com/muxi-ai/onellm
+    hide_icon: false
+    opens_in_new_tab: true
+
+# Footer configuration
+footer_content: "Copyright &copy; 2025 Ran Aroussi.<br>Licensed under Apache 2.0 license."
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Enable callouts
+callouts:
+  warning:
+    title: Warning
+    color: red
+  note:
+    title: Note
+    color: blue
+  tip:
+    title: Tip
+    color: green
+  important:
+    title: Important
+    color: purple
+
+# Enable mermaid diagrams
+mermaid:
+  # Version of mermaid library
+  version: "9.1.6"
+  # Load mermaid stylesheet
+  load_stylesheet: false
+  # Remove the mermaid class from code blocks
+  # with the mermaid language
+  remove_code_block: true
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - LICENSE.txt
+
+# Plugins
+plugins:
+  - jekyll-github-metadata
+  - jekyll-include-cache
+  - jekyll-remote-theme
