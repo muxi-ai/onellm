@@ -37,6 +37,50 @@ Comprehensive comparison of features and capabilities across all OneLLM provider
 - ❌ Not Supported
 - Varies: Depends on underlying model
 
+## Notable Models by Category
+
+Through these providers, you gain access to hundreds of models across different categories:
+
+<div align="center">
+
+<!-- Model categories -->
+<table>
+  <tr>
+    <th>Model Family</th>
+    <th>Notable Models</th>
+  </tr>
+  <tr>
+    <td><strong>OpenAI Family</strong></td>
+    <td>GPT-4o, GPT-4 Turbo, o3</td>
+  </tr>
+  <tr>
+    <td><strong>Claude Family</strong></td>
+    <td>Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku</td>
+  </tr>
+  <tr>
+    <td><strong>Llama Family</strong></td>
+    <td>Llama 3 70B, Llama 3 8B, Code Llama</td>
+  </tr>
+  <tr>
+    <td><strong>Mistral Family</strong></td>
+    <td>Mistral Large, Mistral 7B, Mixtral</td>
+  </tr>
+  <tr>
+    <td><strong>Gemini Family</strong></td>
+    <td>Gemini Pro, Gemini Ultra, Gemini Flash</td>
+  </tr>
+  <tr>
+    <td><strong>Embeddings</strong></td>
+    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings</td>
+  </tr>
+  <tr>
+    <td><strong>Multimodal</strong></td>
+    <td>GPT-4 Vision, Claude 3 Vision, Gemini Pro Vision</td>
+  </tr>
+</table>
+
+</div>
+
 ## Detailed Capabilities
 
 ### Chat Completions

@@ -408,6 +408,43 @@ response = client.chat.completions.create(
 )
 ```
 
+### Multi-modal with Audio
+```python
+response = client.chat.completions.create(
+    model="anthropic/claude-3-sonnet",
+    messages=[
+        {
+            "role": "user", 
+            "content": [
+                {"type": "text", "text": "Transcribe and analyze this audio clip"},
+                {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}}
+            ]
+        }
+    ]
+)
+```
+
+### With Fallback Models
+```python
+# Use multiple models with automatic fallback
+response = client.chat.completions.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+    fallback_models=["anthropic/claude-3-opus", "mistral/mistral-large"]
+)
+```
+
+### With Retries and Fallbacks
+```python
+# Enhanced reliability with retries before fallback
+response = client.chat.completions.create(
+    model="openai/gpt-4",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+    retries=3,  # Try gpt-4 up to 3 additional times before failing or using fallbacks
+    fallback_models=["anthropic/claude-3-opus", "mistral/mistral-large"]
+)
+```
+
 ## Next Steps
 
 - [Streaming](../guides/streaming.md) - Detailed streaming guide

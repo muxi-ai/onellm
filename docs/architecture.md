@@ -12,18 +12,103 @@ This document explains the internal architecture and design principles of OneLLM
 
 OneLLM is designed as a unified interface for multiple LLM providers, offering a consistent API that matches OpenAI's client interface while supporting 18+ different providers.
 
+OneLLM follows a modular architecture with clear separation of concerns:
+
 ```mermaid
-graph TD
-    A[User Application] --> B[OneLLM Client]
-    B --> C[Provider Router]
-    C --> D[Provider Interface]
-    D --> E[OpenAI Provider]
-    D --> F[Anthropic Provider]
-    D --> G[Google Provider]
-    D --> H[Other Providers...]
-    E --> I[OpenAI API]
-    F --> J[Anthropic API]
-    G --> K[Google API]
+---
+config:
+  look: handDrawn
+  theme: mc
+  themeVariables:
+    background: 'transparent'
+    primaryColor: '#fff0'
+    secondaryColor: 'transparent'
+    tertiaryColor: 'transparent'
+    mainBkg: 'transparent'
+
+  flowchart:
+    layout: fixed
+---
+flowchart TD
+    %% User API Layer
+    User(User Application) --> ChatCompletion
+    User --> Completion
+    User --> Embedding
+    User --> OpenAIClient["OpenAI Client Interface"]
+
+    subgraph API["Public API Layer"]
+        ChatCompletion["ChatCompletion\n.create() / .acreate()"]
+        Completion["Completion\n.create() / .acreate()"]
+        Embedding["Embedding\n.create() / .acreate()"]
+        OpenAIClient
+    end
+
+    %% Core logic
+    subgraph Core["Core Logic"]
+        Router["Provider Router"]
+        Config["Configuration\nEnvironment Variables\nAPI Keys"]
+        FallbackManager["Fallback Manager"]
+        RetryManager["Retry Manager"]
+    end
+
+    %% Provider Layer
+    BaseProvider["Provider Interface<br>(Base Class)"]
+
+    subgraph Implementations["Provider Implementations"]
+        OpenAI["OpenAI"]
+        Anthropic["Anthropic"]
+        GoogleProvider["Google"]
+        Groq["Groq"]
+        Ollama["Local LLMs"]
+        OtherProviders["20+ Others"]
+    end
+
+    %% Utilities
+    subgraph Utilities["Utilities"]
+        Streaming["Streaming<br>Handlers"]
+        TokenCounting["Token<br>Counter"]
+        ErrorHandling["Error<br>Handling"]
+        Types["Type<br>Definitions"]
+        Models["Response<br>Models"]
+    end
+
+    %% External services
+    OpenAIAPI["OpenAI API"]
+    AnthropicAPI["Anthropic API"]
+    GoogleAPI["Google API"]
+    GroqAPI["Groq API"]
+    LocalModels["Ollama/llama.cpp"]
+    OtherAPIs["..."]
+
+    %% Connections
+    ChatCompletion --> Router
+    Completion --> Router
+    Embedding --> Router
+    OpenAIClient --> Router
+
+    Router --> Config
+    Router --> FallbackManager
+    FallbackManager --> RetryManager
+
+    RetryManager --> BaseProvider
+
+    BaseProvider --> OpenAI
+    BaseProvider --> Anthropic
+    BaseProvider --> GoogleProvider
+    BaseProvider --> Groq
+    BaseProvider --> Ollama
+    BaseProvider --> OtherProviders
+
+    BaseProvider --> Streaming
+    BaseProvider --> TokenCounting
+    BaseProvider --> ErrorHandling
+
+    OpenAI --> OpenAIAPI
+    Anthropic --> AnthropicAPI
+    GoogleProvider --> GoogleAPI
+    Groq --> GroqAPI
+    Ollama --> LocalModels
+    OtherProviders --> OtherAPIs
 ```
 
 ## Core Components

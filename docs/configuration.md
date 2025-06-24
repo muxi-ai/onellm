@@ -182,6 +182,29 @@ response = create_chat(
 )
 ```
 
+## Runtime Configuration
+
+Configure OneLLM behavior at runtime:
+
+```python
+import onellm
+
+# Set API keys programmatically
+onellm.openai_api_key = "sk-..."  # OpenAI API key
+onellm.anthropic_api_key = "sk-..."  # Anthropic API key
+
+# Configure fallback behavior
+onellm.config.fallback = {
+    "enabled": True,
+    "default_chains": {
+        "chat": ["openai/gpt-4", "anthropic/claude-3-opus", "groq/llama3-70b"],
+        "embedding": ["openai/text-embedding-3-small", "cohere/embed-english"]
+    },
+    "retry_delay": 1.0,
+    "max_retries": 3
+}
+```
+
 ## Advanced Configuration
 
 ### Retry Configuration

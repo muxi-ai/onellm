@@ -145,6 +145,65 @@ response = custom_retry(
 )
 ```
 
+## Fallback and Retry Architecture
+
+Here's how OneLLM handles failures, retries, and fallbacks internally:
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: mc
+  themeVariables:
+    background: 'transparent'
+    primaryColor: '#fff0'
+    secondaryColor: 'transparent'
+    tertiaryColor: 'transparent'
+    mainBkg: 'transparent'
+
+  flowchart:
+    layout: fixed
+---
+flowchart TD
+    START(["Client Request"]) --> REQUEST["Chat/Completion Request"]
+    REQUEST --> PRIMARY["Primary Model<br>e.g., openai/gpt-4"]
+
+    PRIMARY --> API_CHECK{"API<br>Available?"}
+    API_CHECK -->|Yes| MODEL_CHECK{"Model<br>Available?"}
+    MODEL_CHECK -->|Yes| QUOTA_CHECK{"Quota/Rate<br>Limits OK?"}
+    QUOTA_CHECK -->|Yes| SUCCESS["Successful Response"]
+    SUCCESS --> RESPONSE(["Return to Client"])
+
+    API_CHECK -->|No| RETRY_DECISION{"Retry<br>Count < Max?"}
+    MODEL_CHECK -->|No| RETRY_DECISION
+    QUOTA_CHECK -->|No| RETRY_DECISION
+
+    RETRY_DECISION -->|Yes| RETRY["Retry with Delay<br>(Same Model)"]
+    RETRY --> PRIMARY
+
+    RETRY_DECISION -->|No| FALLBACK_CHECK{"Fallbacks<br>Available?"}
+
+    FALLBACK_CHECK -->|Yes| FALLBACK_MODEL["Next Fallback Model<br>e.g., anthropic/claude-3-haiku"]
+    FALLBACK_MODEL --> FALLBACK_TRY["Try Fallback"]
+    FALLBACK_TRY --> FALLBACK_API_CHECK{"API<br>Available?"}
+
+    FALLBACK_API_CHECK -->|Yes| FALLBACK_SUCCESS["Successful Response"]
+    FALLBACK_SUCCESS --> RESPONSE
+
+    FALLBACK_API_CHECK -->|No| NEXT_FALLBACK{"More<br>Fallbacks?"}
+    NEXT_FALLBACK -->|Yes| FALLBACK_MODEL
+    NEXT_FALLBACK -->|No| ERROR["Error Response"]
+
+    FALLBACK_CHECK -->|No| ERROR
+    ERROR --> RESPONSE
+```
+
+This flow ensures maximum reliability by:
+1. Retrying transient failures with exponential backoff
+2. Falling back to alternative models when retries are exhausted
+3. Trying multiple fallback options in sequence
+4. Returning detailed error information when all options fail
+
 ## Working with Local Models
 
 OneLLM supports local models through Ollama and llama.cpp providers.

@@ -179,17 +179,85 @@ OneLLM supports 18 providers, giving you access to 300+ language models through 
 - **JSON Mode**: OpenAI, Google, Mistral, Groq
 - **Embeddings**: OpenAI, Cohere, Google, Bedrock
 
-## Model Naming
+## Model Naming Convention
 
-All models use the format `provider/model-name`:
+Models are specified using a provider prefix to clearly identify the source:
+
+<!-- Model naming examples -->
+<table>
+  <tr>
+    <th>Provider</th>
+    <th>Format</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td>OpenAI</td>
+    <td><code>openai/{model}</code></td>
+    <td><code>openai/gpt-4</code></td>
+  </tr>
+  <tr>
+    <td>Google</td>
+    <td><code>google/{model}</code></td>
+    <td><code>google/gemini-pro</code></td>
+  </tr>
+  <tr>
+    <td>Anthropic</td>
+    <td><code>anthropic/{model}</code></td>
+    <td><code>anthropic/claude-3-opus</code></td>
+  </tr>
+  <tr>
+    <td>Groq</td>
+    <td><code>groq/{model}</code></td>
+    <td><code>groq/llama3-70b</code></td>
+  </tr>
+  <tr>
+    <td>Mistral</td>
+    <td><code>mistral/{model}</code></td>
+    <td><code>mistral/mistral-large</code></td>
+  </tr>
+  <tr>
+    <td>Ollama</td>
+    <td><code>ollama/{model}@host:port</code></td>
+    <td><code>ollama/llama3:8b@localhost:11434</code></td>
+  </tr>
+  <tr>
+    <td>llama.cpp</td>
+    <td><code>llama_cpp/{model.gguf}</code></td>
+    <td><code>llama_cpp/llama-3-8b-q4_K_M.gguf</code></td>
+  </tr>
+  <tr>
+    <td>XAI (Grok)</td>
+    <td><code>xai/{model}</code></td>
+    <td><code>xai/grok-beta</code></td>
+  </tr>
+  <tr>
+    <td>Cohere</td>
+    <td><code>cohere/{model}</code></td>
+    <td><code>cohere/command-r-plus</code></td>
+  </tr>
+  <tr>
+    <td>AWS Bedrock</td>
+    <td><code>bedrock/{model}</code></td>
+    <td><code>bedrock/claude-3-5-sonnet</code></td>
+  </tr>
+</table>
+
+### Additional Examples
 
 ```python
-# Examples
+# Standard models
 "openai/gpt-4o-mini"
 "anthropic/claude-3-5-sonnet-20241022"
 "google/gemini-1.5-flash"
 "groq/llama3-70b-8192"
+
+# Models with organization prefixes
 "together/meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+"fireworks/accounts/fireworks/models/llama-v3p1-70b-instruct"
+
+# Local models
+"ollama/llama3:latest"
+"llama_cpp/models/llama-3-8b-instruct.Q4_K_M.gguf"
 ```
 
 ## Quick Start
