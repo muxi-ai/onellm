@@ -1,5 +1,77 @@
 # CHANGELOG
 
+## 0.1.0 - Production Release
+
+**Status**: Development Status :: 5 - Production/Stable
+
+This release marks OneLLM's transition from beta to production-ready status, with a mature and stable codebase suitable for production deployments.
+
+### Major Achievements
+
+- **18 Implemented Providers**: Full support for OpenAI, Anthropic, Google, Azure, Bedrock, Mistral, Groq, Together, Anyscale, Fireworks, DeepSeek, Perplexity, OpenRouter, X.AI, Cohere, Vertex AI, Ollama, and llama.cpp
+- **300+ Accessible Models**: Comprehensive model coverage across all major LLM families
+- **96% Test Coverage**: Extensive test suite with 357 passing tests ensuring reliability
+- **Complete Documentation**: Full Jekyll-based documentation site with guides, API reference, and examples
+
+### New Features
+
+- **Enhanced Fallback System**: Improved fallback mechanism with configurable retry strategies
+- **Auto-Retry Support**: Automatic retries with exponential backoff for transient failures
+- **JSON Mode**: Structured output support for compatible providers
+- **Multi-Modal Enhancements**: Better support for vision and audio across providers
+- **Advanced Configuration**: Fine-grained control over timeouts, retries, and fallback behavior
+- **Local Model Support**: Seamless integration with Ollama and llama.cpp for local inference
+- **CLI Model Download**: Built-in `onellm download` command to fetch GGUF models from HuggingFace
+
+### Provider Additions
+
+- OpenAI
+- Anthropic
+- Google
+- Mistral
+- Groq
+- Together
+- Fireworks
+- Anyscale
+- X.AI
+- Perplexity
+- DeepSeek
+- Cohere
+- OpenRouter
+- Azure
+- Bedrock
+- Vertex AI
+- Ollama
+- llama.cpp
+
+
+### Improvements
+
+- **API Refinements**: Cleaner separation between `ChatCompletion`, `Completion`, and `Embedding` interfaces
+- **Error Handling**: More descriptive error messages with provider-specific context
+- **Performance**: Optimized provider routing and response processing
+- **Type Safety**: Enhanced type hints for better IDE support
+- **Documentation**: Comprehensive guides for migration, advanced features, and best practices
+
+### Development Experience
+
+- **Clean Test Organization**: Tests reorganized into logical unit/integration structure
+- **Provider Templates**: Simplified process for adding new providers
+- **CLI Tools**: Built-in model download utility for GGUF files
+- **Example Library**: Extensive examples covering all major use cases
+
+### Breaking Changes
+
+None - This release maintains full backward compatibility with previous versions.
+
+### Migration Notes
+
+For users upgrading from earlier versions:
+- No code changes required
+- New features are opt-in through configuration
+- Fallback syntax now uses `fallback_models` parameter instead of list-based model specification
+- Import pattern remains the same: `from onellm import ChatCompletion`
+
 ## 0.0.7
 
 Added an automatic unicode artifact cleaning to prevent AI detection.

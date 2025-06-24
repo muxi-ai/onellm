@@ -79,6 +79,27 @@ Or from the command line:
 python -c "import onellm; print(onellm.__version__)"
 ```
 
+## CLI Tools
+
+OneLLM includes a command-line tool for downloading GGUF models for local use:
+
+### Download Models
+
+Download GGUF models directly from HuggingFace:
+
+```bash
+# Download a model (saves to ~/llama_models by default)
+onellm download --repo-id "TheBloke/Llama-2-7B-GGUF" --filename "llama-2-7b.Q4_K_M.gguf"
+
+# Download to a custom directory
+onellm download -r "microsoft/Phi-3-mini-4k-instruct-gguf" -f "Phi-3-mini-4k-instruct-q4.gguf" -o /path/to/models
+
+# Short options also work
+onellm download -r "TheBloke/Mistral-7B-Instruct-v0.2-GGUF" -f "mistral-7b-instruct-v0.2.Q5_K_M.gguf"
+```
+
+This command is particularly useful when working with the llama.cpp provider, which requires local GGUF model files.
+
 ## Dependencies
 
 ### Core Dependencies
