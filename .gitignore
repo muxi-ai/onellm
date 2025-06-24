@@ -1,3 +1,4 @@
+testing-artifacts/
 brainstorm/
 onellm.egg-info/
 
@@ -128,6 +129,7 @@ ENV/
 
 # Environment variables
 .env
+tests/artifacts/api-keys.sh
 
 # IDE specific files
 .idea/
@@ -160,7 +162,3 @@ logs/
 examples/frontmatter_template.py
 CLAUDE.md
 .claude/settings.local.json
-azure.json
-bedrock.json
-vertexai.json
-meta-llama-3-8b-instruct-q4_k_m.gguf

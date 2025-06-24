@@ -59,18 +59,30 @@ setup(
         "dev": [
             "pytest>=7.0.0",
             "pytest-asyncio>=0.18.0",
+            "pytest-cov>=4.0.0",
             "black>=22.0.0",
             "isort>=5.10.0",
             "mypy>=0.950",
             "ruff>=0.0.100",
+            "python-dotenv>=0.19.0",
         ],
         "all": [
-            "anthropic>=0.5.0",  # For future Anthropic provider support
-            "google-generativeai>=0.3.0",  # For future Google Gemini support
+            "anthropic>=0.5.0",  # For Anthropic provider support
+            "google-generativeai>=0.3.0",  # For Google Gemini support
             "boto3>=1.26.0",  # For AWS Bedrock support
+            "llama-cpp-python>=0.2.0",  # For llama.cpp local models
+            "google-auth>=2.16.0",  # For Google Vertex AI
+            "google-cloud-aiplatform>=1.38.0",  # For Google Vertex AI
+        ],
+        "vertexai": [
+            "google-auth>=2.16.0",  # For Google Cloud authentication
+            "google-cloud-aiplatform>=1.38.0",  # For Vertex AI
         ],
         "bedrock": [
             "boto3>=1.26.0",  # AWS SDK for Python
+        ],
+        "llama": [
+            "llama-cpp-python>=0.2.0",  # For llama.cpp local models
         ],
     },
     classifiers=[
