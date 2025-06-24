@@ -3,6 +3,7 @@ layout: default
 title: Llama.cpp
 parent: Providers
 nav_order: 6
+has_children: true
 ---
 
 # llama.cpp Provider

@@ -1,3 +1,11 @@
+---
+layout: default
+title: Implementation Plan
+parent: Llama.cpp
+grand_parent: Providers
+nav_order: 3
+---
+
 # llama.cpp Provider Implementation Plan
 
 Based on the tutorial, here's a simple approach for the llama.cpp provider:
