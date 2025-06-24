@@ -12,12 +12,12 @@
 
 ---
 
-> [!TIP]
+> [!IMPORTANT]
 > #### Support this project by starring this repo on GitHub!
 >
 > More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
 >
-> <a href="https://github.com/muxi-ai/onellm" target="_blank"><img src="https://img.shields.io/github/stars/ranaroussi/onellm.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
+> [🌟 Star this repo on GitHub →](https://github.com/muxi-ai/onellm)
 >
 > Thank you for your support! 🙏
 
