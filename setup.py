@@ -86,11 +86,11 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Information Technology",
-        "License :: OSI Approved :: GNU Affero General Public License v3",
+        "License :: OSI Approved :: Apache 2.0 Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
