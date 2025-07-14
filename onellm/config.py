@@ -93,6 +93,12 @@ DEFAULT_CONFIG = {
             "timeout": 30,
             "max_retries": 3,
         },
+        "moonshot": {
+            "api_key": None,
+            "api_base": "https://api.moonshot.ai/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        },
         "google": {
             "api_key": None,
             "api_base": "https://generativelanguage.googleapis.com/v1beta",
@@ -169,6 +175,7 @@ PROVIDER_API_KEY_ENV_MAP = {
     "fireworks": "FIREWORKS_API_KEY",
     "perplexity": "PERPLEXITY_API_KEY",
     "deepseek": "DEEPSEEK_API_KEY",
+    "moonshot": "KIMI_API_KEY",
     "google": "GOOGLE_API_KEY",
     "cohere": "COHERE_API_KEY",
     "anyscale": "ANYSCALE_API_KEY",

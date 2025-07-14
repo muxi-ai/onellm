@@ -44,6 +44,7 @@ from .together import TogetherProvider
 from .fireworks import FireworksProvider
 from .perplexity import PerplexityProvider
 from .deepseek import DeepSeekProvider
+from .moonshot import MoonshotProvider
 from .google import GoogleProvider
 from .azure import AzureProvider
 from .anyscale import AnyscaleProvider
@@ -75,6 +76,7 @@ register_provider("together", TogetherProvider)
 register_provider("fireworks", FireworksProvider)
 register_provider("perplexity", PerplexityProvider)
 register_provider("deepseek", DeepSeekProvider)
+register_provider("moonshot", MoonshotProvider)
 register_provider("google", GoogleProvider)
 register_provider("azure", AzureProvider)
 register_provider("anyscale", AnyscaleProvider)
