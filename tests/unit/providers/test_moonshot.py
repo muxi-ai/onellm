@@ -18,8 +18,8 @@ load_dotenv()
 
 
 @pytest.mark.skipif(
-    not os.getenv("KIMI_API_KEY"),
-    reason="KIMI_API_KEY not set"
+    not os.getenv("MOONSHOT_API_KEY"),
+    reason="MOONSHOT_API_KEY not set"
 )
 class TestMoonshotProvider:
     """Test cases for Moonshot provider with real API calls."""

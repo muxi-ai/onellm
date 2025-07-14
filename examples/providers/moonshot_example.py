@@ -10,7 +10,7 @@ import os
 from onellm import OpenAI
 
 # Initialize the client (it automatically detects Moonshot from the model name)
-# Uses KIMI_API_KEY environment variable by default
+# Uses MOONSHOT_API_KEY environment variable by default
 client = OpenAI()
 
 
@@ -321,8 +321,8 @@ def main():
     print("Kimi AI with exceptional long-context capabilities!\n")
     
     # Check if API key is set
-    if not os.environ.get("KIMI_API_KEY"):
-        print("Please set KIMI_API_KEY environment variable")
+    if not os.environ.get("MOONSHOT_API_KEY"):
+        print("Please set MOONSHOT_API_KEY environment variable")
         print("Get your API key from: https://platform.moonshot.ai/")
         return
     

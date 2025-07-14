@@ -175,7 +175,7 @@ PROVIDER_API_KEY_ENV_MAP = {
     "fireworks": "FIREWORKS_API_KEY",
     "perplexity": "PERPLEXITY_API_KEY",
     "deepseek": "DEEPSEEK_API_KEY",
-    "moonshot": "KIMI_API_KEY",
+    "moonshot": "MOONSHOT_API_KEY",
     "google": "GOOGLE_API_KEY",
     "cohere": "COHERE_API_KEY",
     "anyscale": "ANYSCALE_API_KEY",
