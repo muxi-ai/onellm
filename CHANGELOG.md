@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 0.1.1 - Moonshot Provider Addition
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New Features
+
+- **Moonshot Provider**: Added support for Moonshot AI's Kimi models with long-context capabilities
+  - Support for `moonshot-v1-8k`, `moonshot-v1-32k`, `moonshot-v1-128k` models
+  - Support for experimental `kimi-k2-0711-preview` model
+  - Long-context processing up to 200,000 tokens
+  - Multilingual support with strong Chinese language capabilities
+  - Vision and audio input support via Kimi-VL and Kimi-Audio models
+  - Streaming, function calling, and JSON mode support
+  - Uses `MOONSHOT_API_KEY` environment variable for authentication
+
+### Provider Count Update
+
+- **19 Total Providers**: OneLLM now supports 19 providers (up from 18)
+- **300+ Models**: Access to Moonshot's model family adds to the comprehensive model coverage
+
+### Documentation Updates
+
+- Updated README.md to include Moonshot in the supported providers list
+- Added comprehensive examples in `examples/providers/moonshot_example.py`
+- Full test coverage with real API integration tests
+
 ## 0.1.0 - Production Release
 
 **Status**: Development Status :: 5 - Production/Stable
