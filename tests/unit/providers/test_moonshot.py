@@ -39,7 +39,7 @@ class TestMoonshotProvider:
     async def test_create_chat_completion_basic(self, provider):
         """Test basic chat completion with real API call."""
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "Say hello"}],
             max_tokens=10
         )
@@ -58,7 +58,7 @@ class TestMoonshotProvider:
         chunks = []
         
         async for chunk in provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "Count to 3"}],
             max_tokens=20,
             stream=True
@@ -83,7 +83,7 @@ class TestMoonshotProvider:
     async def test_chinese_language_support(self, provider):
         """Test Moonshot's Chinese language capabilities."""
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "你好，请用中文回答"}],
             max_tokens=20
         )
@@ -99,7 +99,7 @@ class TestMoonshotProvider:
         """Test Moonshot's long context processing capability."""
         long_text = "This is a test. " * 100  # Create a longer text
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-32k",
+            model="moonshot-v1-32k",
             messages=[{
                 "role": "user", 
                 "content": f"Summarize this text in one sentence: {long_text}"
@@ -117,7 +117,7 @@ class TestMoonshotProvider:
     async def test_system_message(self, provider):
         """Test chat completion with system message."""
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant. Be very brief."},
                 {"role": "user", "content": "Hello"}
@@ -135,7 +135,7 @@ class TestMoonshotProvider:
         """Test temperature parameter affects randomness."""
         # Low temperature (deterministic)
         response_low = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "Say one word"}],
             max_tokens=5,
             temperature=0.0
@@ -143,7 +143,7 @@ class TestMoonshotProvider:
         
         # High temperature (random)
         response_high = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "Say one word"}],
             max_tokens=5,
             temperature=1.0
@@ -157,7 +157,7 @@ class TestMoonshotProvider:
     async def test_max_tokens_limit(self, provider):
         """Test max_tokens parameter limits response length."""
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{"role": "user", "content": "Tell me a long story"}],
             max_tokens=5
         )
@@ -171,7 +171,7 @@ class TestMoonshotProvider:
     async def test_code_generation(self, provider):
         """Test Moonshot's code generation capabilities."""
         response = await provider.create_chat_completion(
-            model="moonshot/moonshot-v1-8k",
+            model="moonshot-v1-8k",
             messages=[{
                 "role": "user", 
                 "content": "Write a Python function to add two numbers. Just the function, no explanation."
@@ -189,9 +189,9 @@ class TestMoonshotProvider:
     async def test_multiple_models(self, provider):
         """Test different models available on Moonshot."""
         models = [
-            "moonshot/moonshot-v1-8k",
-            "moonshot/moonshot-v1-32k",
-            "moonshot/moonshot-v1-128k"
+            "moonshot-v1-8k",
+            "moonshot-v1-32k",
+            "moonshot-v1-128k"
         ]
         
         for model in models:
@@ -213,7 +213,7 @@ class TestMoonshotProvider:
         """Test Kimi K2 model if available."""
         try:
             response = await provider.create_chat_completion(
-                model="moonshot/kimi-k2-0711-preview",
+                model="kimi-k2-0711-preview",
                 messages=[{"role": "user", "content": "What is 2+2?"}],
                 max_tokens=10
             )
@@ -229,7 +229,7 @@ class TestMoonshotProvider:
         """Test error handling for invalid model."""
         with pytest.raises(InvalidRequestError) as exc_info:
             await provider.create_chat_completion(
-                model="moonshot/invalid-model-xyz",
+                model="invalid-model-xyz",
                 messages=[{"role": "user", "content": "test"}],
                 max_tokens=5
             )
@@ -243,7 +243,7 @@ class TestMoonshotProvider:
         
         with pytest.raises(AuthenticationError) as exc_info:
             await provider.create_chat_completion(
-                model="moonshot/moonshot-v1-8k",
+                model="moonshot-v1-8k",
                 messages=[{"role": "user", "content": "test"}],
                 max_tokens=5
             )
