@@ -25,7 +25,7 @@ nav_order: 1
 
 ---
 
-Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs across 18+ providers, designed as a drop-in replacement for the OpenAI Python client.
+Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs across 19+ providers, designed as a drop-in replacement for the OpenAI Python client.
 
 ## 🚀 Get Started
 

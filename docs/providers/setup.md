@@ -22,6 +22,7 @@ Detailed setup instructions for each provider supported by OneLLM.
 - [X.AI](#xai)
 - [Perplexity](#perplexity)
 - [DeepSeek](#deepseek)
+- [Moonshot](#moonshot)
 - [Cohere](#cohere)
 - [OpenRouter](#openrouter)
 - [Azure OpenAI](#azure)
@@ -313,6 +314,41 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "你好!"}]
 )
 ```
+
+---
+
+## Moonshot {#moonshot}
+
+### 1. Get API Key
+1. Go to [platform.moonshot.ai](https://platform.moonshot.ai)
+2. Register account  
+3. Get API key from console
+
+### 2. Set Environment Variable
+```bash
+export MOONSHOT_API_KEY="sk-..."
+```
+
+### 3. Test Connection
+```python
+response = client.chat.completions.create(
+    model="moonshot/moonshot-v1-8k",
+    messages=[{"role": "user", "content": "你好!"}]
+)
+```
+
+### 4. Available Models
+- `moonshot-v1-8k` - 8K context window
+- `moonshot-v1-32k` - 32K context window  
+- `moonshot-v1-128k` - 128K context window
+- `kimi-k2-0711-preview` - Latest K2 model (preview)
+
+### 5. Features
+- **Long Context**: Up to 200K tokens
+- **Multilingual**: Strong Chinese/English support
+- **Vision**: Kimi-VL model supports images
+- **Audio**: Kimi-Audio model supports audio input
+- **Cost-effective**: ~5x cheaper than Claude/Gemini
 
 ---
 

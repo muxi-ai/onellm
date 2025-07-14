@@ -7,7 +7,7 @@ has_children: true
 
 # Providers
 
-OneLLM supports 18 providers, giving you access to 300+ language models through a unified interface.
+OneLLM supports 19 providers, giving you access to 300+ language models through a unified interface.
 
 ## Provider List
 
@@ -94,6 +94,13 @@ OneLLM supports 18 providers, giving you access to 300+ language models through 
 - **Best for**: Chinese language, coding
 - **Setup**: [DeepSeek Setup Guide](setup.md#deepseek)
 
+#### Moonshot
+- **Models**: Kimi K2, moonshot-v1-8k/32k/128k
+- **Features**: Long-context (200K+ tokens), Chinese/English bilingual, vision support
+- **Pricing**: Cost-effective (~5x cheaper than Claude/Gemini)
+- **Best for**: Long-context processing, Chinese language, document analysis
+- **Setup**: [Moonshot Setup Guide](setup.md#moonshot)
+
 #### Cohere
 - **Models**: Command R/R+, Embed
 - **Features**: RAG optimization, embeddings
@@ -160,10 +167,11 @@ OneLLM supports 18 providers, giving you access to 300+ language models through 
 
 ### By Context Length
 1. **Google Gemini 1.5** - 1M+ tokens
-2. **Anthropic Claude** - 200K tokens
-3. **X.AI Grok** - 128K tokens
-4. **Perplexity** - 128K tokens
-5. **OpenAI GPT-4** - 128K tokens
+2. **Moonshot Kimi** - 200K tokens
+3. **Anthropic Claude** - 200K tokens
+4. **X.AI Grok** - 128K tokens
+5. **Perplexity** - 128K tokens
+6. **OpenAI GPT-4** - 128K tokens
 
 ### By Price (Lowest to Highest)
 1. **Local** (Ollama/llama.cpp) - Free
@@ -173,10 +181,10 @@ OneLLM supports 18 providers, giving you access to 300+ language models through 
 5. **OpenAI/Anthropic** - Premium
 
 ### By Features
-- **Function Calling**: OpenAI, Mistral, Groq, Anyscale
-- **Vision**: OpenAI, Anthropic, Google, Vertex AI
+- **Function Calling**: OpenAI, Mistral, Groq, Anyscale, Moonshot
+- **Vision**: OpenAI, Anthropic, Google, Vertex AI, Moonshot
 - **Web Search**: Perplexity
-- **JSON Mode**: OpenAI, Google, Mistral, Groq
+- **JSON Mode**: OpenAI, Google, Mistral, Groq, Moonshot
 - **Embeddings**: OpenAI, Cohere, Google, Bedrock
 
 ## Model Naming Convention
@@ -240,6 +248,11 @@ Models are specified using a provider prefix to clearly identify the source:
     <td><code>bedrock/{model}</code></td>
     <td><code>bedrock/claude-3-5-sonnet</code></td>
   </tr>
+  <tr>
+    <td>Moonshot</td>
+    <td><code>moonshot/{model}</code></td>
+    <td><code>moonshot/moonshot-v1-8k</code></td>
+  </tr>
 </table>
 
 ### Additional Examples
@@ -250,6 +263,7 @@ Models are specified using a provider prefix to clearly identify the source:
 "anthropic/claude-3-5-sonnet-20241022"
 "google/gemini-1.5-flash"
 "groq/llama3-70b-8192"
+"moonshot/moonshot-v1-8k"
 
 # Models with organization prefixes
 "together/meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
