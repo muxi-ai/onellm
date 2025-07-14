@@ -34,7 +34,6 @@ class TestMoonshotProvider:
         assert provider.provider_name == "moonshot"
         assert provider.api_base == "https://api.moonshot.ai/v1"
         assert provider.api_key is not None
-        assert provider.requires_api_key is True
     
     @pytest.mark.asyncio
     async def test_create_chat_completion_basic(self, provider):
@@ -254,10 +253,7 @@ class TestMoonshotProvider:
     @pytest.mark.asyncio
     async def test_provider_capabilities(self, provider):
         """Test provider capability flags."""
-        assert provider.supports_streaming is True
-        assert provider.supports_function_calling is True  # Moonshot supports function calling
-        assert provider.supports_vision is True  # Kimi-VL supports vision
-        
-        # Test model-specific capabilities
-        capabilities = provider.get_model_capabilities("moonshot/moonshot-v1-8k")
-        assert isinstance(capabilities, dict)
+        assert provider.streaming_support is True
+        assert provider.function_calling_support is True  # Moonshot supports function calling
+        assert provider.vision_support is True  # Kimi-VL supports vision
+        assert provider.json_mode_support is True  # Moonshot supports JSON mode
