@@ -376,6 +376,14 @@ class OpenAIProvider(Provider):
         # Process messages for vision models if needed
         processed_messages = self._process_messages_for_vision(messages, model)
 
+        # Handle max_tokens -> max_completion_tokens renaming for OpenAI API
+        if "max_tokens" in kwargs:
+            kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+
+        # Remove temperature for GPT-5 and o-series models that don't support it
+        if model.startswith("gpt-5") or model.startswith("o"):
+            kwargs.pop("temperature", None)
+
         # Set up the request data
         data = {
             "model": model,
@@ -573,6 +581,14 @@ class OpenAIProvider(Provider):
         Returns:
             CompletionResponse or generator yielding completion chunks
         """
+        # Handle max_tokens -> max_completion_tokens renaming for OpenAI API
+        if "max_tokens" in kwargs:
+            kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+
+        # Remove temperature for GPT-5 and o-series models that don't support it
+        if model.startswith("gpt-5") or model.startswith("o"):
+            kwargs.pop("temperature", None)
+
         # Prepare request data with all parameters
         request_data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
 

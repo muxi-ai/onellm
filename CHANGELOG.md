@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.1.2 - OpenAI Provider Compatibility Updates
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Bug Fixes
+
+- **OpenAI Provider Parameter Updates**: Fixed compatibility issues with newer OpenAI models
+  - Automatically converts `max_tokens` to `max_completion_tokens` for all OpenAI models
+  - Removes `temperature` parameter for GPT-5 and o-series models that only support default temperature
+  - Ensures compatibility with GPT-5, o1, o3, and future OpenAI model releases
+  - Backward compatible - existing code using `max_tokens` continues to work without changes
+
+### Technical Details
+
+- Models starting with `gpt-5` or `o` now have temperature parameter automatically removed
+- All OpenAI API calls now use `max_completion_tokens` instead of deprecated `max_tokens`
+- Changes are transparent to users - no code modifications required
+
 ## 0.1.1 - Moonshot Provider Addition
 
 **Status**: Development Status :: 5 - Production/Stable
