@@ -122,9 +122,9 @@ For more detailed examples, check out the [examples directory](./examples).
 
 ## 🌐 Supported Providers
 
-OneLLM currently supports **19 providers** with more on the way:
+OneLLM currently supports **20 providers** with more on the way:
 
-### Cloud API Providers (17)
+### Cloud API Providers (18)
 - **Anthropic** - Claude family of models
 - **Anyscale** - Configurable AI platform
 - **AWS Bedrock** - Access to multiple model families
@@ -135,6 +135,7 @@ OneLLM currently supports **19 providers** with more on the way:
 - **Moonshot** - Kimi models with long-context capabilities
 - **Google AI Studio** - Gemini models via API key
 - **Groq** - Ultra-fast inference for Llama, Mixtral
+- **GLM (Z.AI)** - OpenAI-compatible GLM-4 family
 - **Mistral** - Mistral Large, Medium, Small
 - **OpenAI** - GPT-4o, 3o-mini, DALL-E, Whisper, etc.
 - **OpenRouter** - Gateway to 100+ models

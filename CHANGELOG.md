@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 0.1.3 - Cache Metrics & GLM Provider
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Enhancements
+
+- **Cache-Aware Usage Metrics**: Extended `UsageInfo` with `*_cached`/`*_uncached` counts while keeping totals intact for billing parity.
+  - OpenAI adapter now surfaces cache hits via `prompt_tokens_details.cached_tokens`.
+  - Anthropic adapter maps `cache_read_input_tokens` / `cache_creation_input_tokens` into the unified schema.
+  - All consumers continue to receive `total_tokens` plus new fields defaulting to 0 when providers omit cache data.
+
+### New Providers
+
+- **GLM (Zhipu AI)**: Added OpenAI-compatible provider targeting `https://api.z.ai/api/paas/v4`.
+  - Enables access to GLM-4 model family with streaming, JSON mode, tool calling, and vision support.
+  - Reads credentials from `GLM_API_KEY` or the `ZAI_API_KEY` environment variable.
+
+### Maintenance
+
+- Adjusted configuration loader to accept multiple environment variable aliases per provider.
+- Added focused unit tests covering cache usage normalization and GLM provider initialization.
+
 ## 0.1.2 - OpenAI Provider Compatibility Updates
 
 **Status**: Development Status :: 5 - Production/Stable
