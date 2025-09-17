@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Cohere provider implementation for OneLLM.
 
@@ -57,7 +56,6 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
-
 
 class CohereProvider(Provider):
     """Cohere provider implementation."""
@@ -629,7 +627,6 @@ class CohereProvider(Provider):
             InvalidRequestError: Not supported
         """
         raise InvalidRequestError("File download is not supported by Cohere.", provider="cohere")
-
 
 # Register the provider
 register_provider("cohere", CohereProvider)

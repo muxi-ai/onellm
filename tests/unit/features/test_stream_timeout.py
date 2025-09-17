@@ -16,13 +16,11 @@ from onellm.utils.streaming import (
     StreamingError
 )
 
-
 # Helper to create a simple async generator for testing
 async def async_generator(items: List[Any]) -> AsyncGenerator[Any, None]:
     """Helper to create a simple async generator for testing."""
     for item in items:
         yield item
-
 
 class TestTimeoutHandling:
     """Test class focused on timeout handling across all streaming functions."""

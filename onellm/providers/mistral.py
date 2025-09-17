@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Mistral AI provider implementation for OneLLM.
 
@@ -60,7 +59,6 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
-
 
 class MistralProvider(Provider):
     """Mistral AI provider implementation."""
@@ -706,7 +704,6 @@ class MistralProvider(Provider):
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)
-
 
 # Register the Mistral provider
 register_provider("mistral", MistralProvider)

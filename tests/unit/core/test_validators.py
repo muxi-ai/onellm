@@ -42,13 +42,9 @@ class TestTypeValidators:
         test_dict = {"a": 1, "b": 2}
         assert validate_dict(test_dict, "test_dict") == test_dict
         assert validate_dict(test_dict, "test_dict", required_keys=["a"]) == test_dict
+        assert validate_dict(test_dict, "test_dict", required_keys=["a", "b"]) == test_dict
         assert (
-            validate_dict(test_dict, "test_dict", required_keys=["a", "b"]) == test_dict
-        )
-        assert (
-            validate_dict(
-                test_dict, "test_dict", required_keys=["a"], optional_keys=["b"]
-            )
+            validate_dict(test_dict, "test_dict", required_keys=["a"], optional_keys=["b"])
             == test_dict
         )
         assert validate_dict(None, "test_dict", allow_none=True) is None
@@ -57,14 +53,10 @@ class TestTypeValidators:
         with pytest.raises(InvalidRequestError, match="test_dict must be a dictionary"):
             validate_dict("not a dict", "test_dict")
 
-        with pytest.raises(
-            InvalidRequestError, match="test_dict is missing required key 'c'"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_dict is missing required key 'c'"):
             validate_dict(test_dict, "test_dict", required_keys=["a", "c"])
 
-        with pytest.raises(
-            InvalidRequestError, match="test_dict contains unexpected key 'b'"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_dict contains unexpected key 'b'"):
             validate_dict(test_dict, "test_dict", required_keys=["a"], optional_keys=[])
 
         with pytest.raises(InvalidRequestError, match="test_dict cannot be None"):
@@ -84,34 +76,24 @@ class TestTypeValidators:
                 raise InvalidRequestError(f"{name} must be an integer")
             return item
 
-        assert validate_list(
-            [1, 2, 3], "test_list", item_validator=validate_int_item
-        ) == [1, 2, 3]
+        assert validate_list([1, 2, 3], "test_list", item_validator=validate_int_item) == [1, 2, 3]
 
         # Test invalid cases
         with pytest.raises(InvalidRequestError, match="test_list must be a list"):
             validate_list("not a list", "test_list")
 
-        with pytest.raises(
-            InvalidRequestError, match="test_list must have at least 5 items"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_list must have at least 5 items"):
             validate_list(test_list, "test_list", min_length=5)
 
-        with pytest.raises(
-            InvalidRequestError, match="test_list must have at most 2 items"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_list must have at most 2 items"):
             validate_list(test_list, "test_list", max_length=2)
 
         with pytest.raises(InvalidRequestError, match="test_list cannot be None"):
             validate_list(None, "test_list")
 
         # Test item validator
-        with pytest.raises(
-            InvalidRequestError, match="test_list\\[1\\] must be an integer"
-        ):
-            validate_list(
-                [1, "not an int", 3], "test_list", item_validator=validate_int_item
-            )
+        with pytest.raises(InvalidRequestError, match="test_list\\[1\\] must be an integer"):
+            validate_list([1, "not an int", 3], "test_list", item_validator=validate_int_item)
 
     def test_validate_string(self):
         # Test valid cases
@@ -119,10 +101,7 @@ class TestTypeValidators:
         assert validate_string("test", "test_var", min_length=2) == "test"
         assert validate_string("test", "test_var", max_length=10) == "test"
         assert validate_string("test", "test_var", pattern=r"^te") == "test"
-        assert (
-            validate_string("test", "test_var", allowed_values=["test", "other"])
-            == "test"
-        )
+        assert validate_string("test", "test_var", allowed_values=["test", "other"]) == "test"
         assert validate_string(None, "test_var", allow_none=True) is None
 
         # Test invalid cases
@@ -134,9 +113,7 @@ class TestTypeValidators:
         ):
             validate_string("test", "test_var", min_length=5)
 
-        with pytest.raises(
-            InvalidRequestError, match="test_var must be at most 3 characters long"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_var must be at most 3 characters long"):
             validate_string("test", "test_var", max_length=3)
 
         with pytest.raises(
@@ -144,9 +121,7 @@ class TestTypeValidators:
         ):
             validate_string("test", "test_var", pattern=r"^x")
 
-        with pytest.raises(
-            InvalidRequestError, match="test_var must be one of: 'a', 'b'"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_var must be one of: 'a', 'b'"):
             validate_string("test", "test_var", allowed_values=["a", "b"])
 
         with pytest.raises(InvalidRequestError, match="test_var cannot be None"):
@@ -263,9 +238,7 @@ class TestTypeValidators:
         with pytest.raises(InvalidRequestError, match="test_json is not valid JSON"):
             validate_json("{invalid json", "test_json")
 
-        with pytest.raises(
-            InvalidRequestError, match="test_json is not JSON-serializable"
-        ):
+        with pytest.raises(InvalidRequestError, match="test_json is not JSON-serializable"):
             validate_json({"a": object()}, "test_json")
 
         with pytest.raises(InvalidRequestError, match="test_json cannot be None"):
@@ -286,9 +259,7 @@ class TestChatCompletionValidation:
         with pytest.raises(InvalidRequestError, match="Model name cannot be empty"):
             validate_model_name("")
 
-        with pytest.raises(
-            InvalidRequestError, match="does not contain a provider prefix"
-        ):
+        with pytest.raises(InvalidRequestError, match="does not contain a provider prefix"):
             validate_model_name("gpt-4")
 
         with pytest.raises(InvalidRequestError, match="Invalid provider name"):
@@ -312,9 +283,7 @@ class TestChatCompletionValidation:
         with pytest.raises(InvalidRequestError, match="Message 0 must be a dictionary"):
             validate_messages(["not a dict"])
 
-        with pytest.raises(
-            InvalidRequestError, match="Message 0 is missing required field 'role'"
-        ):
+        with pytest.raises(InvalidRequestError, match="Message 0 is missing required field 'role'"):
             validate_messages([{"content": "No role"}])
 
         with pytest.raises(
@@ -322,9 +291,7 @@ class TestChatCompletionValidation:
         ):
             validate_messages([{"role": "user"}])
 
-        with pytest.raises(
-            InvalidRequestError, match="Message 0 has invalid role 'invalid'"
-        ):
+        with pytest.raises(InvalidRequestError, match="Message 0 has invalid role 'invalid'"):
             validate_messages([{"role": "invalid", "content": "Invalid role"}])
 
     @pytest.mark.asyncio
@@ -338,9 +305,7 @@ class TestChatCompletionValidation:
             token_by_token_support = True
             realtime_support = True
 
-            async def create_chat_completion(
-                self, messages, model, stream=False, **kwargs
-            ):
+            async def create_chat_completion(self, messages, model, stream=False, **kwargs):
                 return onellm.models.ChatCompletionResponse(
                     id="test-id",
                     object="chat.completion",
@@ -394,12 +359,8 @@ class TestChatCompletionValidation:
         assert response.choices[0].message["content"] == "Test response"
 
         # Test with invalid model name
-        with pytest.raises(
-            InvalidRequestError, match="does not contain a provider prefix"
-        ):
-            await onellm.ChatCompletion.acreate(
-                model="gpt-4", messages=valid_messages
-            )
+        with pytest.raises(InvalidRequestError, match="does not contain a provider prefix"):
+            await onellm.ChatCompletion.acreate(model="gpt-4", messages=valid_messages)
 
         # Test with invalid messages
         with pytest.raises(InvalidRequestError, match="Messages list cannot be empty"):

@@ -30,9 +30,7 @@ class TestJSONMode(unittest.TestCase):
         self.mock_non_json_provider.create_chat_completion = AsyncMock()
 
         # Sample messages
-        self.messages = [
-            {"role": "user", "content": "List 3 planets as JSON"}
-        ]
+        self.messages = [{"role": "user", "content": "List 3 planets as JSON"}]
 
         # Sample response format
         self.json_response_format = {"type": "json_object"}
@@ -45,9 +43,7 @@ class TestJSONMode(unittest.TestCase):
 
         # Run test
         ChatCompletion.create(
-            model="openai/gpt-4",
-            messages=self.messages,
-            response_format=self.json_response_format
+            model="openai/gpt-4", messages=self.messages, response_format=self.json_response_format
         )
 
         # Verify the response_format parameter was passed through
@@ -66,7 +62,7 @@ class TestJSONMode(unittest.TestCase):
             ChatCompletion.create(
                 model="anthropic/claude-3",
                 messages=self.messages,
-                response_format=self.json_response_format
+                response_format=self.json_response_format,
             )
 
             # Verify warning was issued
@@ -91,7 +87,7 @@ class TestJSONMode(unittest.TestCase):
             ChatCompletion.create(
                 model="anthropic/claude-3",
                 messages=self.messages,
-                response_format=self.json_response_format
+                response_format=self.json_response_format,
             )
 
         # Verify a system message was added
@@ -115,7 +111,7 @@ class TestJSONMode(unittest.TestCase):
         # Create messages with existing system message
         messages_with_system = [
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "List 3 planets as JSON"}
+            {"role": "user", "content": "List 3 planets as JSON"},
         ]
 
         # Run test
@@ -125,7 +121,7 @@ class TestJSONMode(unittest.TestCase):
             ChatCompletion.create(
                 model="anthropic/claude-3",
                 messages=messages_with_system.copy(),  # Use a copy to avoid modifying the original
-                response_format=self.json_response_format
+                response_format=self.json_response_format,
             )
 
         # Verify the system message was modified
@@ -145,6 +141,7 @@ class TestJSONMode(unittest.TestCase):
 
         # Create an event loop for testing async functions
         import asyncio
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -154,7 +151,7 @@ class TestJSONMode(unittest.TestCase):
                 ChatCompletion.acreate(
                     model="openai/gpt-4",
                     messages=self.messages,
-                    response_format=self.json_response_format
+                    response_format=self.json_response_format,
                 )
             )
 

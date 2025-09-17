@@ -1,4 +1,5 @@
 import pytest
+
 """
 Tests for the image generation functionality in the OpenAI provider.
 
@@ -36,17 +37,15 @@ class TestImageCapabilities(unittest.TestCase):
             "data": [
                 {
                     "url": "https://example.com/image1.png",
-                    "revised_prompt": "A detailed prompt with revisions"
+                    "revised_prompt": "A detailed prompt with revisions",
                 }
-            ]
+            ],
         }
         mock_make_request.return_value = mock_response
 
         # Call the method
         result = await self.provider.create_image(
-            prompt="A beautiful sunset over mountains",
-            model="dall-e-3",
-            size="1024x1024"
+            prompt="A beautiful sunset over mountains", model="dall-e-3", size="1024x1024"
         )
 
         # Verify the request was made correctly
@@ -73,17 +72,14 @@ class TestImageCapabilities(unittest.TestCase):
             "created": 1589478378,
             "data": [
                 {"url": "https://example.com/image1.png"},
-                {"url": "https://example.com/image2.png"}
-            ]
+                {"url": "https://example.com/image2.png"},
+            ],
         }
         mock_make_request.return_value = mock_response
 
         # Call the method
         result = await self.provider.create_image(
-            prompt="A beautiful sunset over mountains",
-            model="dall-e-2",
-            n=2,
-            size="512x512"
+            prompt="A beautiful sunset over mountains", model="dall-e-2", n=2, size="512x512"
         )
 
         # Verify the request
@@ -101,21 +97,18 @@ class TestImageCapabilities(unittest.TestCase):
     async def test_create_image_with_options(self, mock_make_request):
         """Test creating images with additional options."""
         # Mock response
-        mock_response = {
-            "created": 1589478378,
-            "data": [{"url": "https://example.com/image1.png"}]
-        }
+        mock_response = {"created": 1589478378, "data": [{"url": "https://example.com/image1.png"}]}
         mock_make_request.return_value = mock_response
 
         # Call the method with additional options
-        result = await self.provider.create_image(
+        await self.provider.create_image(
             prompt="A beautiful sunset over mountains",
             model="dall-e-3",
             size="1024x1024",
             quality="hd",
             style="vivid",
             response_format="url",
-            user="user123"
+            user="user123",
         )
 
         # Verify the request includes the additional options
@@ -124,34 +117,28 @@ class TestImageCapabilities(unittest.TestCase):
         self.assertEqual(call_args[1]["data"]["style"], "vivid")
         self.assertEqual(call_args[1]["data"]["response_format"], "url")
         self.assertEqual(call_args[1]["data"]["user"], "user123")
+
     @pytest.mark.asyncio
     async def test_create_image_invalid_model(self):
         """Test that invalid models are rejected."""
         with self.assertRaises(InvalidRequestError) as context:
-            await self.provider.create_image(
-                prompt="A test image",
-                model="invalid-model"
-            )
+            await self.provider.create_image(prompt="A test image", model="invalid-model")
         self.assertIn("not a supported image generation model", str(context.exception))
+
     @pytest.mark.asyncio
     async def test_create_image_invalid_size(self):
         """Test that invalid sizes are rejected."""
         with self.assertRaises(InvalidRequestError) as context:
             await self.provider.create_image(
-                prompt="A test image",
-                model="dall-e-3",
-                size="invalid-size"
+                prompt="A test image", model="dall-e-3", size="invalid-size"
             )
         self.assertIn("not supported for dall-e-3", str(context.exception))
+
     @pytest.mark.asyncio
     async def test_dall_e_3_multiple_images(self):
         """Test that DALL-E 3 rejects multiple images."""
         with self.assertRaises(InvalidRequestError) as context:
-            await self.provider.create_image(
-                prompt="A test image",
-                model="dall-e-3",
-                n=2
-            )
+            await self.provider.create_image(prompt="A test image", model="dall-e-3", n=2)
         self.assertIn("only supports generating one image", str(context.exception))
 
     @mock.patch("onellm.providers.get_provider")
@@ -163,15 +150,13 @@ class TestImageCapabilities(unittest.TestCase):
         mock_provider = mock.MagicMock()
         mock_provider.create_image.return_value = {
             "created": 1589478378,
-            "data": [{"url": "https://example.com/image1.png"}]
+            "data": [{"url": "https://example.com/image1.png"}],
         }
         mock_get_provider.return_value = mock_provider
 
         # Call the API class
         result = await Image.create(
-            prompt="A beautiful sunset over mountains",
-            model="openai/dall-e-3",
-            size="1024x1024"
+            prompt="A beautiful sunset over mountains", model="openai/dall-e-3", size="1024x1024"
         )
 
         # Verify the provider was called correctly
@@ -198,8 +183,8 @@ class TestImageCapabilities(unittest.TestCase):
                 "created": 1589478378,
                 "data": [
                     {"url": "https://example.com/image1.png"},
-                    {"b64_json": base64.b64encode(b"fake-image-data").decode('utf-8')}
-                ]
+                    {"b64_json": base64.b64encode(b"fake-image-data").decode("utf-8")},
+                ],
             }
             mock_get_provider.return_value = mock_provider
 
@@ -212,7 +197,7 @@ class TestImageCapabilities(unittest.TestCase):
                 model="openai/dall-e-3",
                 n=1,
                 size="1024x1024",
-                output_dir=temp_dir
+                output_dir=temp_dir,
             )
 
             # Verify the images were saved

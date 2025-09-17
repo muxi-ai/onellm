@@ -28,7 +28,6 @@ and AI detection tools. This module helps normalize text to safe ASCII equivalen
 
 import re
 
-
 def clean_unicode_artifacts(text: str) -> str:
     """
     Clean invisible Unicode artifacts from AI model responses.

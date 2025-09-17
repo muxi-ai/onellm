@@ -27,7 +27,6 @@ to help with error handling in client code.
 
 from typing import Any, Dict, List, Optional
 
-
 class MuxiLLMError(Exception):
     """
     Base exception class for OneLLM errors.
@@ -77,7 +76,6 @@ class MuxiLLMError(Exception):
         # Combine all components into a single error message
         return f"{self.message}{provider_msg}{status_msg}{request_msg}"
 
-
 class APIError(MuxiLLMError):
     """
     Raised when the provider's API returns an unexpected error.
@@ -88,7 +86,6 @@ class APIError(MuxiLLMError):
 
     pass
 
-
 class AuthenticationError(MuxiLLMError):
     """
     Raised when there are authentication issues (invalid API key, etc.).
@@ -97,7 +94,6 @@ class AuthenticationError(MuxiLLMError):
     """
 
     pass
-
 
 class RateLimitError(MuxiLLMError):
     """
@@ -109,7 +105,6 @@ class RateLimitError(MuxiLLMError):
 
     pass
 
-
 class InvalidRequestError(MuxiLLMError):
     """
     Raised when the request parameters are invalid.
@@ -120,7 +115,6 @@ class InvalidRequestError(MuxiLLMError):
 
     pass
 
-
 class ServiceUnavailableError(MuxiLLMError):
     """
     Raised when the provider's service is unavailable.
@@ -129,7 +123,6 @@ class ServiceUnavailableError(MuxiLLMError):
     """
 
     pass
-
 
 class TimeoutError(MuxiLLMError):
     """
@@ -141,7 +134,6 @@ class TimeoutError(MuxiLLMError):
 
     pass
 
-
 class BadGatewayError(MuxiLLMError):
     """
     Raised when a bad gateway error occurs.
@@ -151,7 +143,6 @@ class BadGatewayError(MuxiLLMError):
     """
 
     pass
-
 
 class PermissionError(MuxiLLMError):
     """
@@ -163,7 +154,6 @@ class PermissionError(MuxiLLMError):
 
     pass
 
-
 class ResourceNotFoundError(MuxiLLMError):
     """
     Raised when a requested resource is not found.
@@ -173,7 +163,6 @@ class ResourceNotFoundError(MuxiLLMError):
     """
 
     pass
-
 
 class InvalidModelError(InvalidRequestError):
     """
@@ -185,7 +174,6 @@ class InvalidModelError(InvalidRequestError):
 
     pass
 
-
 class InvalidConfigurationError(MuxiLLMError):
     """
     Raised when the library is configured incorrectly.
@@ -195,7 +183,6 @@ class InvalidConfigurationError(MuxiLLMError):
     """
 
     pass
-
 
 class FallbackExhaustionError(MuxiLLMError):
     """

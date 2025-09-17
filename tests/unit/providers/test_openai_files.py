@@ -1,4 +1,3 @@
-import asyncio
 """
 Tests for file operations functionality in the OpenAI provider.
 
@@ -9,7 +8,7 @@ import os
 import io
 import pytest
 from unittest import mock
-from unittest.mock import AsyncMock, patch, MagicMock, mock_open
+from unittest.mock import AsyncMock, patch, mock_open
 
 from onellm.providers.openai import OpenAIProvider
 from onellm.models import FileObject
@@ -47,7 +46,7 @@ class MockFileProvider:
                 created_at=1677858242,
                 filename="test.txt",
                 purpose="assistants",
-                status="processed"
+                status="processed",
             )
 
 
@@ -66,7 +65,8 @@ class TestOpenAIFileUpload:
 
         # Set up mock response
         with mock.patch.object(
-                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
+            self.provider, "_make_request", new_callable=AsyncMock
+        ) as mock_make_request:
             mock_make_request.return_value = {
                 "id": "file-abc123",
                 "object": "file",
@@ -74,14 +74,12 @@ class TestOpenAIFileUpload:
                 "created_at": 1677858242,
                 "filename": "test.txt",
                 "purpose": "assistants",
-                "status": "processed"
+                "status": "processed",
             }
 
             # Call the method with bytes
             result = await self.provider.upload_file(
-                file=file_content,
-                purpose="assistants",
-                filename="test.txt"
+                file=file_content, purpose="assistants", filename="test.txt"
             )
 
             # Verify API was called correctly
@@ -109,9 +107,12 @@ class TestOpenAIFileUpload:
         mock_file_content = b"This is test content from a file path."
 
         # Set up mock response
-        with mock.patch.object(
-                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request, \
-             mock.patch('builtins.open', mock_open(read_data=mock_file_content)):
+        with (
+            mock.patch.object(
+                self.provider, "_make_request", new_callable=AsyncMock
+            ) as mock_make_request,
+            mock.patch("builtins.open", mock_open(read_data=mock_file_content)),
+        ):
 
             mock_make_request.return_value = {
                 "id": "file-xyz456",
@@ -120,13 +121,12 @@ class TestOpenAIFileUpload:
                 "created_at": 1677858242,
                 "filename": "test_file.txt",
                 "purpose": "assistants",
-                "status": "processed"
+                "status": "processed",
             }
 
             # Call the method with a file path string
             result = await self.provider.upload_file(
-                file="path/to/test_file.txt",
-                purpose="assistants"
+                file="path/to/test_file.txt", purpose="assistants"
             )
 
             # Verify API was called correctly
@@ -152,7 +152,8 @@ class TestOpenAIFileUpload:
 
         # Set up mock response
         with mock.patch.object(
-                self.provider, '_make_request', new_callable=AsyncMock) as mock_make_request:
+            self.provider, "_make_request", new_callable=AsyncMock
+        ) as mock_make_request:
             mock_make_request.return_value = {
                 "id": "file-io789",
                 "object": "file",
@@ -160,14 +161,12 @@ class TestOpenAIFileUpload:
                 "created_at": 1677858242,
                 "filename": "uploaded_file.txt",
                 "purpose": "assistants",
-                "status": "processed"
+                "status": "processed",
             }
 
             # Call the method with a file-like object
             result = await self.provider.upload_file(
-                file=file_obj,
-                purpose="assistants",
-                filename="uploaded_file.txt"
+                file=file_obj, purpose="assistants", filename="uploaded_file.txt"
             )
 
             # Verify API was called correctly
@@ -187,9 +186,11 @@ class TestOpenAIFileUpload:
     @pytest.mark.asyncio
     async def test_upload_file_with_invalid_file(self):
         """Test uploading with an invalid file type."""
+
         # Create a custom class that doesn't have a read method and isn't a string/bytes
         class InvalidFileType:
             """Invalid file type for testing."""
+
             def __str__(self):
                 return "InvalidFileObject"
 
@@ -198,10 +199,7 @@ class TestOpenAIFileUpload:
         # We don't need to mock _make_request since the validation happens before that
         # The real implementation should raise the error directly
         with pytest.raises(InvalidRequestError) as exc_info:
-            await self.provider.upload_file(
-                file=invalid_file,
-                purpose="assistants"
-            )
+            await self.provider.upload_file(file=invalid_file, purpose="assistants")
 
         # Verify error message
         assert "Invalid file type" in str(exc_info.value)
@@ -215,7 +213,7 @@ class TestOpenAIFileOperations:
         self.provider = OpenAIProvider(api_key="sk-test-key")
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_list_files_basic(self, mock_make_request):
         """Test basic list_files functionality."""
         # Mock response
@@ -229,9 +227,9 @@ class TestOpenAIFileOperations:
                     "filename": "test.txt",
                     "bytes": 1024,
                     "created_at": 1677858242,
-                    "status": "processed"
+                    "status": "processed",
                 }
-            ]
+            ],
         }
         mock_make_request.return_value = mock_response
 
@@ -250,7 +248,7 @@ class TestOpenAIFileOperations:
         assert kwargs["path"] == "/files"
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_list_files_with_purpose(self, mock_make_request):
         """Test list_files with purpose filter."""
         # Mock response
@@ -264,9 +262,9 @@ class TestOpenAIFileOperations:
                     "filename": "data.jsonl",
                     "bytes": 10240,
                     "created_at": 1677858242,
-                    "status": "processed"
+                    "status": "processed",
                 }
-            ]
+            ],
         }
         mock_make_request.return_value = mock_response
 
@@ -286,15 +284,11 @@ class TestOpenAIFileOperations:
         assert kwargs["data"]["purpose"] == "fine-tune"
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_delete_file_success(self, mock_make_request):
         """Test successful file deletion."""
         # Mock response
-        mock_response = {
-            "id": "file-123",
-            "object": "file",
-            "deleted": True
-        }
+        mock_response = {"id": "file-123", "object": "file", "deleted": True}
         mock_make_request.return_value = mock_response
 
         # Call the method
@@ -311,22 +305,15 @@ class TestOpenAIFileOperations:
         assert kwargs["path"] == "/files/file-123"
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_delete_file_with_additional_params(self, mock_make_request):
         """Test delete_file with additional parameters."""
         # Mock response
-        mock_response = {
-            "id": "file-456",
-            "object": "file",
-            "deleted": True
-        }
+        mock_response = {"id": "file-456", "object": "file", "deleted": True}
         mock_make_request.return_value = mock_response
 
         # Call the method with additional params (should be passed through)
-        result = await self.provider.delete_file(
-            file_id="file-456",
-            additional_param="test-value"
-        )
+        result = await self.provider.delete_file(file_id="file-456", additional_param="test-value")
 
         # Check response
         assert result["id"] == "file-456"
@@ -340,7 +327,7 @@ class TestOpenAIFileOperations:
         # Additional params are not used in this implementation but should be accepted
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_list_files_error_handling(self, mock_make_request):
         """Test error handling during list_files."""
         # Configure mock to raise an exception
@@ -354,7 +341,7 @@ class TestOpenAIFileOperations:
         assert "Invalid API key" in str(excinfo.value)
 
     @pytest.mark.asyncio
-    @patch.object(OpenAIProvider, '_make_request')
+    @patch.object(OpenAIProvider, "_make_request")
     async def test_delete_file_error_handling(self, mock_make_request):
         """Test error handling during delete_file."""
         # Configure mock to raise an exception
@@ -373,8 +360,7 @@ class TestOpenAIFileOperations:
         """Test download_file error handling."""
         # Since we can't control the aiohttp.ClientSession inside download_file
         # This test is marked as expected to fail
-        with pytest.raises(
-                InvalidRequestError) as exc_info:
+        with pytest.raises(InvalidRequestError) as exc_info:
             await self.provider.download_file(file_id="non-existent-file")
 
         # Verify error message if the test somehow passes
@@ -391,27 +377,24 @@ class TestOpenAIFilePathFix:
         """Test OpenAI file upload with os.path.basename fix."""
         import tempfile
         from onellm import OpenAI
-        
+
         client = OpenAI()
-        
+
         # Create a temporary file with a path that includes directory separators
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test content for file upload")
             temp_path = f.name
-        
+
         try:
             # Test file upload
-            file_obj = await client.files.create(
-                file=temp_path,
-                purpose="assistants"
-            )
-            
+            file_obj = await client.files.create(file=temp_path, purpose="assistants")
+
             assert file_obj.id
             assert file_obj.filename == os.path.basename(temp_path)
-            
+
             # Clean up - delete the uploaded file
             await client.files.delete(file_obj.id)
-            
+
         finally:
             # Clean up temp file
             os.unlink(temp_path)

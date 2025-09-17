@@ -41,7 +41,7 @@ def test_openai_alias():
     assert isinstance(client, Client)
 
 
-@patch('onellm.ChatCompletion.create')
+@patch("onellm.ChatCompletion.create")
 def test_chat_completions_create(mock_create):
     """Test that client.chat.completions.create delegates to ChatCompletion.create."""
     # Setup mock
@@ -51,11 +51,7 @@ def test_chat_completions_create(mock_create):
     # Test
     client = Client(api_key="test-key")
     messages = [{"role": "user", "content": "Hello"}]
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=messages,
-        temperature=0.7
-    )
+    response = client.chat.completions.create(model="gpt-4", messages=messages, temperature=0.7)
 
     # Verify
     assert response == mock_response
@@ -64,11 +60,11 @@ def test_chat_completions_create(mock_create):
         messages=messages,
         stream=False,
         fallback_models=None,  # The client always passes this
-        temperature=0.7
+        temperature=0.7,
     )
 
 
-@patch('onellm.Completion.create')
+@patch("onellm.Completion.create")
 def test_completions_create(mock_create):
     """Test that client.completions.create delegates to Completion.create."""
     # Setup mock
@@ -78,9 +74,7 @@ def test_completions_create(mock_create):
     # Test
     client = Client(api_key="test-key")
     response = client.completions.create(
-        model="gpt-3.5-turbo-instruct",
-        prompt="Hello world",
-        max_tokens=100
+        model="gpt-3.5-turbo-instruct", prompt="Hello world", max_tokens=100
     )
 
     # Verify
@@ -90,11 +84,11 @@ def test_completions_create(mock_create):
         prompt="Hello world",
         stream=False,
         fallback_models=None,  # The client always passes this
-        max_tokens=100
+        max_tokens=100,
     )
 
 
-@patch('onellm.Embedding.create')
+@patch("onellm.Embedding.create")
 def test_embeddings_create(mock_create):
     """Test that client.embeddings.create delegates to Embedding.create."""
     # Setup mock
@@ -103,21 +97,18 @@ def test_embeddings_create(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input="Hello world"
-    )
+    response = client.embeddings.create(model="text-embedding-3-small", input="Hello world")
 
     # Verify
     assert response == mock_response
     mock_create.assert_called_once_with(
         model="openai/text-embedding-3-small",  # Note the provider prefix added
         input="Hello world",
-        fallback_models=None  # The client always passes this
+        fallback_models=None,  # The client always passes this
     )
 
 
-@patch('onellm.ChatCompletion.create')
+@patch("onellm.ChatCompletion.create")
 def test_explicit_provider_prefix_maintained(mock_create):
     """Test that explicitly provided provider prefixes are maintained."""
     # Setup mock
@@ -127,10 +118,7 @@ def test_explicit_provider_prefix_maintained(mock_create):
     # Test with explicit provider prefix
     client = Client(api_key="test-key")
     messages = [{"role": "user", "content": "Hello"}]
-    response = client.chat.completions.create(
-        model="anthropic/claude-3-opus",
-        messages=messages
-    )
+    response = client.chat.completions.create(model="anthropic/claude-3-opus", messages=messages)
 
     # Verify provider prefix is maintained and response is correct
     assert response == mock_response
@@ -138,12 +126,12 @@ def test_explicit_provider_prefix_maintained(mock_create):
         model="anthropic/claude-3-opus",  # Should keep the existing prefix
         messages=messages,
         stream=False,
-        fallback_models=None  # The client always passes this
+        fallback_models=None,  # The client always passes this
     )
 
 
 @pytest.mark.asyncio
-@patch('onellm.ChatCompletion.acreate')
+@patch("onellm.ChatCompletion.acreate")
 async def test_async_chat_completions(mock_acreate):
     """Test that client.chat.completions.acreate delegates to ChatCompletion.acreate."""
     # Setup mock
@@ -153,23 +141,16 @@ async def test_async_chat_completions(mock_acreate):
     # Test
     client = Client(api_key="test-key")
     messages = [{"role": "user", "content": "Hello"}]
-    response = await client.chat.completions.acreate(
-        model="gpt-4",
-        messages=messages,
-        stream=True
-    )
+    response = await client.chat.completions.acreate(model="gpt-4", messages=messages, stream=True)
 
     # Verify
     assert response == mock_response
     mock_acreate.assert_called_once_with(
-        model="openai/gpt-4",
-        messages=messages,
-        stream=True,
-        fallback_models=None
+        model="openai/gpt-4", messages=messages, stream=True, fallback_models=None
     )
 
 
-@patch('onellm.ChatCompletion.create')
+@patch("onellm.ChatCompletion.create")
 def test_chat_completions_with_fallbacks(mock_create):
     """Test that client.chat.completions.create handles fallback models correctly."""
     # Setup mock
@@ -180,9 +161,7 @@ def test_chat_completions_with_fallbacks(mock_create):
     client = Client(api_key="test-key")
     messages = [{"role": "user", "content": "Hello"}]
     response = client.chat.completions.create(
-        model="gpt-4",
-        fallback_models=["claude-3-opus", "llama3-70b"],
-        messages=messages
+        model="gpt-4", fallback_models=["claude-3-opus", "llama3-70b"], messages=messages
     )
 
     # Verify
@@ -191,11 +170,11 @@ def test_chat_completions_with_fallbacks(mock_create):
         model="openai/gpt-4",
         messages=messages,
         stream=False,
-        fallback_models=["openai/claude-3-opus", "openai/llama3-70b"]  # Prefixes added
+        fallback_models=["openai/claude-3-opus", "openai/llama3-70b"],  # Prefixes added
     )
 
 
-@patch('onellm.ChatCompletion.create')
+@patch("onellm.ChatCompletion.create")
 def test_chat_completions_with_mixed_fallbacks(mock_create):
     """Test that client.chat.completions.create handles mixed provider prefixes correctly."""
     # Setup mock
@@ -206,9 +185,7 @@ def test_chat_completions_with_mixed_fallbacks(mock_create):
     client = Client(api_key="test-key")
     messages = [{"role": "user", "content": "Hello"}]
     response = client.chat.completions.create(
-        model="gpt-4",
-        fallback_models=["anthropic/claude-3-opus", "llama3-70b"],
-        messages=messages
+        model="gpt-4", fallback_models=["anthropic/claude-3-opus", "llama3-70b"], messages=messages
     )
 
     # Verify provider prefixes are handled correctly and response is correct
@@ -217,11 +194,11 @@ def test_chat_completions_with_mixed_fallbacks(mock_create):
         model="openai/gpt-4",
         messages=messages,
         stream=False,
-        fallback_models=["anthropic/claude-3-opus", "openai/llama3-70b"]  # Existing prefix kept
+        fallback_models=["anthropic/claude-3-opus", "openai/llama3-70b"],  # Existing prefix kept
     )
 
 
-@patch('onellm.Completion.create')
+@patch("onellm.Completion.create")
 def test_completions_with_fallbacks(mock_create):
     """Test that client.completions.create handles fallback models correctly."""
     # Setup mock
@@ -233,7 +210,7 @@ def test_completions_with_fallbacks(mock_create):
     response = client.completions.create(
         model="gpt-3.5-turbo-instruct",
         prompt="Hello world",
-        fallback_models=["claude-instant", "llama3-8b"]
+        fallback_models=["claude-instant", "llama3-8b"],
     )
 
     # Verify
@@ -242,11 +219,11 @@ def test_completions_with_fallbacks(mock_create):
         model="openai/gpt-3.5-turbo-instruct",
         prompt="Hello world",
         stream=False,
-        fallback_models=["openai/claude-instant", "openai/llama3-8b"]
+        fallback_models=["openai/claude-instant", "openai/llama3-8b"],
     )
 
 
-@patch('onellm.Embedding.create')
+@patch("onellm.Embedding.create")
 def test_embeddings_with_fallbacks(mock_create):
     """Test that client.embeddings.create handles fallback models correctly."""
     # Setup mock
@@ -258,7 +235,7 @@ def test_embeddings_with_fallbacks(mock_create):
     response = client.embeddings.create(
         model="text-embedding-3-small",
         input="Hello world",
-        fallback_models=["text-embedding-3-large", "ada"]
+        fallback_models=["text-embedding-3-large", "ada"],
     )
 
     # Verify
@@ -266,11 +243,11 @@ def test_embeddings_with_fallbacks(mock_create):
     mock_create.assert_called_once_with(
         model="openai/text-embedding-3-small",
         input="Hello world",
-        fallback_models=["openai/text-embedding-3-large", "openai/ada"]
+        fallback_models=["openai/text-embedding-3-large", "openai/ada"],
     )
 
 
-@patch('onellm.Image.create')
+@patch("onellm.Image.create")
 def test_images_create(mock_create):
     """Test that client.images.create delegates to Image.create."""
     # Set up mock
@@ -278,19 +255,13 @@ def test_images_create(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    client.images.create(
-        model="dall-e-3",
-        prompt="A cute baby sea otter"
-    )
+    client.images.create(model="dall-e-3", prompt="A cute baby sea otter")
 
     # We only verify the function was called with right parameters
-    mock_create.assert_called_once_with(
-        model="openai/dall-e-3",
-        prompt="A cute baby sea otter"
-    )
+    mock_create.assert_called_once_with(model="openai/dall-e-3", prompt="A cute baby sea otter")
 
 
-@patch('onellm.AudioTranscription.create')
+@patch("onellm.AudioTranscription.create")
 def test_audio_transcriptions_create(mock_create):
     """Test that client.audio.transcriptions.create delegates to AudioTranscription.create."""
     # Set up mock
@@ -298,19 +269,13 @@ def test_audio_transcriptions_create(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    client.audio.transcriptions.create(
-        model="whisper-1",
-        file="audio.mp3"
-    )
+    client.audio.transcriptions.create(model="whisper-1", file="audio.mp3")
 
     # We only verify the function was called with right parameters
-    mock_create.assert_called_once_with(
-        model="openai/whisper-1",
-        file="audio.mp3"
-    )
+    mock_create.assert_called_once_with(model="openai/whisper-1", file="audio.mp3")
 
 
-@patch('onellm.AudioTranslation.create')
+@patch("onellm.AudioTranslation.create")
 def test_audio_translations_create(mock_create):
     """Test that client.audio.translations.create delegates to AudioTranslation.create."""
     # Set up mock
@@ -318,19 +283,13 @@ def test_audio_translations_create(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    client.audio.translations.create(
-        model="whisper-1",
-        file="audio.mp3"
-    )
+    client.audio.translations.create(model="whisper-1", file="audio.mp3")
 
     # We only verify the function was called with right parameters
-    mock_create.assert_called_once_with(
-        model="openai/whisper-1",
-        file="audio.mp3"
-    )
+    mock_create.assert_called_once_with(model="openai/whisper-1", file="audio.mp3")
 
 
-@patch('onellm.Speech.create')
+@patch("onellm.Speech.create")
 def test_speech_create(mock_create):
     """Test that client.speech.create delegates to Speech.create."""
     # Set up mock
@@ -338,22 +297,14 @@ def test_speech_create(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    client.speech.create(
-        model="tts-1",
-        input="Hello world",
-        voice="alloy"
-    )
+    client.speech.create(model="tts-1", input="Hello world", voice="alloy")
 
     # We only verify the function was called with right parameters
-    mock_create.assert_called_once_with(
-        model="openai/tts-1",
-        input="Hello world",
-        voice="alloy"
-    )
+    mock_create.assert_called_once_with(model="openai/tts-1", input="Hello world", voice="alloy")
 
 
 @pytest.mark.asyncio
-@patch('onellm.Completion.acreate')
+@patch("onellm.Completion.acreate")
 async def test_async_completions(mock_acreate):
     """Test that client.completions.acreate delegates to Completion.acreate."""
     # Setup mock
@@ -363,9 +314,7 @@ async def test_async_completions(mock_acreate):
     # Test
     client = Client(api_key="test-key")
     response = await client.completions.acreate(
-        model="gpt-3.5-turbo-instruct",
-        prompt="Hello world",
-        stream=True
+        model="gpt-3.5-turbo-instruct", prompt="Hello world", stream=True
     )
 
     # Verify
@@ -374,12 +323,12 @@ async def test_async_completions(mock_acreate):
         model="openai/gpt-3.5-turbo-instruct",
         prompt="Hello world",
         stream=True,
-        fallback_models=None
+        fallback_models=None,
     )
 
 
 @pytest.mark.asyncio
-@patch('onellm.Embedding.acreate')
+@patch("onellm.Embedding.acreate")
 async def test_async_embeddings(mock_acreate):
     """Test that client.embeddings.acreate delegates to Embedding.acreate."""
     # Setup mock
@@ -388,22 +337,17 @@ async def test_async_embeddings(mock_acreate):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.embeddings.acreate(
-        model="text-embedding-3-small",
-        input="Hello world"
-    )
+    response = await client.embeddings.acreate(model="text-embedding-3-small", input="Hello world")
 
     # Verify
     assert response == mock_response
     mock_acreate.assert_called_once_with(
-        model="openai/text-embedding-3-small",
-        input="Hello world",
-        fallback_models=None
+        model="openai/text-embedding-3-small", input="Hello world", fallback_models=None
     )
 
 
 @pytest.mark.asyncio
-@patch('onellm.Image.create')
+@patch("onellm.Image.create")
 async def test_images_acreate(mock_create):
     """Test that client.images.acreate delegates to Image.create properly.
     Note: Image class doesn't have acreate, but returns a coroutine from create
@@ -414,21 +358,15 @@ async def test_images_acreate(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.images.acreate(
-        model="dall-e-3",
-        prompt="A cute baby sea otter"
-    )
+    response = await client.images.acreate(model="dall-e-3", prompt="A cute baby sea otter")
 
     # Verify
     assert response == mock_response
-    mock_create.assert_called_once_with(
-        model="openai/dall-e-3",
-        prompt="A cute baby sea otter"
-    )
+    mock_create.assert_called_once_with(model="openai/dall-e-3", prompt="A cute baby sea otter")
 
 
 @pytest.mark.asyncio
-@patch('onellm.AudioTranscription.create')
+@patch("onellm.AudioTranscription.create")
 async def test_audio_transcriptions_acreate(mock_create):
     """Test that client.audio.transcriptions.acreate delegates correctly."""
     # Setup mock
@@ -437,21 +375,15 @@ async def test_audio_transcriptions_acreate(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.audio.transcriptions.acreate(
-        model="whisper-1",
-        file="audio.mp3"
-    )
+    response = await client.audio.transcriptions.acreate(model="whisper-1", file="audio.mp3")
 
     # Verify
     assert response == mock_response
-    mock_create.assert_called_once_with(
-        model="openai/whisper-1",
-        file="audio.mp3"
-    )
+    mock_create.assert_called_once_with(model="openai/whisper-1", file="audio.mp3")
 
 
 @pytest.mark.asyncio
-@patch('onellm.AudioTranslation.create')
+@patch("onellm.AudioTranslation.create")
 async def test_audio_translations_acreate(mock_create):
     """Test that client.audio.translations.acreate delegates to AudioTranslation.create properly.
     Note: AudioTranslation class doesn't have acreate, but returns a coroutine from create
@@ -462,21 +394,15 @@ async def test_audio_translations_acreate(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.audio.translations.acreate(
-        model="whisper-1",
-        file="audio.mp3"
-    )
+    response = await client.audio.translations.acreate(model="whisper-1", file="audio.mp3")
 
     # Verify
     assert response == mock_response
-    mock_create.assert_called_once_with(
-        model="openai/whisper-1",
-        file="audio.mp3"
-    )
+    mock_create.assert_called_once_with(model="openai/whisper-1", file="audio.mp3")
 
 
 @pytest.mark.asyncio
-@patch('onellm.Speech.create')
+@patch("onellm.Speech.create")
 async def test_speech_acreate(mock_create):
     """Test that client.speech.acreate delegates to Speech.create properly.
     Note: Speech class doesn't have acreate, but returns a coroutine from create
@@ -487,23 +413,15 @@ async def test_speech_acreate(mock_create):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.speech.acreate(
-        model="tts-1",
-        input="Hello world",
-        voice="alloy"
-    )
+    response = await client.speech.acreate(model="tts-1", input="Hello world", voice="alloy")
 
     # Verify
     assert response == mock_response
-    mock_create.assert_called_once_with(
-        model="openai/tts-1",
-        input="Hello world",
-        voice="alloy"
-    )
+    mock_create.assert_called_once_with(model="openai/tts-1", input="Hello world", voice="alloy")
 
 
 # File operations tests - update to use upload/download instead of create/retrieve
-@patch('onellm.File.upload')
+@patch("onellm.File.upload")
 def test_files_create(mock_upload):
     """Test that client.files.create delegates to File.upload."""
     # Setup mock
@@ -512,22 +430,15 @@ def test_files_create(mock_upload):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.files.create(
-        file="test.txt",
-        purpose="assistants"
-    )
+    response = client.files.create(file="test.txt", purpose="assistants")
 
     # Verify
     assert response == mock_response
-    mock_upload.assert_called_once_with(
-        file="test.txt",
-        purpose="assistants",
-        provider="openai"
-    )
+    mock_upload.assert_called_once_with(file="test.txt", purpose="assistants", provider="openai")
 
 
 @pytest.mark.asyncio
-@patch('onellm.File.aupload')
+@patch("onellm.File.aupload")
 async def test_files_acreate(mock_aupload):
     """Test that client.files.acreate delegates to File.aupload."""
     # Setup mock
@@ -536,21 +447,14 @@ async def test_files_acreate(mock_aupload):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.files.acreate(
-        file="test.txt",
-        purpose="fine-tune"
-    )
+    response = await client.files.acreate(file="test.txt", purpose="fine-tune")
 
     # Verify
     assert response == mock_response
-    mock_aupload.assert_called_once_with(
-        file="test.txt",
-        purpose="fine-tune",
-        provider="openai"
-    )
+    mock_aupload.assert_called_once_with(file="test.txt", purpose="fine-tune", provider="openai")
 
 
-@patch('onellm.File.download')
+@patch("onellm.File.download")
 def test_files_retrieve(mock_download):
     """Test that client.files.retrieve delegates to File.download."""
     # Setup mock
@@ -559,20 +463,15 @@ def test_files_retrieve(mock_download):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.files.retrieve(
-        file_id="file-123"
-    )
+    response = client.files.retrieve(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_download.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_download.assert_called_once_with(file_id="file-123", provider="openai")
 
 
 @pytest.mark.asyncio
-@patch('onellm.File.adownload')
+@patch("onellm.File.adownload")
 async def test_files_aretrieve(mock_adownload):
     """Test that client.files.aretrieve delegates to File.adownload."""
     # Setup mock
@@ -581,19 +480,14 @@ async def test_files_aretrieve(mock_adownload):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.files.aretrieve(
-        file_id="file-123"
-    )
+    response = await client.files.aretrieve(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_adownload.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_adownload.assert_called_once_with(file_id="file-123", provider="openai")
 
 
-@patch('onellm.File.download')
+@patch("onellm.File.download")
 def test_files_content(mock_download):
     """Test that client.files.content delegates to File.download."""
     # Setup mock
@@ -602,20 +496,15 @@ def test_files_content(mock_download):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.files.content(
-        file_id="file-123"
-    )
+    response = client.files.content(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_download.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_download.assert_called_once_with(file_id="file-123", provider="openai")
 
 
 @pytest.mark.asyncio
-@patch('onellm.File.adownload')
+@patch("onellm.File.adownload")
 async def test_files_acontent(mock_adownload):
     """Test that client.files.acontent delegates to File.adownload."""
     # Setup mock
@@ -624,19 +513,14 @@ async def test_files_acontent(mock_adownload):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.files.acontent(
-        file_id="file-123"
-    )
+    response = await client.files.acontent(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_adownload.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_adownload.assert_called_once_with(file_id="file-123", provider="openai")
 
 
-@patch('onellm.File.list')
+@patch("onellm.File.list")
 def test_files_list(mock_list):
     """Test that client.files.list delegates to File.list."""
     # Setup mock
@@ -645,20 +529,15 @@ def test_files_list(mock_list):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.files.list(
-        purpose="fine-tune"
-    )
+    response = client.files.list(purpose="fine-tune")
 
     # Verify
     assert response == mock_response
-    mock_list.assert_called_once_with(
-        purpose="fine-tune",
-        provider="openai"
-    )
+    mock_list.assert_called_once_with(purpose="fine-tune", provider="openai")
 
 
 @pytest.mark.asyncio
-@patch('onellm.File.alist')
+@patch("onellm.File.alist")
 async def test_files_alist(mock_alist):
     """Test that client.files.alist delegates to File.alist."""
     # Setup mock
@@ -671,12 +550,10 @@ async def test_files_alist(mock_alist):
 
     # Verify
     assert response == mock_response
-    mock_alist.assert_called_once_with(
-        provider="openai"
-    )
+    mock_alist.assert_called_once_with(provider="openai")
 
 
-@patch('onellm.File.delete')
+@patch("onellm.File.delete")
 def test_files_delete(mock_delete):
     """Test that client.files.delete delegates to File.delete."""
     # Setup mock
@@ -685,20 +562,15 @@ def test_files_delete(mock_delete):
 
     # Test
     client = Client(api_key="test-key")
-    response = client.files.delete(
-        file_id="file-123"
-    )
+    response = client.files.delete(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_delete.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_delete.assert_called_once_with(file_id="file-123", provider="openai")
 
 
 @pytest.mark.asyncio
-@patch('onellm.File.adelete')
+@patch("onellm.File.adelete")
 async def test_files_adelete(mock_adelete):
     """Test that client.files.adelete delegates to File.adelete."""
     # Setup mock
@@ -707,13 +579,8 @@ async def test_files_adelete(mock_adelete):
 
     # Test
     client = Client(api_key="test-key")
-    response = await client.files.adelete(
-        file_id="file-123"
-    )
+    response = await client.files.adelete(file_id="file-123")
 
     # Verify
     assert response == mock_response
-    mock_adelete.assert_called_once_with(
-        file_id="file-123",
-        provider="openai"
-    )
+    mock_adelete.assert_called_once_with(file_id="file-123", provider="openai")

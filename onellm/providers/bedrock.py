@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 AWS Bedrock provider implementation for OneLLM.
 
@@ -67,7 +66,6 @@ from ..models import (
 )
 from ..types import Message
 from .base import Provider, register_provider
-
 
 class BedrockProvider(Provider):
     """AWS Bedrock provider implementation."""
@@ -785,7 +783,6 @@ class BedrockProvider(Provider):
             "AWS Bedrock does not support file downloads. " "Files are not stored in Bedrock.",
             provider="bedrock",
         )
-
 
 # Register the Bedrock provider
 register_provider("bedrock", BedrockProvider)

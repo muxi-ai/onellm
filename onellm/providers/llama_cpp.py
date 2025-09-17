@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 llama.cpp provider implementation for OneLLM.
 
@@ -58,12 +57,10 @@ from ..models import (
 from ..types import Message
 from .base import Provider, register_provider
 
-
 # Global model cache to avoid reloading
 _MODEL_CACHE: Dict[str, Any] = {}
 _CACHE_TIMEOUT = 300  # 5 minutes
 _LAST_ACCESS: Dict[str, float] = {}
-
 
 class LlamaCppProvider(Provider):
     """llama.cpp provider implementation using Python bindings."""
@@ -604,7 +601,6 @@ class LlamaCppProvider(Provider):
             models.append(str(relative_path))
 
         return sorted(models)
-
 
 # Register the provider
 register_provider("llama_cpp", LlamaCppProvider)

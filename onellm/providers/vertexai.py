@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Vertex AI provider implementation for OneLLM.
 
@@ -65,7 +64,6 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
-
 
 class VertexAIProvider(Provider):
     """Vertex AI provider implementation."""
@@ -691,7 +689,6 @@ class VertexAIProvider(Provider):
         raise InvalidRequestError(
             "File download is not supported by Vertex AI.", provider="vertexai"
         )
-
 
 # Register the provider
 register_provider("vertexai", VertexAIProvider)

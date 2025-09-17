@@ -34,11 +34,9 @@ from ..errors import MuxiLLMError
 # Type variable for stream item
 T = TypeVar("T")
 
-
 class StreamingError(MuxiLLMError):
     """Error during streaming operation."""
     pass
-
 
 async def stream_generator(
     source_generator: AsyncGenerator[Any, None],
@@ -111,7 +109,6 @@ async def stream_generator(
         # Wrap other exceptions in StreamingError for consistent error handling
         raise StreamingError(f"Error in streaming response: {str(e)}") from e
 
-
 async def _stream_with_timeout(
     source_generator: AsyncGenerator[Any, None],
     transform_func: Optional[Callable[[Any], T]],
@@ -173,7 +170,6 @@ async def _stream_with_timeout(
     except asyncio.TimeoutError:
         # Handle timeout errors with a specific message
         raise StreamingError(f"Streaming response timed out after {timeout} seconds")
-
 
 async def json_stream_generator(
     source_generator: AsyncGenerator[str, None],
@@ -252,7 +248,6 @@ async def json_stream_generator(
             raise
         # Wrap other exceptions in StreamingError
         raise StreamingError(f"Error in JSON streaming: {str(e)}") from e
-
 
 async def line_stream_generator(
     source_generator: AsyncGenerator[Union[str, bytes], None],

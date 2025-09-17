@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Base class for OpenAI-compatible providers.
 
@@ -30,7 +29,6 @@ while reusing all the OpenAI implementation logic.
 from ..config import get_provider_config
 from ..errors import AuthenticationError
 from .openai import OpenAIProvider
-
 
 class OpenAICompatibleProvider(OpenAIProvider):
     """

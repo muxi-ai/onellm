@@ -23,7 +23,7 @@ This directory contains configuration files and test data needed for running One
    ```bash
    # From the project root
    source tests/artifacts/api-keys.sh
-   
+
    # Then run tests
    pytest tests/integration/
    ```
@@ -91,7 +91,7 @@ This is a placeholder file for llama.cpp tests. To run actual llama.cpp tests:
 
 ## Security Notes
 
-⚠️ **IMPORTANT**: 
+⚠️ **IMPORTANT**:
 - Never commit real API keys or credentials to version control
 - Add `api-keys.sh` to `.gitignore` if it contains real credentials
 - Use environment-specific configuration files for different environments

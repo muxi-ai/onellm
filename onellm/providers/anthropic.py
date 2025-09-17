@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Anthropic provider implementation for OneLLM.
 
@@ -60,7 +59,6 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
-
 
 class AnthropicProvider(Provider):
     """Anthropic provider implementation."""
@@ -783,7 +781,6 @@ class AnthropicProvider(Provider):
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)
-
 
 # Register the Anthropic provider
 register_provider("anthropic", AnthropicProvider)

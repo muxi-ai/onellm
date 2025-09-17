@@ -8,8 +8,6 @@ These tests verify that the Anthropic provider correctly handles various request
 converts between OpenAI and Anthropic formats, and manages unique Anthropic features.
 """
 
-import asyncio
-import os
 import pytest
 import mock
 from typing import Dict, Any
@@ -60,20 +58,12 @@ def mock_aiohttp_session():
                 "id": "msg_test-id",
                 "type": "message",
                 "role": "assistant",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "This is a test response from Claude"
-                    }
-                ],
+                "content": [{"type": "text", "text": "This is a test response from Claude"}],
                 "model": "claude-3-5-sonnet-20241022",
                 "stop_reason": "end_turn",
                 "stop_sequence": None,
-                "usage": {
-                    "input_tokens": 10,
-                    "output_tokens": 25
-                }
-            }
+                "usage": {"input_tokens": 10, "output_tokens": 25},
+            },
         )
 
         # Set up request to return our mock response
@@ -111,7 +101,7 @@ class TestAnthropicProvider:
         """Test successful initialization with API key."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
             assert provider.api_key == "sk-ant-test-key"
             assert provider.api_base == "https://api.anthropic.com/v1"
@@ -124,12 +114,12 @@ class TestAnthropicProvider:
     def test_capability_flags(self):
         """Test that the provider has correct capability flags."""
         provider = get_provider("anthropic")
-        
+
         # Check supported capabilities
         assert provider.vision_support is True
         assert provider.streaming_support is True
         assert provider.token_by_token_support is True
-        
+
         # Check unsupported capabilities
         assert provider.json_mode_support is False  # Anthropic doesn't have explicit JSON mode
         assert provider.audio_input_support is False
@@ -140,10 +130,10 @@ class TestAnthropicProvider:
         """Test that headers are correctly formatted for Anthropic API."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
             headers = provider._get_headers()
-            
+
             assert headers["Content-Type"] == "application/json"
             assert headers["x-api-key"] == "sk-ant-test-key"
             assert headers["anthropic-version"] == "2023-06-01"
@@ -152,18 +142,18 @@ class TestAnthropicProvider:
         """Test conversion from OpenAI message format to Anthropic format."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             # Test simple text messages
             openai_messages = [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, how are you?"},
-                {"role": "assistant", "content": "I'm doing well, thank you!"}
+                {"role": "assistant", "content": "I'm doing well, thank you!"},
             ]
-            
+
             anthropic_messages = provider._convert_openai_to_anthropic_messages(openai_messages)
-            
+
             # System message should be filtered out (handled separately)
             assert len(anthropic_messages) == 2
             assert anthropic_messages[0]["role"] == "user"
@@ -175,21 +165,19 @@ class TestAnthropicProvider:
         """Test extraction of system message from OpenAI messages."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             messages_with_system = [
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello!"}
+                {"role": "user", "content": "Hello!"},
             ]
-            
+
             system_message = provider._extract_system_message(messages_with_system)
             assert system_message == "You are a helpful assistant."
-            
-            messages_without_system = [
-                {"role": "user", "content": "Hello!"}
-            ]
-            
+
+            messages_without_system = [{"role": "user", "content": "Hello!"}]
+
             system_message = provider._extract_system_message(messages_without_system)
             assert system_message is None
 
@@ -197,9 +185,9 @@ class TestAnthropicProvider:
         """Test conversion of complex content with images."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             # Test complex content with image
             openai_messages = [
                 {
@@ -210,23 +198,23 @@ class TestAnthropicProvider:
                             "type": "image_url",
                             "image_url": {
                                 "url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD=="
-                            }
-                        }
-                    ]
+                            },
+                        },
+                    ],
                 }
             ]
-            
+
             anthropic_messages = provider._convert_openai_to_anthropic_messages(openai_messages)
-            
+
             assert len(anthropic_messages) == 1
             assert anthropic_messages[0]["role"] == "user"
             assert isinstance(anthropic_messages[0]["content"], list)
             assert len(anthropic_messages[0]["content"]) == 2
-            
+
             # Check text content
             assert anthropic_messages[0]["content"][0]["type"] == "text"
             assert anthropic_messages[0]["content"][0]["text"] == "What's in this image?"
-            
+
             # Check image content
             assert anthropic_messages[0]["content"][1]["type"] == "image"
             assert anthropic_messages[0]["content"][1]["source"]["type"] == "base64"
@@ -237,19 +225,15 @@ class TestAnthropicProvider:
         """Test chat completion functionality."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
-            messages = [
-                {"role": "user", "content": "Hello, how are you?"}
-            ]
-            
+
+            messages = [{"role": "user", "content": "Hello, how are you?"}]
+
             response = await provider.create_chat_completion(
-                messages=messages,
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=1000
+                messages=messages, model="claude-3-5-sonnet-20241022", max_tokens=1000
             )
-            
+
             # Verify response structure (converted to OpenAI format)
             assert response.id == "msg_test-id"
             assert response.model == "claude-3-5-sonnet-20241022"
@@ -262,14 +246,13 @@ class TestAnthropicProvider:
         """Test that completion gets converted to chat completion."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             response = await provider.create_completion(
-                prompt="Complete this text:",
-                model="claude-3-5-sonnet-20241022"
+                prompt="Complete this text:", model="claude-3-5-sonnet-20241022"
             )
-            
+
             # Verify response structure (completion format)
             assert response.id == "msg_test-id"
             assert response.object == "text_completion"
@@ -281,40 +264,34 @@ class TestAnthropicProvider:
         """Test that embedding raises appropriate error."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             with pytest.raises(InvalidRequestError) as exc_info:
                 await provider.create_embedding(
-                    input="Test text to embed",
-                    model="claude-3-5-sonnet-20241022"
+                    input="Test text to embed", model="claude-3-5-sonnet-20241022"
                 )
-            
+
             assert "does not provide embedding models" in str(exc_info.value)
 
     def test_anthropic_to_openai_response_conversion(self, mock_env_api_key):
         """Test conversion from Anthropic response to OpenAI format."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
+
             anthropic_response = {
                 "id": "msg_test",
-                "content": [
-                    {"type": "text", "text": "Hello from Claude!"}
-                ],
+                "content": [{"type": "text", "text": "Hello from Claude!"}],
                 "stop_reason": "end_turn",
-                "usage": {
-                    "input_tokens": 5,
-                    "output_tokens": 10
-                }
+                "usage": {"input_tokens": 5, "output_tokens": 10},
             }
-            
+
             openai_response = provider._convert_anthropic_to_openai_response(
                 anthropic_response, "claude-3-5-sonnet-20241022"
             )
-            
+
             assert openai_response.id == "msg_test"
             assert openai_response.choices[0].message["content"] == "Hello from Claude!"
             assert openai_response.choices[0].finish_reason == "end_turn"
@@ -327,31 +304,25 @@ class TestAnthropicProvider:
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {
                 "api_key": "sk-ant-test-key",
-                "api_base": "https://custom.anthropic.com/v1"
+                "api_base": "https://custom.anthropic.com/v1",
             }
-            
+
             provider = AnthropicProvider()
             assert provider.api_base == "https://custom.anthropic.com/v1"
 
     def test_timeout_configuration(self, mock_env_api_key):
         """Test that timeout can be configured."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
-            mock_get_config.return_value = {
-                "api_key": "sk-ant-test-key",
-                "timeout": 60.0
-            }
-            
+            mock_get_config.return_value = {"api_key": "sk-ant-test-key", "timeout": 60.0}
+
             provider = AnthropicProvider()
             assert provider.timeout == 60.0
 
     def test_max_retries_configuration(self, mock_env_api_key):
         """Test that max retries can be configured."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
-            mock_get_config.return_value = {
-                "api_key": "sk-ant-test-key",
-                "max_retries": 5
-            }
-            
+            mock_get_config.return_value = {"api_key": "sk-ant-test-key", "max_retries": 5}
+
             provider = AnthropicProvider()
             assert provider.max_retries == 5
             assert provider.retry_config.max_retries == 5
@@ -361,29 +332,27 @@ class TestAnthropicProvider:
         """Test chat completion with Anthropic's thinking feature."""
         with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
-            
+
             provider = AnthropicProvider()
-            
-            messages = [
-                {"role": "user", "content": "Solve this math problem: 2 + 2"}
-            ]
-            
+
+            messages = [{"role": "user", "content": "Solve this math problem: 2 + 2"}]
+
             # Mock request to capture the data sent
-            with patch.object(provider, '_make_request') as mock_request:
+            with patch.object(provider, "_make_request") as mock_request:
                 mock_request.return_value = {
                     "id": "msg_thinking_test",
                     "content": [{"type": "text", "text": "The answer is 4"}],
                     "stop_reason": "end_turn",
-                    "usage": {"input_tokens": 5, "output_tokens": 8}
+                    "usage": {"input_tokens": 5, "output_tokens": 8},
                 }
-                
+
                 await provider.create_chat_completion(
                     messages=messages,
                     model="claude-opus-4-20250514",
                     max_tokens=1000,
-                    thinking={"enabled": True, "budget_tokens": 20000}
+                    thinking={"enabled": True, "budget_tokens": 20000},
                 )
-                
+
                 # Verify thinking parameter was passed through
                 call_args = mock_request.call_args
                 assert call_args[1]["data"]["thinking"] == {"enabled": True, "budget_tokens": 20000}

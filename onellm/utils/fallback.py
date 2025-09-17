@@ -40,7 +40,6 @@ from ..errors import (
 # This allows the fallback mechanism to work with any return type
 T = TypeVar("T")
 
-
 class FallbackConfig:
     """
     Configuration for fallback behavior.
@@ -79,7 +78,6 @@ class FallbackConfig:
         self.max_fallbacks = max_fallbacks
         self.log_fallbacks = log_fallbacks
         self.fallback_callback = fallback_callback
-
 
 async def maybe_await(result):
     """

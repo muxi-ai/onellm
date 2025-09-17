@@ -33,7 +33,6 @@ from typing import Dict, List, Optional
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
 
-
 class Image:
     """API class for image generation."""
 

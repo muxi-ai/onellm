@@ -69,7 +69,6 @@ from datetime import datetime
 # Import the Speech class from OneLLM
 from onellm import Speech
 
-
 async def text_to_speech_example(text, voice, output_file=None, model="tts-1"):
     """
     Generate speech from text and save it to a file.
@@ -122,7 +121,6 @@ async def text_to_speech_example(text, voice, output_file=None, model="tts-1"):
         print(f"Error generating speech: {e}")
         return None
 
-
 def main():
     """
     Parse command line arguments and run the text-to-speech example.
@@ -160,7 +158,6 @@ def main():
         args.output,
         args.model
     ))
-
 
 if __name__ == "__main__":
     main()

@@ -32,7 +32,6 @@ from typing import List, Optional
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
 
-
 class Speech:
     """
     API class for text-to-speech operations.

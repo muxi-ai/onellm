@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Google AI Studio (Gemini) provider implementation for OneLLM.
 
@@ -56,7 +55,6 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
-
 
 class GoogleProvider(Provider):
     """Google AI Studio (Gemini) provider implementation."""
@@ -613,7 +611,6 @@ class GoogleProvider(Provider):
         raise InvalidRequestError(
             "File download is not supported for Google AI Studio.", provider="google"
         )
-
 
 # Register the provider
 register_provider("google", GoogleProvider)

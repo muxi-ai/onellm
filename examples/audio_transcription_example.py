@@ -66,7 +66,6 @@ from pathlib import Path
 from onellm import AudioTranscription
 from onellm.config import set_api_key
 
-
 def main():
     """
     Run the audio transcription example.
@@ -129,7 +128,6 @@ def main():
 
     print("\n--- Transcription with Options ---")
     print(result_with_options)  # With response_format="text", this is directly the transcribed text
-
 
 if __name__ == "__main__":
     main()

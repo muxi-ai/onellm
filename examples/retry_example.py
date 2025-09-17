@@ -88,7 +88,7 @@ def demonstrate_chat_completion_retries():
     # Define messages for the chat
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What is the capital of France?"}
+        {"role": "user", "content": "What is the capital of France?"},
     ]
 
     # Example 1: Using retries without fallbacks
@@ -190,7 +190,7 @@ async def demonstrate_async_retries():
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What is the capital of Italy?"}
+        {"role": "user", "content": "What is the capital of Italy?"},
     ]
 
     # Example 5: Using retries with async API

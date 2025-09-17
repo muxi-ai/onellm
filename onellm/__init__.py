@@ -57,7 +57,6 @@ from .errors import (
     InvalidRequestError,
 )
 
-
 def get_version() -> str:
     """
     Read and return the package version from the .version file.
@@ -72,7 +71,6 @@ def get_version() -> str:
     version_file = os.path.join(os.path.dirname(__file__), ".version")
     with open(version_file, "r", encoding="utf-8") as f:
         return f.read().strip()
-
 
 # Initialize package version from .version file
 __version__ = get_version()

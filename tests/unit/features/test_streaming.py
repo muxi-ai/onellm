@@ -16,18 +16,15 @@ from onellm.utils.streaming import (
     StreamingError
 )
 
-
 async def async_generator(items: List[str]) -> AsyncGenerator[str, None]:
     """Helper to create a simple async generator for testing."""
     for item in items:
         yield item
 
-
 async def failing_generator() -> AsyncGenerator[str, None]:
     """Helper to create an async generator that raises an exception."""
     yield "first"
     raise ValueError("Test error")
-
 
 class TestStreamGenerator:
     """Tests for the stream_generator function."""
@@ -99,7 +96,6 @@ class TestStreamGenerator:
 
         assert "Error transforming streaming response" in str(excinfo.value)
         assert "Transform error" in str(excinfo.value)
-
 
 class TestJsonStreamGenerator:
     """Tests for the json_stream_generator function."""
@@ -231,7 +227,6 @@ class TestJsonStreamGenerator:
                 pass
 
         assert "Invalid JSON in streaming response" in str(excinfo.value)
-
 
 class TestLineStreamGenerator:
     """Tests for the line_stream_generator function."""

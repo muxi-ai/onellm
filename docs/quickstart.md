@@ -176,12 +176,12 @@ from onellm import AsyncOpenAI
 
 async def main():
     client = AsyncOpenAI()
-    
+
     response = await client.chat.completions.create(
         model="openai/gpt-4o-mini",
         messages=[{"role": "user", "content": "Hello!"}]
     )
-    
+
     print(response.choices[0].message['content'])
 
 asyncio.run(main())

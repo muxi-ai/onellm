@@ -1,4 +1,5 @@
 import pytest
+
 """
 Tests for the audio functionality in the OpenAI provider.
 
@@ -70,7 +71,7 @@ class TestAudioCapabilities(unittest.TestCase):
             ("audio.m4a", "audio/mp4"),
             ("audio.webm", "audio/webm"),
             ("audio.unknown", "audio/mpeg"),  # Default for unknown
-            ("audio", "audio/mpeg")  # No extension
+            ("audio", "audio/mpeg"),  # No extension
         ]
 
         for filename, expected_type in test_cases:
@@ -85,7 +86,7 @@ class TestAudioCapabilities(unittest.TestCase):
         mock_response = {
             "text": "This is a test transcription.",
             "language": "en",
-            "duration": 10.5
+            "duration": 10.5,
         }
         mock_make_request.return_value = mock_response
 
@@ -95,9 +96,7 @@ class TestAudioCapabilities(unittest.TestCase):
 
         # Call the method
         result = await self.provider.create_transcription(
-            file=test_file,
-            model="whisper-1",
-            language="en"
+            file=test_file, model="whisper-1", language="en"
         )
 
         # Check the result
@@ -121,10 +120,7 @@ class TestAudioCapabilities(unittest.TestCase):
     async def test_create_translation(self, mock_make_request):
         """Test creating a translation."""
         # Mock response from the API
-        mock_response = {
-            "text": "This is a test translation.",
-            "duration": 10.5
-        }
+        mock_response = {"text": "This is a test translation.", "duration": 10.5}
         mock_make_request.return_value = mock_response
 
         # Create a test file
@@ -133,9 +129,7 @@ class TestAudioCapabilities(unittest.TestCase):
 
         # Call the method
         result = await self.provider.create_translation(
-            file=test_file,
-            model="whisper-1",
-            prompt="Technical discussion"
+            file=test_file, model="whisper-1", prompt="Technical discussion"
         )
 
         # Check the result
@@ -171,9 +165,7 @@ class TestAudioCapabilities(unittest.TestCase):
 
         # Call the method
         result = await AudioTranscription.create(
-            file="test.mp3",
-            model="openai/whisper-1",
-            language="en"
+            file="test.mp3", model="openai/whisper-1", language="en"
         )
 
         # Check the result
@@ -202,9 +194,7 @@ class TestAudioCapabilities(unittest.TestCase):
 
         # Call the method
         result = await AudioTranslation.create(
-            file="test.mp3",
-            model="openai/whisper-1",
-            prompt="Technical discussion"
+            file="test.mp3", model="openai/whisper-1", prompt="Technical discussion"
         )
 
         # Check the result

@@ -10,7 +10,6 @@ line 123 using coverage pragmas.
 
 from onellm.errors import RateLimitError
 
-
 class TestPragmaApproach:
     """
     Demonstration of how coverage pragmas can be used for unreachable code.

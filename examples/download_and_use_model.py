@@ -19,48 +19,52 @@ def download_model():
     print("=== Downloading Model ===")
     print("This example will download Phi-3 Mini (small, fast model)")
     print()
-    
+
     # Run the download command
     cmd = [
-        sys.executable, "-m", "onellm.cli",
+        sys.executable,
+        "-m",
+        "onellm.cli",
         "download",
-        "--repo-id", "microsoft/Phi-3-mini-4k-instruct-gguf",
-        "--filename", "Phi-3-mini-4k-instruct-q4.gguf"
+        "--repo-id",
+        "microsoft/Phi-3-mini-4k-instruct-gguf",
+        "--filename",
+        "Phi-3-mini-4k-instruct-q4.gguf",
     ]
-    
+
     print("Running:", " ".join(cmd))
     print()
-    
+
     result = subprocess.run(cmd)
-    
+
     if result.returncode != 0:
         print("Failed to download model")
         return False
-    
+
     return True
 
 
 async def use_model():
     """Use the downloaded model."""
     print("\n=== Using Downloaded Model ===")
-    
+
     client = Client()
-    
+
     try:
         # Use the model we just downloaded
         response = await client.chat.completions.create(
             model="llama_cpp/Phi-3-mini-4k-instruct-q4.gguf",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant. Be concise."},
-                {"role": "user", "content": "What is the capital of France?"}
+                {"role": "user", "content": "What is the capital of France?"},
             ],
             max_tokens=50,
-            temperature=0.7
+            temperature=0.7,
         )
-        
+
         print(f"Response: {response.choices[0].message.content}")
         print(f"\nModel used: {response.model}")
-        
+
     except Exception as e:
         print(f"Error using model: {e}")
         print("\nMake sure:")
@@ -73,24 +77,24 @@ async def main():
     """Main example flow."""
     print("OneLLM Model Download and Usage Example")
     print("======================================\n")
-    
+
     # Check if model already exists
     model_path = Path.home() / "llama_models" / "Phi-3-mini-4k-instruct-q4.gguf"
-    
+
     if model_path.exists():
         print(f"Model already exists at: {model_path}")
         use_existing = input("Use existing model? (y/n): ").lower()
-        if use_existing != 'y':
+        if use_existing != "y":
             if not download_model():
                 return
     else:
         print("Model not found locally. Downloading...")
         if not download_model():
             return
-    
+
     # Use the model
     await use_model()
-    
+
     print("\n=== Complete! ===")
     print("You can now use this model in your applications with:")
     print('  model="llama_cpp/Phi-3-mini-4k-instruct-q4.gguf"')

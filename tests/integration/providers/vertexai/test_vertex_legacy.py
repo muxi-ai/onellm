@@ -110,15 +110,15 @@ success_count = 0
 for test in test_cases:
     print(f"\n🧪 Testing: {test['name']}")
     print(f"   URL: {test['url'].split('/models/')[1] if '/models/' in test['url'] else test['url']}")
-    
+
     response = requests.post(test['url'], json=test['data'], headers=headers)
     print(f"   Status: {response.status_code}")
-    
+
     if response.status_code == 200:
         success_count += 1
         result = response.json()
         print(f"   ✅ SUCCESS!")
-        
+
         # Extract response based on model type
         if 'candidates' in result:
             # Gemini response format

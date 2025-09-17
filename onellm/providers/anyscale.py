@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Anyscale Endpoints provider implementation for OneLLM.
 
@@ -28,7 +27,6 @@ models like Llama, Mistral, and CodeLlama through an OpenAI-compatible API.
 from ..config import get_provider_config
 from .openai_compatible import OpenAICompatibleProvider
 from .base import register_provider
-
 
 class AnyscaleProvider(OpenAICompatibleProvider):
     """Anyscale Endpoints provider implementation.
@@ -132,7 +130,6 @@ class AnyscaleProvider(OpenAICompatibleProvider):
 
         # Return alias if found, otherwise return as-is
         return model_aliases.get(model, model)
-
 
 # Register the provider
 register_provider("anyscale", AnyscaleProvider)

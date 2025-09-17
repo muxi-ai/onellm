@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Ollama provider implementation for OneLLM.
 
@@ -47,7 +46,6 @@ from ..models import ChatCompletionChunk, ChatCompletionResponse
 from ..types import Message
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
-
 
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama provider implementation with dynamic endpoint routing."""
@@ -306,7 +304,6 @@ class OllamaProvider(OpenAICompatibleProvider):
                 f"Cannot connect to Ollama server at {endpoint}: {str(e)}",
                 provider=self.provider_name,
             )
-
 
 # Register the provider
 register_provider("ollama", OllamaProvider)

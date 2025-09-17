@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Moonshot provider implementation for OneLLM.
 
@@ -28,7 +27,6 @@ performance on coding and reasoning tasks.
 
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
-
 
 class MoonshotProvider(OpenAICompatibleProvider):
     """Moonshot provider implementation."""
@@ -54,7 +52,6 @@ class MoonshotProvider(OpenAICompatibleProvider):
 
     # Additional capabilities
     function_calling_support = True  # Supports function calling
-
 
 # Register the Moonshot provider
 register_provider("moonshot", MoonshotProvider)

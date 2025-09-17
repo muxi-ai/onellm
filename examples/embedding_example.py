@@ -67,7 +67,6 @@ from typing import List
 from onellm import Embedding
 from onellm.config import set_api_key
 
-
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     """
     Calculate the cosine similarity between two vectors.
@@ -89,7 +88,6 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 
     # Calculate cosine similarity using the dot product and magnitudes
     return np.dot(a_array, b_array) / (np.linalg.norm(a_array) * np.linalg.norm(b_array))
-
 
 def get_embeddings(model: str, texts: List[str]) -> List[List[float]]:
     """
@@ -124,7 +122,6 @@ def get_embeddings(model: str, texts: List[str]) -> List[List[float]]:
         print(f"Token usage: {response.usage.get('total_tokens', 'N/A')} tokens")
 
     return embeddings
-
 
 def semantic_search_demo(query_text: str, corpus: List[str], model: str) -> None:
     """
@@ -167,7 +164,6 @@ def semantic_search_demo(query_text: str, corpus: List[str], model: str) -> None
         # Truncate long texts for cleaner display
         display_text = text if len(text) < 70 else text[:67] + "..."
         print(f"{i}. {display_text} (Score: {score:.4f})")
-
 
 def main() -> None:
     """
@@ -223,7 +219,6 @@ def main() -> None:
 
     # Run the semantic search demonstration
     semantic_search_demo(query, corpus, model)
-
 
 if __name__ == "__main__":
     main()

@@ -33,7 +33,6 @@ from .models import EmbeddingResponse
 from .utils.fallback import FallbackConfig
 from .errors import InvalidRequestError
 
-
 def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
     """
     Validate the input for embedding.
@@ -56,7 +55,6 @@ def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
     if isinstance(input_data, list):
         if not input_data or all(not text for text in input_data):
             raise InvalidRequestError("Input cannot be empty")
-
 
 class Embedding:
     """Class for creating embeddings with various providers."""

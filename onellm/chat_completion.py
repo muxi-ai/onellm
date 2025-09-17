@@ -35,7 +35,6 @@ from .models import ChatCompletionResponse, ChatCompletionChunk
 from .utils.fallback import FallbackConfig
 from .validators import validate_model_name, validate_messages, validate_stream
 
-
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
 

@@ -31,7 +31,6 @@ from typing import BinaryIO, Union
 from .providers.base import get_provider
 from .models import FileObject
 
-
 class File:
     """Interface for file operations across different providers."""
 

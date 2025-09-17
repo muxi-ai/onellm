@@ -40,7 +40,6 @@ from ..types import Message
 from ..utils.fallback import FallbackConfig, maybe_await
 from .base import Provider, get_provider, parse_model_name
 
-
 class FallbackProviderProxy(Provider):
     """Provider implementation that supports fallbacks to alternative models."""
 

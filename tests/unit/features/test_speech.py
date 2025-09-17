@@ -39,7 +39,7 @@ class TestSpeechCapabilities(unittest.TestCase):
                 model="tts-1",
                 voice="alloy",
                 response_format="mp3",
-                speed=1.0
+                speed=1.0,
             )
 
             # Check the result
@@ -70,40 +70,34 @@ class TestSpeechCapabilities(unittest.TestCase):
     def test_create_speech_invalid_model(self):
         """Test that invalid model raises an error."""
         with self.assertRaises(InvalidRequestError):
-            asyncio_run(self.provider.create_speech(
-                input="Test",
-                model="invalid-model",
-                voice="alloy"
-            ))
+            asyncio_run(
+                self.provider.create_speech(input="Test", model="invalid-model", voice="alloy")
+            )
 
     def test_create_speech_invalid_voice(self):
         """Test that invalid voice raises an error."""
         with self.assertRaises(InvalidRequestError):
-            asyncio_run(self.provider.create_speech(
-                input="Test",
-                model="tts-1",
-                voice="invalid-voice"
-            ))
+            asyncio_run(
+                self.provider.create_speech(input="Test", model="tts-1", voice="invalid-voice")
+            )
 
     def test_create_speech_invalid_format(self):
         """Test that invalid response format raises an error."""
         with self.assertRaises(InvalidRequestError):
-            asyncio_run(self.provider.create_speech(
-                input="Test",
-                model="tts-1",
-                voice="alloy",
-                response_format="invalid-format"
-            ))
+            asyncio_run(
+                self.provider.create_speech(
+                    input="Test", model="tts-1", voice="alloy", response_format="invalid-format"
+                )
+            )
 
     def test_create_speech_invalid_speed(self):
         """Test that invalid speed raises an error."""
         with self.assertRaises(InvalidRequestError):
-            asyncio_run(self.provider.create_speech(
-                input="Test",
-                model="tts-1",
-                voice="alloy",
-                speed=5.0  # Maximum is 4.0
-            ))
+            asyncio_run(
+                self.provider.create_speech(
+                    input="Test", model="tts-1", voice="alloy", speed=5.0  # Maximum is 4.0
+                )
+            )
 
     def test_speech_class(self):
         """Test the Speech class synchronously."""
@@ -116,14 +110,14 @@ class TestSpeechCapabilities(unittest.TestCase):
         mock_audio_data = b"fake audio data"
 
         # Mock Speech.create_sync to avoid actual API calls
-        with mock.patch.object(Speech, 'create_sync', return_value=mock_audio_data) as mock_create:
+        with mock.patch.object(Speech, "create_sync", return_value=mock_audio_data) as mock_create:
             # Call the method synchronously
             result = Speech.create_sync(
                 input=test_input,
                 model=test_model,
                 voice=test_voice,
                 response_format=test_format,
-                speed=test_speed
+                speed=test_speed,
             )
 
             # Check the result
@@ -135,7 +129,7 @@ class TestSpeechCapabilities(unittest.TestCase):
                 model=test_model,
                 voice=test_voice,
                 response_format=test_format,
-                speed=test_speed
+                speed=test_speed,
             )
 
     def test_speech_class_with_output_file(self):
@@ -148,15 +142,12 @@ class TestSpeechCapabilities(unittest.TestCase):
         mock_audio_data = b"fake audio data"
 
         # Mock both Speech.create_sync and the open function
-        create_patch = mock.patch.object(Speech, 'create_sync', return_value=mock_audio_data)
+        create_patch = mock.patch.object(Speech, "create_sync", return_value=mock_audio_data)
         with create_patch as mock_create:
 
             # Call the method
             result = Speech.create_sync(
-                input=test_input,
-                model=test_model,
-                voice=test_voice,
-                output_file=test_output_file
+                input=test_input, model=test_model, voice=test_voice, output_file=test_output_file
             )
 
             # Check the result
@@ -164,10 +155,7 @@ class TestSpeechCapabilities(unittest.TestCase):
 
             # Verify the correct parameters were passed
             mock_create.assert_called_once_with(
-                input=test_input,
-                model=test_model,
-                voice=test_voice,
-                output_file=test_output_file
+                input=test_input, model=test_model, voice=test_voice, output_file=test_output_file
             )
 
 

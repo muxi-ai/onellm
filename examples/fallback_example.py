@@ -122,11 +122,9 @@ async def demonstrate_chat_completion_fallback():
             messages=messages,
             fallback_models=[
                 "openai/gpt-3.5-turbo",  # This should work
-                "anthropic/claude-3-haiku"  # Backup if the first fallback also fails
+                "anthropic/claude-3-haiku",  # Backup if the first fallback also fails
             ],
-            fallback_config={
-                "log_fallbacks": True  # Enable logging of fallback events
-            }
+            fallback_config={"log_fallbacks": True},  # Enable logging of fallback events
         )
 
         print("✅ Success! Response from fallback model:")
@@ -144,12 +142,12 @@ async def demonstrate_chat_completion_fallback():
             fallback_models=[
                 "openai/non-existent-model-2",  # This will also fail
                 # This would work but won't be tried due to max_fallbacks=1:
-                "openai/gpt-3.5-turbo"
+                "openai/gpt-3.5-turbo",
             ],
             fallback_config={
                 "max_fallbacks": 1,  # Only try the first fallback
-                "log_fallbacks": True  # Enable logging of fallback events
-            }
+                "log_fallbacks": True,  # Enable logging of fallback events
+            },
         )
 
         print("✅ Success! Response from fallback model:")
@@ -177,8 +175,8 @@ async def demonstrate_completion_fallback():
             fallback_models=["openai/gpt-3.5-turbo-instruct"],  # This should work
             fallback_config={
                 "log_fallbacks": True,
-                "retriable_errors": [RateLimitError]  # Only retry on rate limit errors
-            }
+                "retriable_errors": [RateLimitError],  # Only retry on rate limit errors
+            },
         )
 
         print("✅ Success! Response from fallback model:")
@@ -204,9 +202,7 @@ async def demonstrate_embedding_fallback():
             model="openai/non-existent-embedding-model",  # This will fail
             input=texts,
             fallback_models=["openai/text-embedding-ada-002"],  # This should work
-            fallback_config={
-                "log_fallbacks": True  # Enable logging of fallback events
-            }
+            fallback_config={"log_fallbacks": True},  # Enable logging of fallback events
         )
 
         print("✅ Success! Got embeddings from fallback model:")
@@ -256,8 +252,8 @@ async def demonstrate_fallback_callback():
             fallback_models=["openai/gpt-3.5-turbo"],  # This should work
             fallback_config={
                 "log_fallbacks": True,
-                "fallback_callback": custom_fallback_callback  # Register our custom callback
-            }
+                "fallback_callback": custom_fallback_callback,  # Register our custom callback
+            },
         )
 
         print("✅ Success! Response from fallback model:")
@@ -285,9 +281,7 @@ async def demonstrate_streaming_fallback():
             messages=messages,
             stream=True,  # Important: Enable streaming
             fallback_models=["openai/gpt-3.5-turbo"],  # This should work
-            fallback_config={
-                "log_fallbacks": True  # Enable logging of fallback events
-            }
+            fallback_config={"log_fallbacks": True},  # Enable logging of fallback events
         )
 
         # Process the streaming response chunks

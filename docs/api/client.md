@@ -50,7 +50,7 @@ import asyncio
 async def main():
     client = AsyncOpenAI()
     response = await client.chat.completions.create(...)
-    
+
 asyncio.run(main())
 ```
 

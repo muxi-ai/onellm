@@ -17,14 +17,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """OneLLM CLI utilities."""
-
 
 def main():
     """Main CLI entry point."""
     import sys
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "download":
         # Remove 'download' from args and call download script
         sys.argv.pop(1)
@@ -35,7 +33,6 @@ def main():
         print("\nAvailable commands:")
         print("  onellm download - Download GGUF models from HuggingFace")
         print("\nUse 'onellm <command> --help' for more information")
-
 
 if __name__ == "__main__":
     main()

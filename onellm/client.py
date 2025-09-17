@@ -35,7 +35,6 @@ from .image import Image
 from .audio import AudioTranscription, AudioTranslation
 from .speech import Speech
 
-
 class ChatCompletionsResource:
     """Chat completions API resource"""
 
@@ -119,7 +118,6 @@ class ChatCompletionsResource:
             **kwargs
         )
 
-
 class ChatResource:
     """Chat API resource"""
 
@@ -128,7 +126,6 @@ class ChatResource:
         Initialize the Chat resource with completions subresource
         """
         self.completions = ChatCompletionsResource()
-
 
 class CompletionsResource:
     """Completions API resource"""
@@ -211,7 +208,6 @@ class CompletionsResource:
             **kwargs
         )
 
-
 class EmbeddingsResource:
     """Embeddings API resource"""
 
@@ -287,7 +283,6 @@ class EmbeddingsResource:
             **kwargs
         )
 
-
 class ImagesResource:
     """Images API resource"""
 
@@ -336,7 +331,6 @@ class ImagesResource:
         # Use the same create method - it will return a coroutine when called from here
         return await Image.create(model=model, prompt=prompt, **kwargs)
 
-
 class AudioResource:
     """Audio API resource"""
 
@@ -346,7 +340,6 @@ class AudioResource:
         """
         self.transcriptions = AudioTranscriptionsResource()
         self.translations = AudioTranslationsResource()
-
 
 class AudioTranscriptionsResource:
     """Audio transcriptions API resource"""
@@ -396,7 +389,6 @@ class AudioTranscriptionsResource:
         # Use the same create method - it will return a coroutine when called from here
         return await AudioTranscription.create(model=model, file=file, **kwargs)
 
-
 class AudioTranslationsResource:
     """Audio translations API resource"""
 
@@ -444,7 +436,6 @@ class AudioTranslationsResource:
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await AudioTranslation.create(model=model, file=file, **kwargs)
-
 
 class SpeechResource:
     """Speech API resource"""
@@ -497,7 +488,6 @@ class SpeechResource:
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await Speech.create(model=model, input=input, voice=voice, **kwargs)
-
 
 class FilesResource:
     """Files API resource"""
@@ -642,7 +632,6 @@ class FilesResource:
         """
         return await File.adownload(file_id=file_id, provider="openai", **kwargs)
 
-
 class Client:
     """
     Base client class for OneLLM that mimics OpenAI's client interface.
@@ -669,7 +658,6 @@ class Client:
         # Store API key and other configuration (to be used by providers)
         self.api_key = api_key
         self.config = kwargs
-
 
 # Alias for OpenAI = Client for backward compatibility
 # This allows users to use either onellm.OpenAI or onellm.Client

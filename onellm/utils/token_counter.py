@@ -37,11 +37,9 @@ try:
 except ImportError:
     TIKTOKEN_AVAILABLE = False
 
-
 # Regex pattern for tokenizing text when tiktoken is not available
 # This is a simple approximation and not accurate for all languages/models
 SIMPLE_TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]")
-
 
 # Map of OpenAI model names to tiktoken encodings
 OPENAI_MODEL_ENCODINGS = {
@@ -75,7 +73,6 @@ OPENAI_MODEL_ENCODINGS = {
     "text-embedding-3-small": "cl100k_base",
     "text-embedding-3-large": "cl100k_base",
 }
-
 
 def get_encoder(model: str) -> Optional["tiktoken.Encoding"]:
     """
@@ -116,7 +113,6 @@ def get_encoder(model: str) -> Optional["tiktoken.Encoding"]:
             # If all attempts fail, return None
             return None
 
-
 def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
     """
     Count the number of tokens in a string.
@@ -144,7 +140,6 @@ def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
     # Fallback to simple approximation using regex
     # This splits text into words and punctuation as a rough token estimate
     return len(SIMPLE_TOKEN_PATTERN.findall(text))
-
 
 def num_tokens_from_messages(
     messages: List[Dict[str, Union[str, List]]], model: Optional[str] = None

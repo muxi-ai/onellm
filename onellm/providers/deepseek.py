@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 DeepSeek provider implementation for OneLLM.
 
@@ -29,32 +28,30 @@ performance on coding tasks.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
-
 class DeepSeekProvider(OpenAICompatibleProvider):
     """DeepSeek provider implementation."""
-    
+
     # Provider configuration
     provider_name = "deepseek"
     default_api_base = "https://api.deepseek.com/v1"
-    
+
     # Set capability flags
     json_mode_support = True
-    
+
     # Multi-modal capabilities
     vision_support = False         # No vision support currently
     audio_input_support = False    # No audio support
     video_input_support = False    # No video support
-    
+
     # Streaming capabilities
     streaming_support = True       # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
-    
+
     # Realtime capabilities
     realtime_support = False       # No realtime API
-    
+
     # Additional capabilities
     function_calling_support = True  # Supports function calling
-
 
 # Register the DeepSeek provider
 register_provider("deepseek", DeepSeekProvider)

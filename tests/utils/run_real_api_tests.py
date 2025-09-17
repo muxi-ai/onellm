@@ -7,7 +7,6 @@ This bypasses pytest's conftest.py which interferes with environment variables.
 import asyncio
 import os
 import sys
-import subprocess
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -17,17 +16,19 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Source the API keys file if it exists
-api_keys_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'artifacts', 'api-keys.sh')
+api_keys_file = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts", "api-keys.sh"
+)
 if os.path.exists(api_keys_file):
     print(f"Loading API keys from {api_keys_file}")
     # Parse the shell script and set environment variables
-    with open(api_keys_file, 'r') as f:
+    with open(api_keys_file, "r") as f:
         for line in f:
             line = line.strip()
-            if line.startswith('export ') and '=' in line:
+            if line.startswith("export ") and "=" in line:
                 # Extract variable name and value
                 var_assignment = line[7:]  # Remove 'export '
-                var_name, var_value = var_assignment.split('=', 1)
+                var_name, var_value = var_assignment.split("=", 1)
                 # Remove quotes if present
                 var_value = var_value.strip('"').strip("'")
                 # Only set if value is not empty
@@ -35,6 +36,7 @@ if os.path.exists(api_keys_file):
                     os.environ[var_name] = var_value
 else:
     print(f"Warning: API keys file not found at {api_keys_file}")
+
 
 async def test_groq():
     """Test Groq provider with real API."""
@@ -51,7 +53,7 @@ async def test_groq():
         response = await provider.create_chat_completion(
             model="llama3-8b-8192",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -59,6 +61,7 @@ async def test_groq():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_xai():
     """Test XAI provider with real API."""
@@ -75,7 +78,7 @@ async def test_xai():
         response = await provider.create_chat_completion(
             model="xai/grok-beta",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -83,6 +86,7 @@ async def test_xai():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_openrouter():
     """Test OpenRouter provider with real API."""
@@ -99,7 +103,7 @@ async def test_openrouter():
         response = await provider.create_chat_completion(
             model="openrouter/nousresearch/hermes-3-llama-3.1-405b:free",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -107,6 +111,7 @@ async def test_openrouter():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_together():
     """Test Together provider with real API."""
@@ -123,7 +128,7 @@ async def test_together():
         response = await provider.create_chat_completion(
             model="together/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -131,6 +136,7 @@ async def test_together():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_fireworks():
     """Test Fireworks provider with real API."""
@@ -147,7 +153,7 @@ async def test_fireworks():
         response = await provider.create_chat_completion(
             model="fireworks/accounts/fireworks/models/llama-v3p1-8b-instruct",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -155,6 +161,7 @@ async def test_fireworks():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_perplexity():
     """Test Perplexity provider with real API."""
@@ -171,7 +178,7 @@ async def test_perplexity():
         response = await provider.create_chat_completion(
             model="perplexity/llama-3.1-sonar-small-128k-chat",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -179,6 +186,7 @@ async def test_perplexity():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_deepseek():
     """Test DeepSeek provider with real API."""
@@ -195,7 +203,7 @@ async def test_deepseek():
         response = await provider.create_chat_completion(
             model="deepseek/deepseek-r1",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -203,6 +211,7 @@ async def test_deepseek():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_google():
     """Test Google provider with real API."""
@@ -219,7 +228,7 @@ async def test_google():
         response = await provider.create_chat_completion(
             model="google/gemini-1.5-flash",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -227,6 +236,7 @@ async def test_google():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_cohere():
     """Test Cohere provider with real API."""
@@ -243,7 +253,7 @@ async def test_cohere():
         response = await provider.create_chat_completion(
             model="cohere/command-r",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -251,6 +261,7 @@ async def test_cohere():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_vertexai():
     """Test Vertex AI provider with real API."""
@@ -262,11 +273,12 @@ async def test_vertexai():
 
     try:
         from onellm.providers.vertexai import VertexAIProvider
+
         provider = VertexAIProvider()
         response = await provider.create_chat_completion(
             model="vertexai/gemini-1.5-flash",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -274,6 +286,7 @@ async def test_vertexai():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_ollama():
     """Test Ollama provider with local model."""
@@ -281,11 +294,12 @@ async def test_ollama():
 
     try:
         from onellm.providers.ollama import OllamaProvider
+
         provider = OllamaProvider()
         response = await provider.create_chat_completion(
             model="ollama/llama3:8b",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -293,6 +307,7 @@ async def test_ollama():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def test_llama_cpp():
     """Test llama.cpp provider with local model."""
@@ -305,12 +320,13 @@ async def test_llama_cpp():
 
     try:
         from onellm.providers.llama_cpp import LlamaCppProvider
+
         provider = LlamaCppProvider()
         # Use the full path instead of just the filename
         response = await provider.create_chat_completion(
             model=f"llama_cpp/{model_path}",
             messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         print(f"  ✅ SUCCESS: {response.choices[0].message['content']}")
@@ -318,6 +334,7 @@ async def test_llama_cpp():
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         return False
+
 
 async def main():
     """Run all provider tests."""
@@ -336,7 +353,7 @@ async def main():
         test_cohere,
         test_vertexai,
         test_ollama,
-        test_llama_cpp
+        test_llama_cpp,
     ]
 
     results = []
@@ -366,7 +383,8 @@ async def main():
     if failed > 0:
         print(f"\n⚠️  {failed} tests failed. Check API keys and configurations.")
     else:
-        print(f"\n🎉 All available tests passed!")
+        print("\n🎉 All available tests passed!")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

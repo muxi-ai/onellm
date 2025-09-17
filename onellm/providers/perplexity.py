@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Perplexity AI provider implementation for OneLLM.
 
@@ -28,36 +27,34 @@ information from the internet and provide responses with citations.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
-
 class PerplexityProvider(OpenAICompatibleProvider):
     """Perplexity AI provider implementation."""
-    
+
     # Provider configuration
     provider_name = "perplexity"
     default_api_base = "https://api.perplexity.ai"
-    
+
     # Set capability flags
     json_mode_support = False      # No explicit JSON mode
-    
+
     # Multi-modal capabilities
     vision_support = False         # No vision support
     audio_input_support = False    # No audio support
     video_input_support = False    # No video support
-    
+
     # Streaming capabilities
     streaming_support = True       # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
-    
+
     # Realtime capabilities
     realtime_support = False       # No realtime API
-    
+
     # Additional capabilities
     function_calling_support = False  # No function calling
-    
+
     # Perplexity-specific features
     search_augmented = True        # Models have internet access
     provides_citations = True      # Responses include citations
-
 
 # Register the Perplexity provider
 register_provider("perplexity", PerplexityProvider)

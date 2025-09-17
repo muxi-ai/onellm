@@ -20,17 +20,17 @@ client = OpenAI()
 def basic_chat_completion():
     """Basic chat completion example."""
     print("=== Basic Chat Completion ===")
-    
+
     response = client.chat.completions.create(
         model="openai/gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Explain quantum computing in simple terms."}
+            {"role": "user", "content": "Explain quantum computing in simple terms."},
         ],
         temperature=0.7,
-        max_tokens=150
+        max_tokens=150,
     )
-    
+
     print(f"Response: {response.choices[0].message['content']}")
     print(f"Tokens used: {response.usage}")
 
@@ -38,15 +38,13 @@ def basic_chat_completion():
 def streaming_example():
     """Streaming response example."""
     print("\n=== Streaming Example ===")
-    
+
     stream = client.chat.completions.create(
         model="openai/gpt-4o-mini",
-        messages=[
-            {"role": "user", "content": "Count from 1 to 5 slowly."}
-        ],
-        stream=True
+        messages=[{"role": "user", "content": "Count from 1 to 5 slowly."}],
+        stream=True,
     )
-    
+
     print("Streaming response: ", end="")
     for chunk in stream:
         if chunk.choices[0].delta.get("content"):
@@ -57,7 +55,7 @@ def streaming_example():
 def function_calling_example():
     """Function calling example."""
     print("\n=== Function Calling Example ===")
-    
+
     # Define a function for the model to use
     tools = [
         {
@@ -70,28 +68,23 @@ def function_calling_example():
                     "properties": {
                         "location": {
                             "type": "string",
-                            "description": "The city and state, e.g. San Francisco, CA"
+                            "description": "The city and state, e.g. San Francisco, CA",
                         },
-                        "unit": {
-                            "type": "string",
-                            "enum": ["celsius", "fahrenheit"]
-                        }
+                        "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
                     },
-                    "required": ["location"]
-                }
-            }
+                    "required": ["location"],
+                },
+            },
         }
     ]
-    
+
     response = client.chat.completions.create(
         model="openai/gpt-4o-mini",
-        messages=[
-            {"role": "user", "content": "What's the weather like in New York?"}
-        ],
+        messages=[{"role": "user", "content": "What's the weather like in New York?"}],
         tools=tools,
-        tool_choice="auto"
+        tool_choice="auto",
     )
-    
+
     # Check if the model wants to call a function
     message = response.choices[0].message
     if message.get("tool_calls"):
@@ -104,13 +97,12 @@ def function_calling_example():
 def embedding_example():
     """Embedding generation example."""
     print("\n=== Embedding Example ===")
-    
+
     # Generate embeddings for text
     response = client.embeddings.create(
-        model="openai/text-embedding-3-small",
-        input=["Hello, world!", "How are you today?"]
+        model="openai/text-embedding-3-small", input=["Hello, world!", "How are you today?"]
     )
-    
+
     for i, embedding in enumerate(response.data):
         print(f"Embedding {i+1}: {len(embedding['embedding'])} dimensions")
         print(f"First 5 values: {embedding['embedding'][:5]}")
@@ -119,34 +111,28 @@ def embedding_example():
 def json_mode_example():
     """JSON mode example for structured output."""
     print("\n=== JSON Mode Example ===")
-    
+
     response = client.chat.completions.create(
         model="openai/gpt-4o-mini",
         messages=[
-            {
-                "role": "system", 
-                "content": "You are a helpful assistant that outputs JSON."
-            },
-            {
-                "role": "user",
-                "content": "List 3 programming languages with their key features."
-            }
+            {"role": "system", "content": "You are a helpful assistant that outputs JSON."},
+            {"role": "user", "content": "List 3 programming languages with their key features."},
         ],
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
     )
-    
+
     print(f"JSON Response: {response.choices[0].message['content']}")
 
 
 def main():
     """Run all examples."""
     print("OpenAI Provider Examples\n")
-    
+
     # Check if API key is set
     if not os.environ.get("OPENAI_API_KEY"):
         print("Please set OPENAI_API_KEY environment variable")
         return
-    
+
     try:
         basic_chat_completion()
         streaming_example()

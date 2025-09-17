@@ -32,7 +32,6 @@ from typing import Any, Dict, IO, List, Optional, Union
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
 
-
 class AudioTranscription:
     """
     API class for audio transcription.
@@ -124,7 +123,6 @@ class AudioTranscription:
                 **kwargs
             )
         )
-
 
 class AudioTranslation:
     """

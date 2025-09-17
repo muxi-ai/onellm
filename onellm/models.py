@@ -30,7 +30,6 @@ from dataclasses import dataclass
 from .types import Message, UsageInfo
 from .utils.text_cleaner import clean_unicode_artifacts
 
-
 def _clean_message_content(
     content: Union[str, List[Dict[str, Any]], None]
 ) -> Union[str, List[Dict[str, Any]], None]:
@@ -66,7 +65,6 @@ def _clean_message_content(
 
     return content
 
-
 @dataclass
 class ChoiceDelta:
     """
@@ -93,7 +91,6 @@ class ChoiceDelta:
         """Clean Unicode artifacts from content after initialization."""
         if self.content is not None:
             self.content = clean_unicode_artifacts(self.content)
-
 
 @dataclass
 class Choice:
@@ -137,7 +134,6 @@ class Choice:
         if self.message and 'content' in self.message:
             self.message['content'] = _clean_message_content(self.message['content'])
 
-
 @dataclass
 class StreamingChoice:
     """
@@ -175,7 +171,6 @@ class StreamingChoice:
         self.delta = delta or ChoiceDelta()  # Default to empty ChoiceDelta if None
         self.finish_reason = finish_reason
         self.index = index
-
 
 @dataclass
 class ChatCompletionResponse:
@@ -235,7 +230,6 @@ class ChatCompletionResponse:
         self.usage = usage
         self.system_fingerprint = system_fingerprint
 
-
 @dataclass
 class ChatCompletionChunk:
     """
@@ -289,7 +283,6 @@ class ChatCompletionChunk:
         self.choices = choices
         self.system_fingerprint = system_fingerprint
 
-
 @dataclass
 class CompletionChoice:
     """
@@ -313,7 +306,6 @@ class CompletionChoice:
         """Clean Unicode artifacts from text after initialization."""
         if self.text:
             self.text = clean_unicode_artifacts(self.text)
-
 
 @dataclass
 class CompletionResponse:
@@ -341,7 +333,6 @@ class CompletionResponse:
     usage: Optional[UsageInfo] = None
     system_fingerprint: Optional[str] = None
 
-
 @dataclass
 class EmbeddingData:
     """
@@ -358,7 +349,6 @@ class EmbeddingData:
     embedding: List[float]
     index: int = 0
     object: str = "embedding"
-
 
 @dataclass
 class EmbeddingResponse:
@@ -379,7 +369,6 @@ class EmbeddingResponse:
     data: List[EmbeddingData]
     model: str
     usage: Optional[UsageInfo] = None
-
 
 @dataclass
 class FileObject:

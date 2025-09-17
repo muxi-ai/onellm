@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 Together AI provider implementation for OneLLM.
 
@@ -28,32 +27,30 @@ They offer a wide selection of models including Llama, Mistral, Mixtral, and man
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
-
 class TogetherProvider(OpenAICompatibleProvider):
     """Together AI provider implementation."""
-    
+
     # Provider configuration
     provider_name = "together"
     default_api_base = "https://api.together.xyz/v1"
-    
+
     # Set capability flags
     json_mode_support = True
-    
+
     # Multi-modal capabilities (model-dependent)
     vision_support = True          # Some models support vision
     audio_input_support = False    # No audio support
     video_input_support = False    # No video support
-    
+
     # Streaming capabilities
     streaming_support = True       # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
-    
+
     # Realtime capabilities
     realtime_support = False       # No realtime API
-    
+
     # Additional capabilities
     function_calling_support = True  # Many models support function calling
-
 
 # Register the Together provider
 register_provider("together", TogetherProvider)

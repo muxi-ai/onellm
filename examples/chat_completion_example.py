@@ -91,9 +91,7 @@ def print_chat_response(response: ChatCompletionResponse) -> None:
 
 
 async def streaming_demo(
-    model: str,
-    messages: List[Dict[str, Any]],
-    callback: Callable[[str], None] = print
+    model: str, messages: List[Dict[str, Any]], callback: Callable[[str], None] = print
 ) -> None:
     """
     Demonstrate streaming chat completions.
@@ -110,11 +108,7 @@ async def streaming_demo(
     print("Response:", end=" ", flush=True)
 
     # Call with streaming=True to get a generator
-    stream = await ChatCompletion.acreate(
-        model=model,
-        messages=messages,
-        stream=True
-    )
+    stream = await ChatCompletion.acreate(model=model, messages=messages, stream=True)
 
     # Process the streaming response chunks
     async for chunk in stream:
@@ -136,10 +130,7 @@ def non_streaming_demo(model: str, messages: List[Dict[str, Any]]) -> None:
         messages: List of message dictionaries to send to the model
     """
     # Use the synchronous API
-    response = ChatCompletion.create(
-        model=model,
-        messages=messages
-    )
+    response = ChatCompletion.create(model=model, messages=messages)
     print_chat_response(response)
 
 
@@ -156,10 +147,7 @@ async def async_non_streaming_demo(model: str, messages: List[Dict[str, Any]]) -
         messages: List of message dictionaries to send to the model
     """
     # Use the asynchronous API
-    response = await ChatCompletion.acreate(
-        model=model,
-        messages=messages
-    )
+    response = await ChatCompletion.acreate(model=model, messages=messages)
     print_chat_response(response)
 
 
@@ -187,15 +175,17 @@ async def main() -> None:
 
     # Check if Anthropic API key is available and configure it
     if not anthropic_api_key:
-        print("Note: ANTHROPIC_API_KEY not found in environment. "
-              "Anthropic examples will be skipped.")
+        print(
+            "Note: ANTHROPIC_API_KEY not found in environment. "
+            "Anthropic examples will be skipped."
+        )
     else:
         set_api_key(anthropic_api_key, "anthropic")
 
     # Example messages for a chat completion
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What are the three laws of robotics?"}
+        {"role": "user", "content": "What are the three laws of robotics?"},
     ]
 
     # Demonstrate different usage patterns and providers
@@ -217,9 +207,7 @@ async def main() -> None:
     # Demonstrate Anthropic model (if API key is available)
     if anthropic_api_key:
         # Anthropic requires a different message format (no system message)
-        anthropic_messages = [
-            {"role": "user", "content": "What are the three laws of robotics?"}
-        ]
+        anthropic_messages = [{"role": "user", "content": "What are the three laws of robotics?"}]
 
         # 4. Using Anthropic model (Claude)
         print("\n--- Using Anthropic Model ---")

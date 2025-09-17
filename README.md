@@ -41,7 +41,6 @@
 - [License](https://github.com/muxi-ai/onellm/blob/main/README.md#-license)
 - [Acknowledgements](https://github.com/muxi-ai/onellm/blob/main/README.md#-acknowledgements)
 
-
 ## 👉 Overview
 
 **OneLLM** is a lightweight, provider-agnostic Python library that offers a unified interface for interacting with large language models (LLMs) from various providers. It simplifies the integration of LLMs into applications by providing a consistent API while abstracting away provider-specific implementation details.
@@ -102,7 +101,6 @@ For more detailed examples, check out the [examples directory](./examples).
 ---
 
 ## ✨ Key Features
-
 
 | Feature | Description |
 |---------|-------------|
@@ -505,8 +503,6 @@ flowchart TD
     ERROR --> RESPONSE
 ```
 
-
-
 ### JSON Mode for Structured Outputs
 
 For applications that require structured data, OneLLM supports JSON mode with compatible providers:
@@ -764,7 +760,6 @@ OneLLM maintains comprehensive test coverage to ensure reliability and compatibi
     <td>93-95% coverage</td>
   </tr>
 </table>
-
 
 This extensive test coverage ensures reliable operation across all supported providers and models.
 

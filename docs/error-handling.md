@@ -221,7 +221,7 @@ except APIError as e:
     print(f"Message: {e.message}")
     print(f"Provider: {e.provider}")
     print(f"Status code: {e.status_code}")
-    
+
     # Additional context if available
     if hasattr(e, 'request_id'):
         print(f"Request ID: {e.request_id}")
@@ -237,7 +237,7 @@ from onellm import AsyncOpenAI
 
 async def handle_async_errors():
     client = AsyncOpenAI()
-    
+
     try:
         response = await client.chat.completions.create(...)
     except APIError as e:
@@ -250,9 +250,9 @@ async def handle_multiple():
         client.chat.completions.create(...),
         client.chat.completions.create(...)
     ]
-    
+
     results = await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             print(f"Request {i} failed: {result}")
@@ -297,7 +297,7 @@ class ModelNotSupportedError(InvalidRequestError):
 class ErrorHandlingClient:
     def __init__(self, client):
         self.client = client
-    
+
     def create_with_fallback(self, primary_model, fallback_model, **kwargs):
         try:
             return self.client.chat.completions.create(
@@ -350,7 +350,7 @@ if not os.environ.get("OPENAI_API_KEY"):
 ```python
 def get_response_with_fallback(message):
     models = ["openai/gpt-4", "openai/gpt-3.5-turbo"]
-    
+
     for model in models:
         try:
             return client.chat.completions.create(
@@ -359,7 +359,7 @@ def get_response_with_fallback(message):
             )
         except APIError:
             continue
-    
+
     return {"error": "All models failed"}
 ```
 
@@ -406,10 +406,10 @@ def test_rate_limit_handling():
             provider="openai",
             status_code=429
         )
-        
+
         with pytest.raises(RateLimitError) as exc_info:
             client.chat.completions.create(...)
-        
+
         assert exc_info.value.status_code == 429
 ```
 

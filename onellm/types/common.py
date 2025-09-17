@@ -28,7 +28,6 @@ while maintaining compatibility with the OpenAI API format.
 
 from typing import Any, Dict, List, Literal, Optional, Union, TypedDict, IO
 
-
 # Role types for chat messages
 Role = Literal["system", "user", "assistant", "tool", "function"]
 # Defines the possible roles in a conversation with an LLM

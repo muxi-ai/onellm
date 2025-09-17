@@ -32,7 +32,6 @@ from .providers.base import get_provider_with_fallbacks
 from .models import CompletionResponse
 from .utils.fallback import FallbackConfig
 
-
 class Completion:
     """Class for creating text completions with various providers."""
 

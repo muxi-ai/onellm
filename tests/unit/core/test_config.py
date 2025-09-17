@@ -17,7 +17,6 @@ from onellm.config import (
     update_provider_config,
 )
 
-
 @pytest.fixture(autouse=True)
 def reset_config_after_test():
     """Reset configuration after each test."""
@@ -34,7 +33,6 @@ def reset_config_after_test():
     for key in list(config.keys()):
         config.pop(key, None)
     config.update(original_config)
-
 
 class TestConfigSystem:
     """Tests for the OneLLM configuration system."""

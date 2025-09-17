@@ -86,7 +86,6 @@ QUERIES = [
     for topic in TOPICS
 ]
 
-
 # ========================== Async Approach ==========================
 
 async def process_single_query_async(
@@ -125,7 +124,6 @@ async def process_single_query_async(
         "tokens": response.usage.total_tokens
     }
 
-
 async def process_all_queries_async(
     queries: List[str],
     model: str = "openai/gpt-3.5-turbo"
@@ -150,7 +148,6 @@ async def process_all_queries_async(
     results = await asyncio.gather(*tasks)
 
     return results
-
 
 # ========================== Thread Pool Approach ==========================
 
@@ -198,7 +195,6 @@ def process_in_thread(
     except Exception as e:
         results[index] = {"query": query, "error": str(e)}
 
-
 def process_all_queries_threaded(
     queries: List[str],
     model: str = "openai/gpt-3.5-turbo"
@@ -231,7 +227,6 @@ def process_all_queries_threaded(
 
     return results
 
-
 # ========================== Post-Processing in Parallel ==========================
 
 def analyze_response(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -260,7 +255,6 @@ def analyze_response(result: Dict[str, Any]) -> Dict[str, Any]:
         }
     }
 
-
 def parallel_post_process(
     results: List[Dict[str, Any]],
     max_workers: int = 4
@@ -282,7 +276,6 @@ def parallel_post_process(
         analyzed_results = list(executor.map(analyze_response, results))
 
     return analyzed_results
-
 
 # ========================== Mixed Approach (Advanced) ==========================
 
@@ -318,7 +311,6 @@ async def combined_parallel_processing(
 
     return processed_results
 
-
 # ========================== Main Example Code ==========================
 
 async def run_async_example():
@@ -339,7 +331,6 @@ async def run_async_example():
 
     return results
 
-
 def run_threaded_example():
     """Run the thread pool example and measure performance."""
     print("\n=== Running Thread Pool Example ===")
@@ -357,7 +348,6 @@ def run_threaded_example():
     print(f"Response: {results[0]['response']}")
 
     return results
-
 
 async def run_combined_example():
     """Run the combined approach example and measure performance."""
@@ -377,7 +367,6 @@ async def run_combined_example():
     print(f"Analysis: {results[0]['analysis']}")
 
     return results
-
 
 async def compare_approaches():
     """Compare all three approaches."""
@@ -432,7 +421,6 @@ async def compare_approaches():
     print("- Async: best for pure I/O-bound workloads")
     print("- Thread pool: simple to use for mixed workloads")
     print("- Combined: most control but more complex")
-
 
 if __name__ == "__main__":
     # Run the examples

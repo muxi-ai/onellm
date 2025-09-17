@@ -106,27 +106,23 @@ def demonstrate_vision_model():
         {
             "role": "user",
             "content": [
-                {
-                    "type": "text",
-                    "text": "What's in this image? Describe it in detail."
-                },
+                {"type": "text", "text": "What's in this image? Describe it in detail."},
                 {
                     "type": "image_url",
                     "image_url": {
                         # Sample image URL of a nature boardwalk
                         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
-                    }
-                }
-            ]
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+                    },
+                },
+            ],
         }
     ]
 
     # Call a model with vision support (GPT-4o)
     response = onellm.ChatCompletion.create(
-        model="openai/gpt-4o",  # Using GPT-4o which has vision capabilities
-        messages=messages
+        model="openai/gpt-4o", messages=messages  # Using GPT-4o which has vision capabilities
     )
 
     print("Vision-capable model response:")
@@ -151,27 +147,23 @@ def demonstrate_text_only_model():
         {
             "role": "user",
             "content": [
-                {
-                    "type": "text",
-                    "text": "What's in this image? Describe it in detail."
-                },
+                {"type": "text", "text": "What's in this image? Describe it in detail."},
                 {
                     "type": "image_url",
                     "image_url": {
                         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
-                    }
-                }
-            ]
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+                    },
+                },
+            ],
         }
     ]
 
     # Using a regular text model (without vision), we'll get a warning
     # and the image content will be removed automatically
     response = onellm.ChatCompletion.create(
-        model="openai/gpt-3.5-turbo",  # This doesn't support vision
-        messages=messages
+        model="openai/gpt-3.5-turbo", messages=messages  # This doesn't support vision
     )
 
     print("Text-only model response (image content removed):")
@@ -198,19 +190,16 @@ def demonstrate_vision_fallback():
         {
             "role": "user",
             "content": [
-                {
-                    "type": "text",
-                    "text": "What's in this image? Describe it in detail."
-                },
+                {"type": "text", "text": "What's in this image? Describe it in detail."},
                 {
                     "type": "image_url",
                     "image_url": {
                         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
-                               "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
-                    }
-                }
-            ]
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-"
+                        "Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+                    },
+                },
+            ],
         }
     ]
 
@@ -218,7 +207,7 @@ def demonstrate_vision_fallback():
     response = onellm.ChatCompletion.create(
         model="openai/gpt-4-vision-preview",  # Vision model as primary choice
         fallback_models=["openai/gpt-3.5-turbo"],  # Non-vision fallback if primary fails
-        messages=messages
+        messages=messages,
     )
 
     print("Response (will use vision if available, fallback if needed):")

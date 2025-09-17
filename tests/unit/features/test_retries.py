@@ -12,7 +12,6 @@ from onellm.chat_completion import ChatCompletion
 from onellm.completion import Completion
 from onellm.providers.fallback import FallbackProviderProxy
 
-
 class TestRetries:
     """Test the retry functionality."""
 

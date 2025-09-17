@@ -83,24 +83,18 @@ def create_message_with_image(image_url: str) -> List[Dict[str, Any]]:
     return [
         {
             "role": "system",
-            "content": "You are a helpful assistant that can see and understand images."
+            "content": "You are a helpful assistant that can see and understand images.",
         },
         {
             "role": "user",
             "content": [
-                {
-                    "type": "text",
-                    "text": "What's in this image? Please describe it in detail."
-                },
+                {"type": "text", "text": "What's in this image? Please describe it in detail."},
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": image_url,
-                        "detail": "high"  # Options: auto, low, high
-                    }
-                }
-            ]
-        }
+                    "image_url": {"url": image_url, "detail": "high"},  # Options: auto, low, high
+                },
+            ],
+        },
     ]
 
 
@@ -119,9 +113,7 @@ def main():
     # Set up API key from environment variable
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError(
-            "OPENAI_API_KEY environment variable is required for this example"
-        )
+        raise ValueError("OPENAI_API_KEY environment variable is required for this example")
 
     # Configure the API key for OpenAI
     set_api_key(api_key, "openai")
@@ -143,7 +135,7 @@ def main():
     response = ChatCompletion.create(
         model="openai/gpt-4-vision-preview",  # Use a vision-capable model
         messages=messages,
-        max_tokens=300  # Limit the response length
+        max_tokens=300,  # Limit the response length
     )
 
     # Print the response
@@ -153,14 +145,12 @@ def main():
     # Example of asking a follow-up question about the same image
     # We copy the original messages and add the assistant's response and a new user question
     follow_up_messages = messages.copy()
-    follow_up_messages.append({
-        "role": "assistant",
-        "content": response.choices[0].message["content"]
-    })
-    follow_up_messages.append({
-        "role": "user",
-        "content": "What season does this image appear to be from?"
-    })
+    follow_up_messages.append(
+        {"role": "assistant", "content": response.choices[0].message["content"]}
+    )
+    follow_up_messages.append(
+        {"role": "user", "content": "What season does this image appear to be from?"}
+    )
 
     print("\nSending follow-up question...\n")
 
@@ -169,7 +159,7 @@ def main():
     follow_up_response = ChatCompletion.create(
         model="openai/gpt-4-vision-preview",
         messages=follow_up_messages,
-        max_tokens=100  # Shorter response for the follow-up
+        max_tokens=100,  # Shorter response for the follow-up
     )
 
     print("--- Follow-up Response ---")

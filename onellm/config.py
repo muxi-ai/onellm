@@ -181,7 +181,6 @@ PROVIDER_API_KEY_ENV_MAP = {
     "anyscale": "ANYSCALE_API_KEY",
 }
 
-
 def _load_env_vars() -> None:
     """
     Load configuration from environment variables.
@@ -220,7 +219,6 @@ def _load_env_vars() -> None:
             "GOOGLE_APPLICATION_CREDENTIALS"
         ]
 
-
 def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
     """
     Update a nested dictionary with values from another dictionary.
@@ -243,10 +241,8 @@ def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
             d[k] = v
     return d
 
-
 # Load configuration from environment variables on module import
 _load_env_vars()
-
 
 # Public API for configuration
 def get_api_key(provider: str) -> Optional[str]:
@@ -262,7 +258,6 @@ def get_api_key(provider: str) -> Optional[str]:
     if provider in config["providers"]:
         return config["providers"][provider].get("api_key")
     return None
-
 
 def set_api_key(api_key: str, provider: str) -> None:
     """
@@ -280,7 +275,6 @@ def set_api_key(api_key: str, provider: str) -> None:
         # Set global variable for convenience and backward compatibility
         globals()[f"{provider}_api_key"] = api_key
 
-
 def get_provider_config(provider: str) -> Dict[str, Any]:
     """
     Get the configuration for the specified provider.
@@ -296,7 +290,6 @@ def get_provider_config(provider: str) -> Dict[str, Any]:
         return config["providers"][provider]
     return {}
 
-
 def update_provider_config(provider: str, **kwargs) -> None:
     """
     Update the configuration for the specified provider.
@@ -307,7 +300,6 @@ def update_provider_config(provider: str, **kwargs) -> None:
     """
     if provider in config["providers"]:
         config["providers"][provider].update(kwargs)
-
 
 # Initialize global variables for all providers for easy access
 # This creates variables like openai_api_key, anthropic_api_key, etc.

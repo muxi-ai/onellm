@@ -19,11 +19,8 @@ import mock
 from onellm.utils.fallback import FallbackConfig, maybe_await
 from onellm.providers.fallback import FallbackProviderProxy
 from onellm.providers.base import Provider
-from onellm.errors import (
-    APIError, AuthenticationError, RateLimitError, FallbackExhaustionError
-)
+from onellm.errors import APIError, AuthenticationError, RateLimitError, FallbackExhaustionError
 from onellm.models import CompletionResponse
-
 
 # Mock response for testing
 mock_chat_completion_response = {
@@ -33,19 +30,12 @@ mock_chat_completion_response = {
     "model": "gpt-test",
     "choices": [
         {
-            "message": {
-                "role": "assistant",
-                "content": "This is a test response"
-            },
+            "message": {"role": "assistant", "content": "This is a test response"},
             "finish_reason": "stop",
-            "index": 0
+            "index": 0,
         }
     ],
-    "usage": {
-        "prompt_tokens": 10,
-        "completion_tokens": 20,
-        "total_tokens": 30
-    }
+    "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
 }
 
 
@@ -82,7 +72,7 @@ class MockStreamingProvider(Provider):
     def _record_call(self, method_name, *args, **kwargs):
         """Record method calls for verification."""
         self.calls.append((method_name, args, kwargs))
-        
+
         if self.should_fail:
             raise APIError(f"{self.name} API error in {method_name}")
 
@@ -90,11 +80,12 @@ class MockStreamingProvider(Provider):
         """Mock chat completion with streaming support."""
         if "create_chat_completion" in self.missing_methods:
             raise AttributeError("Method create_chat_completion not implemented")
-            
+
         self.call_count += 1
         self._record_call("create_chat_completion", messages, model, stream, **kwargs)
 
         if stream:
+
             async def stream_generator():
                 for i in range(3):
                     yield {
@@ -102,12 +93,15 @@ class MockStreamingProvider(Provider):
                         "object": "chat.completion.chunk",
                         "created": 1677858242,
                         "model": model,
-                        "choices": [{
-                            "delta": {"content": f"chunk {i}"},
-                            "finish_reason": None if i < 2 else "stop",
-                            "index": 0
-                        }]
+                        "choices": [
+                            {
+                                "delta": {"content": f"chunk {i}"},
+                                "finish_reason": None if i < 2 else "stop",
+                                "index": 0,
+                            }
+                        ],
                     }
+
             return stream_generator()
 
         return {
@@ -115,23 +109,26 @@ class MockStreamingProvider(Provider):
             "object": "chat.completion",
             "created": 1677858242,
             "model": model,
-            "choices": [{
-                "message": {"role": "assistant", "content": f"{self.name} response"},
-                "finish_reason": "stop",
-                "index": 0
-            }],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": f"{self.name} response"},
+                    "finish_reason": "stop",
+                    "index": 0,
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
         }
 
     async def create_completion(self, prompt, model, stream=False, **kwargs):
         """Mock text completion with streaming support."""
         if "create_completion" in self.missing_methods:
             raise AttributeError("Method create_completion not implemented")
-            
+
         self.call_count += 1
         self._record_call("create_completion", prompt, model, stream, **kwargs)
 
         if stream:
+
             async def stream_generator():
                 for i in range(3):
                     yield {
@@ -139,12 +136,15 @@ class MockStreamingProvider(Provider):
                         "object": "text_completion.chunk",
                         "created": 1677858242,
                         "model": model,
-                        "choices": [{
-                            "text": f"chunk {i}",
-                            "finish_reason": None if i < 2 else "stop",
-                            "index": 0
-                        }]
+                        "choices": [
+                            {
+                                "text": f"chunk {i}",
+                                "finish_reason": None if i < 2 else "stop",
+                                "index": 0,
+                            }
+                        ],
                     }
+
             return stream_generator()
 
         return CompletionResponse(
@@ -152,37 +152,33 @@ class MockStreamingProvider(Provider):
             object="text_completion",
             created=1677858242,
             model=model,
-            choices=[{
-                "text": f"{self.name} response",
-                "finish_reason": "stop",
-                "index": 0
-            }],
-            usage={"prompt_tokens": 5, "completion_tokens": 15, "total_tokens": 20}
+            choices=[{"text": f"{self.name} response", "finish_reason": "stop", "index": 0}],
+            usage={"prompt_tokens": 5, "completion_tokens": 15, "total_tokens": 20},
         )
 
     async def create_embedding(self, input, model, **kwargs):
         """Mock embedding creation."""
         if "create_embedding" in self.missing_methods:
             raise AttributeError("Method create_embedding not implemented")
-            
+
         self.call_count += 1
         self._record_call("create_embedding", input, model, **kwargs)
-        
+
         return {
             "object": "list",
             "data": [{"embedding": [0.1, 0.2, 0.3], "index": 0, "object": "embedding"}],
             "model": model,
-            "usage": {"prompt_tokens": 5, "total_tokens": 5}
+            "usage": {"prompt_tokens": 5, "total_tokens": 5},
         }
 
     async def upload_file(self, file, purpose, **kwargs):
         """Mock file upload."""
         if "upload_file" in self.missing_methods:
             raise AttributeError("Method upload_file not implemented")
-            
+
         self.call_count += 1
         self._record_call("upload_file", file, purpose, **kwargs)
-        
+
         return {
             "id": "file-123",
             "object": "file",
@@ -190,14 +186,14 @@ class MockStreamingProvider(Provider):
             "filename": "test.txt",
             "bytes": 100,
             "created_at": 1677858242,
-            "status": "processed"
+            "status": "processed",
         }
 
     async def download_file(self, file_id, **kwargs):
         """Mock file download."""
         if "download_file" in self.missing_methods:
             raise AttributeError("Method download_file not implemented")
-            
+
         self.call_count += 1
         self._record_call("download_file", file_id, **kwargs)
         return b"file content"
@@ -206,7 +202,7 @@ class MockStreamingProvider(Provider):
         """Mock text-to-speech."""
         if "create_speech" in self.missing_methods:
             raise AttributeError("Method create_speech not implemented")
-            
+
         self.call_count += 1
         self._record_call("create_speech", input, model, **kwargs)
         return b"audio content"
@@ -215,42 +211,36 @@ class MockStreamingProvider(Provider):
         """Mock image generation."""
         if "create_image" in self.missing_methods:
             raise AttributeError("Method create_image not implemented")
-            
+
         self.call_count += 1
         self._record_call("create_image", prompt, model, **kwargs)
-        
+
         return {
             "created": 1677858242,
-            "data": [
-                {"url": "https://example.com/image.png", "revised_prompt": prompt}
-            ]
+            "data": [{"url": "https://example.com/image.png", "revised_prompt": prompt}],
         }
 
     async def create_transcription(self, file, model, **kwargs):
         """Mock audio transcription."""
         if "create_transcription" in self.missing_methods:
             raise AttributeError("Method create_transcription not implemented")
-            
+
         self._record_call("create_transcription", file, model, **kwargs)
-        return {
-            "text": "Transcribed text content"
-        }
+        return {"text": "Transcribed text content"}
 
     async def create_translation(self, file, model, **kwargs):
         """Mock audio translation."""
         if "create_translation" in self.missing_methods:
             raise AttributeError("Method create_translation not implemented")
-            
+
         self._record_call("create_translation", file, model, **kwargs)
-        return {
-            "text": "Translated text content"
-        }
+        return {"text": "Translated text content"}
 
     async def list_files(self, **kwargs):
         """Mock file listing."""
         if "list_files" in self.missing_methods:
             raise AttributeError("Method list_files not implemented")
-            
+
         self._record_call("list_files", **kwargs)
         return [
             {
@@ -260,7 +250,7 @@ class MockStreamingProvider(Provider):
                 "filename": "test.txt",
                 "bytes": 100,
                 "created_at": 1677858242,
-                "status": "processed"
+                "status": "processed",
             }
         ]
 
@@ -268,13 +258,9 @@ class MockStreamingProvider(Provider):
         """Mock file deletion."""
         if "delete_file" in self.missing_methods:
             raise AttributeError("Method delete_file not implemented")
-            
+
         self._record_call("delete_file", file_id, **kwargs)
-        return {
-            "id": file_id,
-            "object": "file",
-            "deleted": True
-        }
+        return {"id": file_id, "object": "file", "deleted": True}
 
 
 class FailingStreamProvider(Provider):
@@ -310,11 +296,9 @@ class FailingStreamProvider(Provider):
                     "object": "chat.completion.chunk",
                     "created": 1677858242,
                     "model": model,
-                    "choices": [{
-                        "delta": {"content": f"chunk {i}"},
-                        "finish_reason": None,
-                        "index": 0
-                    }]
+                    "choices": [
+                        {"delta": {"content": f"chunk {i}"}, "finish_reason": None, "index": 0}
+                    ],
                 }
 
         return failing_generator()
@@ -339,11 +323,7 @@ class FailingStreamProvider(Provider):
                     "object": "text_completion.chunk",
                     "created": 1677858242,
                     "model": model,
-                    "choices": [{
-                        "text": f"chunk {i}",
-                        "finish_reason": None,
-                        "index": 0
-                    }]
+                    "choices": [{"text": f"chunk {i}", "finish_reason": None, "index": 0}],
                 }
 
         return failing_generator()
@@ -389,13 +369,12 @@ class TestFallbackMechanism:
             # Create a fallback provider proxy
             proxy = FallbackProviderProxy(
                 ["openai/gpt-4", "anthropic/claude-3"],
-                FallbackConfig(retriable_errors=[RateLimitError])
+                FallbackConfig(retriable_errors=[RateLimitError]),
             )
 
             # Call a method that should fail on the primary provider and succeed on the fallback
             result = await proxy.create_chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4"
+                messages=[{"role": "user", "content": "Hello"}], model="gpt-4"
             )
 
             # Verify the primary provider was called
@@ -423,14 +402,13 @@ class TestFallbackMechanism:
             # Create a fallback provider proxy
             proxy = FallbackProviderProxy(
                 ["openai/gpt-4", "anthropic/claude-3"],
-                FallbackConfig(retriable_errors=[RateLimitError])
+                FallbackConfig(retriable_errors=[RateLimitError]),
             )
 
             # Call a method that should fail on all providers
             with pytest.raises(FallbackExhaustionError) as excinfo:
                 await proxy.create_chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}],
-                    model="gpt-4"
+                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4"
                 )
 
             # Verify the error message contains useful information
@@ -458,14 +436,13 @@ class TestFallbackMechanism:
             # Create a fallback provider proxy with RateLimitError as the only retriable error
             proxy = FallbackProviderProxy(
                 ["openai/gpt-4", "anthropic/claude-3"],
-                FallbackConfig(retriable_errors=[RateLimitError])
+                FallbackConfig(retriable_errors=[RateLimitError]),
             )
 
             # Call a method that should fail with a non-retriable error
             with pytest.raises(AuthenticationError):
                 await proxy.create_chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}],
-                    model="gpt-4"
+                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4"
                 )
 
             # Verify only the primary provider was called
@@ -479,29 +456,28 @@ class TestFallbackMechanism:
         providers = [
             MockProvider(should_fail=True, error_type="rate_limit"),  # Primary
             MockProvider(should_fail=True, error_type="rate_limit"),  # Fallback 1
-            MockProvider(should_fail=False)                           # Fallback 2
+            MockProvider(should_fail=False),  # Fallback 2
         ]
 
         # Patch get_provider to return our mock providers
         with mock.patch("onellm.providers.fallback.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = lambda provider_name: (
-                providers[0] if provider_name == "openai" else (
-                    providers[1] if provider_name == "anthropic" else providers[2]
-                )
+                providers[0]
+                if provider_name == "openai"
+                else (providers[1] if provider_name == "anthropic" else providers[2])
             )
 
             # Create a fallback provider proxy with max_fallbacks=1
             # This should try the primary and only the first fallback
             proxy = FallbackProviderProxy(
                 ["openai/gpt-4", "anthropic/claude-3", "google/gemini-pro"],
-                FallbackConfig(retriable_errors=[RateLimitError], max_fallbacks=1)
+                FallbackConfig(retriable_errors=[RateLimitError], max_fallbacks=1),
             )
 
             # This should fail because we only try 2 models (primary + 1 fallback)
             with pytest.raises(FallbackExhaustionError):
                 await proxy.create_chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}],
-                    model="gpt-4"
+                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4"
                 )
 
             # Verify only the primary and first fallback were called
@@ -516,13 +492,12 @@ class TestFallbackMechanism:
             # Now create a proxy with max_fallbacks=2
             proxy = FallbackProviderProxy(
                 ["openai/gpt-4", "anthropic/claude-3", "google/gemini-pro"],
-                FallbackConfig(retriable_errors=[RateLimitError], max_fallbacks=2)
+                FallbackConfig(retriable_errors=[RateLimitError], max_fallbacks=2),
             )
 
             # This should succeed because we try all 3 models
             result = await proxy.create_chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4"
+                messages=[{"role": "user", "content": "Hello"}], model="gpt-4"
             )
 
             # Verify all providers were called until we found a working one
@@ -564,8 +539,7 @@ class TestFallbackProviderEnhanced:
 
         # Create proxy with both providers
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call a method that's missing on the first provider but exists on the second
@@ -595,8 +569,7 @@ class TestFallbackProviderEnhanced:
 
         # Create proxy with both providers
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call a method that doesn't exist on any provider
@@ -625,14 +598,12 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the streaming method
         generator = await proxy.create_chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            stream=True
+            messages=[{"role": "user", "content": "Hello"}], stream=True
         )
 
         # Collect all chunks
@@ -667,15 +638,11 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the streaming method
-        generator = await proxy.create_completion(
-            prompt="Hello",
-            stream=True
-        )
+        generator = await proxy.create_completion(prompt="Hello", stream=True)
 
         # Collect all chunks
         chunks = []
@@ -709,14 +676,12 @@ class TestFallbackProviderEnhanced:
 
         # Create proxy with both providers
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the streaming method
         generator = await proxy.create_chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            stream=True
+            messages=[{"role": "user", "content": "Hello"}], stream=True
         )
 
         # Collect all chunks to trigger the generator
@@ -751,14 +716,13 @@ class TestFallbackProviderEnhanced:
         # Create fallback proxy with explicit retriable_errors configuration
         proxy = FallbackProviderProxy(
             ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError], log_fallbacks=True)
+            FallbackConfig(retriable_errors=[APIError], log_fallbacks=True),
         )
 
         # Test with stream=True
         with pytest.raises(FallbackExhaustionError) as excinfo:
             generator = await proxy.create_chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                stream=True
+                messages=[{"role": "user", "content": "Hello"}], stream=True
             )
             # We need to attempt to consume the generator to trigger the error
             async for _ in generator:
@@ -785,8 +749,7 @@ class TestFallbackProviderEnhanced:
 
         # Call the transcription method
         result = await proxy.create_transcription(
-            file="test.wav",
-            model=None  # Should be ignored and replaced with model1
+            file="test.wav", model=None  # Should be ignored and replaced with model1
         )
 
         # Verify the provider was called
@@ -814,8 +777,7 @@ class TestFallbackProviderEnhanced:
 
         # Call the translation method
         result = await proxy.create_translation(
-            file="test.wav",
-            model=None  # Should be ignored and replaced with model1
+            file="test.wav", model=None  # Should be ignored and replaced with model1
         )
 
         # Verify the provider was called
@@ -889,15 +851,11 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the method
-        result = await proxy.upload_file(
-            file="test.txt",
-            purpose="fine-tune"
-        )
+        result = await proxy.upload_file(file="test.txt", purpose="fine-tune")
 
         # Verify result
         assert result["id"] == "file-123"
@@ -926,8 +884,7 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the method
@@ -959,15 +916,11 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the method
-        result = await proxy.create_speech(
-            input="Hello world",
-            model="tts-1"
-        )
+        result = await proxy.create_speech(input="Hello world", model="tts-1")
 
         # Verify result
         assert result == b"audio content"
@@ -995,15 +948,11 @@ class TestFallbackProviderEnhanced:
 
         # Create fallback proxy
         proxy = FallbackProviderProxy(
-            ["provider1/model1", "provider2/model2"],
-            FallbackConfig(retriable_errors=[APIError])
+            ["provider1/model1", "provider2/model2"], FallbackConfig(retriable_errors=[APIError])
         )
 
         # Call the method
-        result = await proxy.create_image(
-            prompt="A beautiful sunset",
-            model="dall-e-3"
-        )
+        result = await proxy.create_image(prompt="A beautiful sunset", model="dall-e-3")
 
         # Verify result
         assert result["data"][0]["url"] == "https://example.com/image.png"
@@ -1018,7 +967,7 @@ class TestFallbackProviderEnhanced:
         # Create proxy with max_fallbacks=1
         proxy = FallbackProviderProxy(
             ["provider1/model1", "provider2/model2", "provider3/model3"],
-            FallbackConfig(retriable_errors=[APIError], max_fallbacks=1)
+            FallbackConfig(retriable_errors=[APIError], max_fallbacks=1),
         )
 
         # Verify the config is set correctly
@@ -1026,16 +975,16 @@ class TestFallbackProviderEnhanced:
 
         # Verify that models_to_try is limited by max_fallbacks
         # Create a mock for direct testing of internal method
-        with mock.patch.object(proxy, '_try_streaming_with_fallbacks') as mock_try_streaming:
+        with mock.patch.object(proxy, "_try_streaming_with_fallbacks") as mock_try_streaming:
             # Set up the mock to return a generator
             async def mock_generator():
                 yield {"choices": [{"delta": {"content": "test"}}]}
+
             mock_try_streaming.return_value = mock_generator()
 
             # Call the method
             await proxy.create_chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                stream=True
+                messages=[{"role": "user", "content": "Hello"}], stream=True
             )
 
             # Verify it was called with the right number of models
@@ -1073,13 +1022,12 @@ class TestFallbackStreamingProviders:
         # Create fallback proxy without any fallback models to test primary failure
         proxy = FallbackProviderProxy(
             ["failing/model1"],  # Only one model, no fallback
-            FallbackConfig(retriable_errors=[APIError])
+            FallbackConfig(retriable_errors=[APIError]),
         )
 
         # Call the streaming method
         generator = await proxy.create_chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            stream=True
+            messages=[{"role": "user", "content": "Hello"}], stream=True
         )
 
         # Collect chunks until we hit the error
@@ -1125,6 +1073,7 @@ class TestFallbackUtils:
     @pytest.mark.asyncio
     async def test_maybe_await_with_awaitable(self):
         """Test maybe_await with an awaitable value."""
+
         # Create a coroutine
         async def async_func():
             return "awaited result"
@@ -1144,6 +1093,7 @@ class TestFallbackUtils:
 
     def test_fallback_config_custom_values(self):
         """Test FallbackConfig with custom values."""
+
         # Define a custom callback
         def custom_callback(provider, error):
             return f"Error in {provider}: {error}"
@@ -1153,7 +1103,7 @@ class TestFallbackUtils:
             retriable_errors=[ValueError, TypeError],
             max_fallbacks=3,
             log_fallbacks=False,
-            fallback_callback=custom_callback
+            fallback_callback=custom_callback,
         )
 
         # Verify values

@@ -15,7 +15,6 @@ from onellm.utils.token_counter import (
     SIMPLE_TOKEN_PATTERN
 )
 
-
 class TestTokenCounter:
     """Tests for the token_counter module."""
 

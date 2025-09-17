@@ -1,4 +1,5 @@
 import pytest
+
 """
 Tests for vision capabilities in the OpenAI provider.
 
@@ -26,7 +27,7 @@ class TestVisionCapabilities(unittest.TestCase):
         """Test that regular messages without images pass through unchanged."""
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello!"}
+            {"role": "user", "content": "Hello!"},
         ]
 
         processed = self.provider._process_messages_for_vision(messages, "gpt-4")
@@ -40,20 +41,13 @@ class TestVisionCapabilities(unittest.TestCase):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this image?"},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": "https://example.com/image.jpg"
-                        }
-                    }
-                ]
-            }
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
+            },
         ]
 
         # This should not raise an error
-        processed = self.provider._process_messages_for_vision(
-            messages, "gpt-4-vision-preview"
-        )
+        processed = self.provider._process_messages_for_vision(messages, "gpt-4-vision-preview")
         self.assertEqual(messages, processed)
 
     def test_process_messages_with_images_invalid_model(self):
@@ -64,14 +58,9 @@ class TestVisionCapabilities(unittest.TestCase):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this image?"},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": "https://example.com/image.jpg"
-                        }
-                    }
-                ]
-            }
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
+            },
         ]
 
         # This should raise an InvalidRequestError
@@ -91,17 +80,15 @@ class TestVisionCapabilities(unittest.TestCase):
                         "image_url": {
                             # Missing url field
                             "detail": "high"
-                        }
-                    }
-                ]
-            }
+                        },
+                    },
+                ],
+            },
         ]
 
         # This should raise an InvalidRequestError
         with self.assertRaises(InvalidRequestError):
-            self.provider._process_messages_for_vision(
-                messages, "gpt-4-vision-preview"
-            )
+            self.provider._process_messages_for_vision(messages, "gpt-4-vision-preview")
 
     def test_process_messages_with_invalid_detail(self):
         """Test that invalid detail value is corrected to 'auto'."""
@@ -115,22 +102,17 @@ class TestVisionCapabilities(unittest.TestCase):
                         "type": "image_url",
                         "image_url": {
                             "url": "https://example.com/image.jpg",
-                            "detail": "invalid-value"  # Invalid detail
-                        }
-                    }
-                ]
-            }
+                            "detail": "invalid-value",  # Invalid detail
+                        },
+                    },
+                ],
+            },
         ]
 
-        processed = self.provider._process_messages_for_vision(
-            messages, "gpt-4-vision-preview"
-        )
+        processed = self.provider._process_messages_for_vision(messages, "gpt-4-vision-preview")
 
         # Check that detail was corrected to 'auto'
-        self.assertEqual(
-            processed[1]["content"][1]["image_url"]["detail"],
-            "auto"
-        )
+        self.assertEqual(processed[1]["content"][1]["image_url"]["detail"], "auto")
 
     @pytest.mark.asyncio
     @mock.patch("onellm.providers.openai.OpenAIProvider._make_request")
@@ -144,19 +126,12 @@ class TestVisionCapabilities(unittest.TestCase):
             "model": "gpt-4-vision-preview",
             "choices": [
                 {
-                    "message": {
-                        "role": "assistant",
-                        "content": "I see an image of a landscape."
-                    },
+                    "message": {"role": "assistant", "content": "I see an image of a landscape."},
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
-            "usage": {
-                "prompt_tokens": 100,
-                "completion_tokens": 20,
-                "total_tokens": 120
-            }
+            "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
         }
         mock_make_request.return_value = mock_response
 
@@ -169,20 +144,14 @@ class TestVisionCapabilities(unittest.TestCase):
                     {"type": "text", "text": "What's in this image?"},
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": "https://example.com/image.jpg",
-                            "detail": "high"
-                        }
-                    }
-                ]
-            }
+                        "image_url": {"url": "https://example.com/image.jpg", "detail": "high"},
+                    },
+                ],
+            },
         ]
 
         # Call the create_chat_completion method
-        await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-4-vision-preview"
-        )
+        await self.provider.create_chat_completion(messages=messages, model="gpt-4-vision-preview")
 
         # Check that _make_request was called with the correct arguments
         mock_make_request.assert_called_once()

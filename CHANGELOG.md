@@ -88,7 +88,6 @@ This release marks OneLLM's transition from beta to production-ready status, wit
 - Ollama
 - llama.cpp
 
-
 ### Improvements
 
 - **API Refinements**: Cleaner separation between `ChatCompletion`, `Completion`, and `Embedding` interfaces

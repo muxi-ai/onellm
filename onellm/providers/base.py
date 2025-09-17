@@ -39,7 +39,6 @@ from ..models import (
 from ..types import Message
 from ..utils.fallback import FallbackConfig
 
-
 def parse_model_name(model: str) -> Tuple[str, str]:
     """
     Parse a model name with a provider prefix.
@@ -64,7 +63,6 @@ def parse_model_name(model: str) -> Tuple[str, str]:
             f"Model name '{model}' does not contain a provider prefix. "
             f"Use format 'provider/model-name' (e.g., 'openai/gpt-4')."
         )
-
 
 class Provider(ABC):
     """
@@ -183,10 +181,8 @@ class Provider(ABC):
         """
         pass
 
-
 # Registry of provider classes - stores mapping of provider names to their implementation classes
 _PROVIDER_REGISTRY: Dict[str, Type[Provider]] = {}
-
 
 def register_provider(provider_name: str, provider_class: Type[Provider]) -> None:
     """
@@ -201,7 +197,6 @@ def register_provider(provider_name: str, provider_class: Type[Provider]) -> Non
     """
     # Add the provider class to the registry with the given name as the key
     _PROVIDER_REGISTRY[provider_name] = provider_class
-
 
 def get_provider(provider_name: str, **kwargs) -> Provider:
     """
@@ -233,7 +228,6 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
     # Instantiate and return the provider class with the provided kwargs
     return provider_class(**kwargs)
 
-
 def list_providers() -> List[str]:
     """
     Get a list of registered provider names.
@@ -243,7 +237,6 @@ def list_providers() -> List[str]:
     """
     # Return the keys from the provider registry
     return list(_PROVIDER_REGISTRY.keys())
-
 
 def get_provider_with_fallbacks(
     primary_model: str,

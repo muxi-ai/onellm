@@ -51,7 +51,7 @@ class TestProviderCapabilities(unittest.TestCase):
             ChatCompletion.create(
                 model="test/model",
                 messages=[{"role": "user", "content": "Hello"}],
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
             # Verify warning was issued
@@ -81,9 +81,7 @@ class TestProviderCapabilities(unittest.TestCase):
 
             # Make request with streaming
             ChatCompletion.create(
-                model="test/model",
-                messages=[{"role": "user", "content": "Hello"}],
-                stream=True
+                model="test/model", messages=[{"role": "user", "content": "Hello"}], stream=True
             )
 
             # Verify warning was issued
@@ -107,8 +105,8 @@ class TestProviderCapabilities(unittest.TestCase):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this image?"},
-                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
-                ]
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
             }
         ]
 
@@ -117,15 +115,11 @@ class TestProviderCapabilities(unittest.TestCase):
             warnings.simplefilter("always")
 
             # Make request with image content
-            ChatCompletion.create(
-                model="test/model",
-                messages=messages
-            )
+            ChatCompletion.create(model="test/model", messages=messages)
 
             # Verify warning was issued
             self.assertTrue(
-                any("does not support vision/image inputs" in str(warning.message)
-                    for warning in w)
+                any("does not support vision/image inputs" in str(warning.message) for warning in w)
             )
 
             # Verify image content was removed
@@ -146,8 +140,8 @@ class TestProviderCapabilities(unittest.TestCase):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this audio?"},
-                    {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}}
-                ]
+                    {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}},
+                ],
             }
         ]
 
@@ -156,15 +150,11 @@ class TestProviderCapabilities(unittest.TestCase):
             warnings.simplefilter("always")
 
             # Make request with audio content
-            ChatCompletion.create(
-                model="test/model",
-                messages=messages
-            )
+            ChatCompletion.create(model="test/model", messages=messages)
 
             # Verify warning was issued
             self.assertTrue(
-                any("does not support audio inputs" in str(warning.message)
-                    for warning in w)
+                any("does not support audio inputs" in str(warning.message) for warning in w)
             )
 
             # Verify audio content was removed
@@ -194,8 +184,8 @@ class TestProviderCapabilities(unittest.TestCase):
                 "content": [
                     {"type": "text", "text": "Analyze this image and audio:"},
                     {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
-                    {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}}
-                ]
+                    {"type": "audio_url", "audio_url": {"url": "https://example.com/audio.mp3"}},
+                ],
             }
         ]
 
@@ -208,7 +198,7 @@ class TestProviderCapabilities(unittest.TestCase):
                 model="test/model",
                 messages=messages,
                 stream=True,
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
             # Verify no warnings were issued
@@ -231,9 +221,7 @@ class TestProviderCapabilities(unittest.TestCase):
             mock_get_provider.return_value = self.fully_capable_provider
 
             # Create a FallbackProviderProxy with our mock provider
-            fallback_provider = FallbackProviderProxy(
-                models=["test/model", "test/fallback"]
-            )
+            fallback_provider = FallbackProviderProxy(models=["test/model", "test/fallback"])
 
             # Verify capabilities are correctly inherited
             self.assertTrue(fallback_provider.json_mode_support)

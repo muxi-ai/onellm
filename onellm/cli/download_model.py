@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 CLI utility for downloading GGUF models from HuggingFace.
 """
@@ -27,16 +26,15 @@ import sys
 from pathlib import Path
 import os
 
-
 def download_gguf(repo_id: str, filename: str, output_dir: str = None):
     """
     Download a GGUF model from HuggingFace.
-    
+
     Args:
         repo_id: HuggingFace repository ID
         filename: Model filename to download
         output_dir: Directory to save the model (default: ~/llama_models)
-    
+
     Returns:
         Path to the downloaded file
     """
@@ -47,17 +45,17 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
         print("This should have been installed with onellm. Try:")
         print("  pip install --upgrade onellm")
         sys.exit(1)
-    
+
     # Default to ~/llama_models if no output dir specified
     if output_dir is None:
         output_dir = os.path.expanduser("~/llama_models")
-    
+
     # Create output directory
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    
+
     print(f"Downloading {filename} from {repo_id}...")
     print(f"Destination: {output_dir}")
-    
+
     try:
         # Download with progress bar
         file_path = hf_hub_download(
@@ -68,12 +66,12 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
         )
         print(f"\n✓ Downloaded successfully!")
         print(f"  File: {file_path}")
-        
+
         # Show how to use it
         model_name = Path(file_path).name
         print(f"\nTo use this model with OneLLM:")
         print(f'  model="llama_cpp/{model_name}"')
-        
+
         return file_path
     except Exception as e:
         print(f"\n✗ Error downloading model: {e}")
@@ -83,7 +81,6 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
             print("  - Check the filename exists in the repository")
             print(f"  - Visit https://huggingface.co/{repo_id} to see available files")
         sys.exit(1)
-
 
 def main():
     """Main entry point for the download command."""
@@ -107,7 +104,7 @@ Popular repositories:
   - mistralai/Mistral-7B-Instruct-v0.2-GGUF
         """
     )
-    
+
     parser.add_argument(
         "--repo-id", "-r",
         required=True,
@@ -122,12 +119,11 @@ Popular repositories:
         "--output", "-o",
         help="Output directory (default: ~/llama_models)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Download the model
     download_gguf(args.repo_id, args.filename, args.output)
-
 
 if __name__ == "__main__":
     main()

@@ -110,7 +110,7 @@ OneLLM uses exponential backoff with jitter:
 # Retry delays (approximately):
 # Attempt 1: Immediate
 # Attempt 2: ~1 second
-# Attempt 3: ~2 seconds  
+# Attempt 3: ~2 seconds
 # Attempt 4: ~4 seconds
 # Attempt 5: ~8 seconds
 ```
@@ -304,7 +304,7 @@ async def process_many():
             fallback_models=["anthropic/claude-3-haiku"]
         )
         tasks.append(task)
-    
+
     # Wait for all to complete
     responses = await asyncio.gather(*tasks)
     return responses
@@ -349,7 +349,7 @@ logging.basicConfig(
 
 # OneLLM will log:
 # - Provider selection
-# - Retry attempts  
+# - Retry attempts
 # - Fallback decisions
 # - Errors and warnings
 ```

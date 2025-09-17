@@ -67,7 +67,6 @@ import argparse
 # Import the Image class from OneLLM
 from onellm import Image
 
-
 async def generate_image_example(prompt, model="dall-e-3", size="1024x1024", output_dir=None):
     """
     Generate an image from a text prompt and save it to a file.
@@ -123,7 +122,6 @@ async def generate_image_example(prompt, model="dall-e-3", size="1024x1024", out
         print(f"Error generating image: {e}")
         return None
 
-
 def parse_arguments():
     """
     Parse command line arguments.
@@ -162,7 +160,6 @@ def parse_arguments():
     )
     return parser.parse_args()
 
-
 def main():
     """
     Run the image generation example.
@@ -188,7 +185,6 @@ def main():
         size=args.size,
         output_dir=args.output
     ))
-
 
 if __name__ == "__main__":
     main()

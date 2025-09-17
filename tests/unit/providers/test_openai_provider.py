@@ -1,4 +1,3 @@
-import asyncio
 """
 Tests for the OpenAI provider implementation.
 
@@ -17,12 +16,11 @@ from unittest.mock import AsyncMock, patch, MagicMock, mock_open
 from onellm.providers import get_provider
 from onellm.providers.openai import OpenAIProvider
 from onellm.types.common import Message
-from onellm.models import FileObject
 from onellm.errors import (
     AuthenticationError,
     ServiceUnavailableError,
     InvalidRequestError,
-    APIError
+    APIError,
 )
 
 
@@ -38,9 +36,9 @@ class MockResponse:
         if isinstance(data, bytes):
             self._content = [data]
         elif isinstance(data, str):
-            self._content = [data.encode('utf-8')]
+            self._content = [data.encode("utf-8")]
         elif isinstance(data, dict):
-            self._content = [json.dumps(data).encode('utf-8')]
+            self._content = [json.dumps(data).encode("utf-8")]
         else:
             self._content = []
 
@@ -50,7 +48,7 @@ class MockResponse:
         if isinstance(self._data, str):
             return json.loads(self._data)
         if isinstance(self._data, bytes):
-            return json.loads(self._data.decode('utf-8'))
+            return json.loads(self._data.decode("utf-8"))
         return {}
 
     async def text(self):
@@ -58,7 +56,7 @@ class MockResponse:
         if isinstance(self._data, str):
             return self._data
         if isinstance(self._data, bytes):
-            return self._data.decode('utf-8')
+            return self._data.decode("utf-8")
         if isinstance(self._data, dict):
             return json.dumps(self._data)
         return ""
@@ -67,10 +65,10 @@ class MockResponse:
         if isinstance(self._data, bytes):
             return self._data
         if isinstance(self._data, str):
-            return self._data.encode('utf-8')
+            return self._data.encode("utf-8")
         if isinstance(self._data, dict):
-            return json.dumps(self._data).encode('utf-8')
-        return b''
+            return json.dumps(self._data).encode("utf-8")
+        return b""
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
@@ -138,20 +136,13 @@ def mock_aiohttp_session():
                 "model": "gpt-3.5-turbo",
                 "choices": [
                     {
-                        "message": {
-                            "role": "assistant",
-                            "content": "This is a test response"
-                        },
+                        "message": {"role": "assistant", "content": "This is a test response"},
                         "finish_reason": "stop",
-                        "index": 0
+                        "index": 0,
                     }
                 ],
-                "usage": {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 20,
-                    "total_tokens": 30
-                }
-            }
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
         )
 
         # Set up request to return our mock response
@@ -181,7 +172,7 @@ class TestOpenAIProvider:
                 "api_base": "https://api.openai.com/v1",
                 "organization_id": None,
                 "timeout": 60,
-                "max_retries": 3
+                "max_retries": 3,
             }
             mock_get_config.return_value = mock_config
 
@@ -198,7 +189,7 @@ class TestOpenAIProvider:
                 "api_base": "https://api.openai.com/v1",
                 "organization_id": None,
                 "timeout": 60,
-                "max_retries": 3
+                "max_retries": 3,
             }
             # Create the provider with an API key
             provider = OpenAIProvider(api_key="sk-test-key")
@@ -219,7 +210,7 @@ class TestOpenAIProvider:
                 "api_base": "https://api.openai.com/v1",
                 "organization_id": None,
                 "timeout": 60,
-                "max_retries": 3
+                "max_retries": 3,
             }
             mock_get_config.return_value = mock_config
             provider = OpenAIProvider()
@@ -234,7 +225,7 @@ class TestOpenAIProvider:
                 "api_base": "https://api.openai.com/v1",
                 "organization_id": None,
                 "timeout": 60,
-                "max_retries": 3
+                "max_retries": 3,
             }
             mock_get_config.return_value = mock_config
             provider = OpenAIProvider()
@@ -251,7 +242,7 @@ class TestOpenAIProvider:
                 "api_base": "https://api.openai.com/v1",
                 "organization_id": "org-123",
                 "timeout": 60,
-                "max_retries": 3
+                "max_retries": 3,
             }
             mock_get_config.return_value = mock_config
             provider = OpenAIProvider()
@@ -276,28 +267,20 @@ class TestOpenAIProvider:
             "model": "gpt-3.5-turbo",
             "choices": [
                 {
-                    "message": {
-                        "role": "assistant",
-                        "content": "This is a test response"
-                    },
+                    "message": {"role": "assistant", "content": "This is a test response"},
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 20,
-                "total_tokens": 30
-            }
+            "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
         }
 
         # Patch the _make_request method directly
-        with patch.object(OpenAIProvider, '_make_request', return_value=mock_response):
+        with patch.object(OpenAIProvider, "_make_request", return_value=mock_response):
             # Call the method
             provider = OpenAIProvider(api_key="sk-test-key")
             response = await provider.create_chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-3.5-turbo"
+                messages=[{"role": "user", "content": "Hello"}], model="gpt-3.5-turbo"
             )
 
             # Verify response parsing
@@ -310,27 +293,17 @@ class TestOpenAIProvider:
         # Create a mock response for embeddings
         mock_response = {
             "object": "list",
-            "data": [
-                {
-                    "object": "embedding",
-                    "embedding": [0.1, 0.2, 0.3],
-                    "index": 0
-                }
-            ],
+            "data": [{"object": "embedding", "embedding": [0.1, 0.2, 0.3], "index": 0}],
             "model": "text-embedding-ada-002",
-            "usage": {
-                "prompt_tokens": 10,
-                "total_tokens": 10
-            }
+            "usage": {"prompt_tokens": 10, "total_tokens": 10},
         }
 
         # Patch the _make_request method directly
-        with patch.object(OpenAIProvider, '_make_request', return_value=mock_response):
+        with patch.object(OpenAIProvider, "_make_request", return_value=mock_response):
             # Call the method
             provider = OpenAIProvider(api_key="sk-test-key")
             response = await provider.create_embedding(
-                input="Hello, world",
-                model="text-embedding-ada-002"
+                input="Hello, world", model="text-embedding-ada-002"
             )
 
             # Verify response parsing
@@ -344,7 +317,7 @@ class TestOpenAIProvider:
             "error": {
                 "message": "Invalid API key",
                 "type": "invalid_request_error",
-                "code": "invalid_api_key"
+                "code": "invalid_api_key",
             }
         }
 
@@ -356,13 +329,12 @@ class TestOpenAIProvider:
             raise error
 
         # Patch the _make_request method to raise our error
-        with patch.object(OpenAIProvider, '_make_request', side_effect=mock_make_request):
+        with patch.object(OpenAIProvider, "_make_request", side_effect=mock_make_request):
             # Call the method and expect an error
             provider = OpenAIProvider(api_key="sk-test-key")
             with pytest.raises(AuthenticationError) as excinfo:
                 await provider.create_chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}],
-                    model="gpt-3.5-turbo"
+                    messages=[{"role": "user", "content": "Hello"}], model="gpt-3.5-turbo"
                 )
 
             # Verify error details
@@ -373,16 +345,15 @@ class TestOpenAIProvider:
     async def test_streaming_error_handling(self):
         """Test _handle_streaming_response error handling."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create a mock response with error status and content
         mock_response = mock.MagicMock()
         mock_response.status = 401
-        mock_response.json = mock.AsyncMock(return_value={
-            "error": {
-                "message": "Invalid authentication",
-                "type": "authentication_error"
+        mock_response.json = mock.AsyncMock(
+            return_value={
+                "error": {"message": "Invalid authentication", "type": "authentication_error"}
             }
-        })
+        )
 
         with pytest.raises(AuthenticationError) as excinfo:
             async for _ in provider._handle_streaming_response(mock_response):
@@ -395,16 +366,16 @@ class TestOpenAIProvider:
     async def test_streaming_invalid_json(self):
         """Test handling of invalid JSON in streaming response."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create a mock response
         mock_response = mock.MagicMock()
         mock_response.status = 200
 
         # Set up the content as a proper async iterator
         test_data = [
-            b'data: invalid json',
+            b"data: invalid json",
             b'data: {"id": "chatcmpl-123", "choices": [{"delta": {"content": "content"}}]}',
-            b'data: [DONE]'
+            b"data: [DONE]",
         ]
         mock_response.content = MockAsyncIterator(test_data)
 
@@ -419,7 +390,7 @@ class TestOpenAIProvider:
     async def test_completion_streaming(self):
         """Test the completion streaming implementation."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Mock _make_request to return a generator
         async def mock_generator():
             yield {"id": "cmpl-123", "choices": [{"text": "chunk 1"}]}
@@ -429,9 +400,7 @@ class TestOpenAIProvider:
 
         # Call the method with stream=True
         generator = await provider.create_completion(
-            prompt="Test prompt",
-            model="text-davinci-003",
-            stream=True
+            prompt="Test prompt", model="text-davinci-003", stream=True
         )
 
         # Collect and verify chunks
@@ -452,7 +421,7 @@ class TestOpenAIProvider:
     async def test_completion_response_processing(self):
         """Test completion response processing."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Mock response data
         mock_response = {
             "id": "cmpl-123",
@@ -464,21 +433,18 @@ class TestOpenAIProvider:
                     "text": "This is a test response",
                     "index": 0,
                     "logprobs": {"tokens": ["test"], "token_logprobs": [-0.1]},
-                    "finish_reason": "stop"
+                    "finish_reason": "stop",
                 }
             ],
             "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
-            "system_fingerprint": "fp123"
+            "system_fingerprint": "fp123",
         }
 
         # Mock _make_request to return the response
         provider._make_request = mock.AsyncMock(return_value=mock_response)
 
         # Call the method
-        response = await provider.create_completion(
-            prompt="Test prompt",
-            model="text-davinci-003"
-        )
+        response = await provider.create_completion(prompt="Test prompt", model="text-davinci-003")
 
         # Verify response processing
         assert response.id == "cmpl-123"
@@ -495,16 +461,16 @@ class TestOpenAIProvider:
     async def test_image_creation_options(self):
         """Test image creation with various options."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Mock response data
         mock_response = {
             "created": 1677858242,
             "data": [
                 {
                     "url": "https://example.com/image.png",
-                    "revised_prompt": "A beautiful sunset over the mountains"
+                    "revised_prompt": "A beautiful sunset over the mountains",
                 }
-            ]
+            ],
         }
 
         # Mock _make_request to return the response
@@ -517,7 +483,7 @@ class TestOpenAIProvider:
             size="1024x1024",
             response_format="url",
             quality="standard",
-            style="vivid"
+            style="vivid",
         )
 
         # Verify the API request included the right parameters
@@ -540,16 +506,13 @@ class TestOpenAIProvider:
     async def test_handle_response_error(self):
         """Test _handle_response error handling."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create a mock response
         mock_response = mock.MagicMock()
         mock_response.status = 500
-        mock_response.json = mock.AsyncMock(return_value={
-            "error": {
-                "message": "Internal server error",
-                "type": "server_error"
-            }
-        })
+        mock_response.json = mock.AsyncMock(
+            return_value={"error": {"message": "Internal server error", "type": "server_error"}}
+        )
 
         with pytest.raises(ServiceUnavailableError) as excinfo:
             await provider._handle_response(mock_response)
@@ -560,7 +523,7 @@ class TestOpenAIProvider:
     async def test_chat_completion_response_processing(self):
         """Test chat completion response processing."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Mock response data
         mock_response = {
             "id": "chatcmpl-123",
@@ -569,16 +532,13 @@ class TestOpenAIProvider:
             "model": "gpt-3.5-turbo",
             "choices": [
                 {
-                    "message": {
-                        "role": "assistant",
-                        "content": "This is a test response"
-                    },
+                    "message": {"role": "assistant", "content": "This is a test response"},
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-            "system_fingerprint": "fp123"
+            "system_fingerprint": "fp123",
         }
 
         # Mock _make_request to return the response
@@ -586,8 +546,7 @@ class TestOpenAIProvider:
 
         # Call the method
         response = await provider.create_chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-3.5-turbo"
+            messages=[{"role": "user", "content": "Hello"}], model="gpt-3.5-turbo"
         )
 
         # Verify response processing
@@ -605,13 +564,13 @@ class TestOpenAIProvider:
     async def test_process_messages_for_vision_no_images(self):
         """Test message processing with no images."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create messages with no images
         messages: List[Message] = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Tell me about this concept."},
             {"role": "assistant", "content": "I'd be happy to help."},
-            {"role": "user", "content": "Can you elaborate more?"}
+            {"role": "user", "content": "Can you elaborate more?"},
         ]
 
         # Process messages
@@ -624,19 +583,20 @@ class TestOpenAIProvider:
     async def test_process_messages_for_vision_with_images(self):
         """Test message processing with images."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create messages with an image
         messages: List[Message] = [
-            {"role": "user", "content": [
-                {"type": "text", "text": "What's in this image?"},
-                {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
-            ]}
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "What's in this image?"},
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
+            }
         ]
 
         # Process messages with a vision-capable model
-        processed_messages = provider._process_messages_for_vision(
-            messages, "gpt-4-vision-preview"
-        )
+        processed_messages = provider._process_messages_for_vision(messages, "gpt-4-vision-preview")
 
         # Verify messages are processed correctly
         assert processed_messages == messages
@@ -645,13 +605,16 @@ class TestOpenAIProvider:
     async def test_process_messages_for_vision_with_invalid_model(self):
         """Test message processing with images and non-vision model."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create messages with an image
         messages: List[Message] = [
-            {"role": "user", "content": [
-                {"type": "text", "text": "What's in this image?"},
-                {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
-            ]}
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "What's in this image?"},
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
+            }
         ]
 
         # Try processing with a non-vision model
@@ -665,13 +628,10 @@ class TestOpenAIProvider:
     async def test_handle_error_response_with_no_message(self):
         """Test error handling when no error message is present."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Test with empty error object
         with pytest.raises(AuthenticationError) as exc_info:
-            provider._handle_error_response(
-                401,
-                {"error": {}}  # Empty error object
-            )
+            provider._handle_error_response(401, {"error": {}})  # Empty error object
 
         # Verify default message is used
         assert "Unknown error" in str(exc_info.value)
@@ -680,10 +640,7 @@ class TestOpenAIProvider:
 
         # Test with no error object at all
         with pytest.raises(AuthenticationError) as exc_info:
-            provider._handle_error_response(
-                401,
-                {}  # No error object
-            )
+            provider._handle_error_response(401, {})  # No error object
 
         # Verify default message is used
         assert "Unknown error" in str(exc_info.value)
@@ -694,7 +651,7 @@ class TestOpenAIProvider:
     async def test_create_embedding_with_batched_input(self):
         """Test create_embedding with batched input."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create a list of texts to embed
         texts = ["Hello world", "This is a test", "Embedding example"]
 
@@ -704,20 +661,17 @@ class TestOpenAIProvider:
             "data": [
                 {"object": "embedding", "embedding": [0.1, 0.2, 0.3], "index": 0},
                 {"object": "embedding", "embedding": [0.4, 0.5, 0.6], "index": 1},
-                {"object": "embedding", "embedding": [0.7, 0.8, 0.9], "index": 2}
+                {"object": "embedding", "embedding": [0.7, 0.8, 0.9], "index": 2},
             ],
             "model": "text-embedding-ada-002",
-            "usage": {"prompt_tokens": 12, "total_tokens": 12}
+            "usage": {"prompt_tokens": 12, "total_tokens": 12},
         }
 
         with mock.patch.object(
-            provider, '_make_request', return_value=mock_response
+            provider, "_make_request", return_value=mock_response
         ) as mock_request:
             # Call the method with batched input
-            result = await provider.create_embedding(
-                input=texts,
-                model="text-embedding-ada-002"
-            )
+            result = await provider.create_embedding(input=texts, model="text-embedding-ada-002")
 
             # Verify the request parameters
             called_args = mock_request.call_args[1]
@@ -740,28 +694,24 @@ class TestOpenAIProvider:
     async def test_create_embedding_with_dimensions(self):
         """Test create_embedding with dimensions parameter."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create input text
         text = "Hello world"
 
         # Mock the _make_request method
         mock_response = {
             "object": "list",
-            "data": [
-                {"object": "embedding", "embedding": [0.1, 0.2], "index": 0}
-            ],
+            "data": [{"object": "embedding", "embedding": [0.1, 0.2], "index": 0}],
             "model": "text-embedding-ada-002",
-            "usage": {"prompt_tokens": 2, "total_tokens": 2}
+            "usage": {"prompt_tokens": 2, "total_tokens": 2},
         }
 
         with mock.patch.object(
-            provider, '_make_request', return_value=mock_response
+            provider, "_make_request", return_value=mock_response
         ) as mock_request:
             # Call the method with dimensions parameter
             await provider.create_embedding(
-                input=text,
-                model="text-embedding-ada-002",
-                dimensions=2
+                input=text, model="text-embedding-ada-002", dimensions=2
             )
 
             # Verify the dimensions parameter was passed
@@ -772,11 +722,9 @@ class TestOpenAIProvider:
     async def test_create_chat_completion_tools(self):
         """Test create_chat_completion with tools parameter."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Create messages
-        messages: List[Message] = [
-            {"role": "user", "content": "What's the weather like in Tokyo?"}
-        ]
+        messages: List[Message] = [{"role": "user", "content": "What's the weather like in Tokyo?"}]
 
         # Define tools
         tools = [
@@ -790,12 +738,12 @@ class TestOpenAIProvider:
                         "properties": {
                             "location": {
                                 "type": "string",
-                                "description": "The city and state, e.g. San Francisco, CA"
+                                "description": "The city and state, e.g. San Francisco, CA",
                             }
                         },
-                        "required": ["location"]
-                    }
-                }
+                        "required": ["location"],
+                    },
+                },
             }
         ]
 
@@ -805,37 +753,35 @@ class TestOpenAIProvider:
             "object": "chat.completion",
             "created": 1677858242,
             "model": "gpt-3.5-turbo",
-            "choices": [{
-                "message": {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [{
-                        "id": "call_abc123",
-                        "type": "function",
-                        "function": {
-                            "name": "get_weather",
-                            "arguments": '{"location": "Tokyo, Japan"}'
-                        }
-                    }]
-                },
-                "finish_reason": "tool_calls",
-                "index": 0
-            }],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 10,
-                "total_tokens": 20
-            }
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_abc123",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": '{"location": "Tokyo, Japan"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                    "index": 0,
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
         }
 
         with mock.patch.object(
-            provider, '_make_request', return_value=mock_response
+            provider, "_make_request", return_value=mock_response
         ) as mock_request:
             # Call the method with tools
             result = await provider.create_chat_completion(
-                messages=messages,
-                model="gpt-3.5-turbo",
-                tools=tools
+                messages=messages, model="gpt-3.5-turbo", tools=tools
             )
 
             # Verify the tools parameter was passed
@@ -843,31 +789,31 @@ class TestOpenAIProvider:
             assert called_args["data"]["tools"] == tools
 
             # Verify the result contains tool_calls - use dataclass attribute access
-            assert hasattr(result, 'choices')
+            assert hasattr(result, "choices")
             assert len(result.choices) == 1
 
             # Access the first choice
             choice = result.choices[0]
-            assert hasattr(choice, 'message')
+            assert hasattr(choice, "message")
 
             # Access tool calls
             message = choice.message
-            assert 'tool_calls' in message
-            tool_calls = message['tool_calls']
+            assert "tool_calls" in message
+            tool_calls = message["tool_calls"]
             assert len(tool_calls) == 1
 
             # Verify tool call content
             tool_call = tool_calls[0]
-            assert tool_call['function']['name'] == "get_weather"
-            assert "Tokyo" in tool_call['function']['arguments']
+            assert tool_call["function"]["name"] == "get_weather"
+            assert "Tokyo" in tool_call["function"]["arguments"]
 
     @pytest.mark.asyncio
     async def test_make_request_with_files(self):
         """Test _make_request with file uploads."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -879,36 +825,30 @@ class TestOpenAIProvider:
             "file": {
                 "data": b"test file content",
                 "filename": "test.txt",
-                "content_type": "text/plain"
+                "content_type": "text/plain",
             }
         }
 
         # Additional form data
-        data = {
-            "purpose": "assistants",
-            "metadata": {"key": "value"}
-        }
+        data = {"purpose": "assistants", "metadata": {"key": "value"}}
 
         # Mock response
-        mock_response = MockResponse({
-            "id": "file-123",
-            "object": "file",
-            "bytes": 16,
-            "created_at": 1677858242,
-            "filename": "test.txt",
-            "purpose": "assistants"
-        })
+        mock_response = MockResponse(
+            {
+                "id": "file-123",
+                "object": "file",
+                "bytes": 16,
+                "created_at": 1677858242,
+                "filename": "test.txt",
+                "purpose": "assistants",
+            }
+        )
 
         # Set up the mock session to return our mock response
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
         # Call the method
-        result = await provider._make_request(
-            method="POST",
-            path="/files",
-            data=data,
-            files=files
-        )
+        result = await provider._make_request(method="POST", path="/files", data=data, files=files)
 
         # Verify request was made correctly
         mock_session_instance.request.assert_called_once()
@@ -927,9 +867,9 @@ class TestOpenAIProvider:
     async def test_make_request_raw_success(self):
         """Test _make_request_raw successful call."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -941,10 +881,7 @@ class TestOpenAIProvider:
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
         # Call the method
-        result = await provider._make_request_raw(
-            method="GET",
-            path="/raw-endpoint"
-        )
+        result = await provider._make_request_raw(method="GET", path="/raw-endpoint")
 
         # Verify request was made correctly
         mock_session_instance.request.assert_called_once()
@@ -957,30 +894,22 @@ class TestOpenAIProvider:
     async def test_make_request_raw_error_json(self):
         """Test _make_request_raw with error response as JSON."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
         mock_session_instance.__aenter__.return_value = mock_session_instance
         mock_session_instance.__aexit__.return_value = None
 
-        error_response = {
-            "error": {
-                "message": "Invalid API key",
-                "type": "authentication_error"
-            }
-        }
+        error_response = {"error": {"message": "Invalid API key", "type": "authentication_error"}}
         mock_response = MockResponse(error_response, status=401)
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
         # Call the method and expect an error
         with pytest.raises(AuthenticationError) as exc_info:
-            await provider._make_request_raw(
-                method="GET",
-                path="/raw-endpoint"
-            )
+            await provider._make_request_raw(method="GET", path="/raw-endpoint")
 
         # Verify error message
         assert "Invalid API key" in str(exc_info.value)
@@ -991,9 +920,9 @@ class TestOpenAIProvider:
     async def test_make_request_raw_error_non_json(self):
         """Test _make_request_raw with non-JSON error response."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -1006,10 +935,7 @@ class TestOpenAIProvider:
 
         # Call the method and expect an error
         with pytest.raises(APIError) as exc_info:
-            await provider._make_request_raw(
-                method="GET",
-                path="/raw-endpoint"
-            )
+            await provider._make_request_raw(method="GET", path="/raw-endpoint")
 
         # Verify error message
         assert "Internal Server Error" in str(exc_info.value)
@@ -1021,26 +947,17 @@ class TestOpenAIProvider:
     async def test_create_speech_validation(self):
         """Test create_speech parameter validation."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Test with invalid model
-        with pytest.raises(
-                InvalidRequestError, match="not a supported TTS model"):
-            await provider.create_speech(
-                input="Hello world",
-                model="unsupported-model"
-            )
+        with pytest.raises(InvalidRequestError, match="not a supported TTS model"):
+            await provider.create_speech(input="Hello world", model="unsupported-model")
 
         # Test with invalid voice
-        with pytest.raises(
-                InvalidRequestError, match="Voice 'invalid' is not supported"):
-            await provider.create_speech(
-                input="Hello world",
-                voice="invalid"
-            )
+        with pytest.raises(InvalidRequestError, match="Voice 'invalid' is not supported"):
+            await provider.create_speech(input="Hello world", voice="invalid")
 
         # Test with invalid response format
-        with pytest.raises(
-                InvalidRequestError, match="Response format 'invalid' is not supported"):
+        with pytest.raises(InvalidRequestError, match="Response format 'invalid' is not supported"):
             await provider.create_speech(
                 input="Hello world",
                 response_format="invalid",
@@ -1048,33 +965,27 @@ class TestOpenAIProvider:
 
         # Test with invalid speed (too low)
         with pytest.raises(
-                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
-            await provider.create_speech(
-                input="Hello world",
-                speed=0.1
-            )
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
+            await provider.create_speech(input="Hello world", speed=0.1)
 
         # Test with invalid speed (too high)
         with pytest.raises(
-                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
-            await provider.create_speech(
-                input="Hello world",
-                speed=5.0
-            )
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
+            await provider.create_speech(input="Hello world", speed=5.0)
 
         # Test with invalid speed (wrong type)
         with pytest.raises(
-                InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"):
-            await provider.create_speech(
-                input="Hello world",
-                speed="fast"
-            )
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
+            await provider.create_speech(input="Hello world", speed="fast")
 
     @pytest.mark.asyncio
     async def test_create_image_validation(self):
         """Test create_image parameter validation."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Set up a successful response for valid calls
         image_response = {
             "created": 1677858242,
@@ -1082,74 +993,55 @@ class TestOpenAIProvider:
                 {
                     "url": "https://example.com/image.png",
                     "b64_json": None,
-                    "revised_prompt": "A beautiful sunset"
+                    "revised_prompt": "A beautiful sunset",
                 }
-            ]
+            ],
         }
 
         # Test with invalid model
-        with pytest.raises(
-                InvalidRequestError, match="not a supported image generation model"):
-            await provider.create_image(
-                prompt="A beautiful sunset",
-                model="unsupported-model"
-            )
+        with pytest.raises(InvalidRequestError, match="not a supported image generation model"):
+            await provider.create_image(prompt="A beautiful sunset", model="unsupported-model")
 
         # Test with invalid size for DALL-E 3
         with pytest.raises(
-                InvalidRequestError, match="Size '256x256' is not supported for dall-e-3"):
+            InvalidRequestError, match="Size '256x256' is not supported for dall-e-3"
+        ):
             await provider.create_image(
-                prompt="A beautiful sunset",
-                model="dall-e-3",
-                size="256x256"
+                prompt="A beautiful sunset", model="dall-e-3", size="256x256"
             )
 
         # Test with invalid size for DALL-E 2
         with pytest.raises(
-                InvalidRequestError, match="Size '1792x1024' is not supported for dall-e-2"):
+            InvalidRequestError, match="Size '1792x1024' is not supported for dall-e-2"
+        ):
             await provider.create_image(
-                prompt="A beautiful sunset",
-                model="dall-e-2",
-                size="1792x1024"
+                prompt="A beautiful sunset", model="dall-e-2", size="1792x1024"
             )
 
         # Test with multiple images for DALL-E 3 (not supported)
         with pytest.raises(
-                InvalidRequestError, match="DALL-E 3 only supports generating one image at a time"):
-            await provider.create_image(
-                prompt="A beautiful sunset",
-                model="dall-e-3",
-                n=2
-            )
+            InvalidRequestError, match="DALL-E 3 only supports generating one image at a time"
+        ):
+            await provider.create_image(prompt="A beautiful sunset", model="dall-e-3", n=2)
 
         # Test with invalid quality for DALL-E 3
-        with pytest.raises(
-                InvalidRequestError, match="Quality 'ultra' is not supported"):
+        with pytest.raises(InvalidRequestError, match="Quality 'ultra' is not supported"):
             await provider.create_image(
-                prompt="A beautiful sunset",
-                model="dall-e-3",
-                quality="ultra"
+                prompt="A beautiful sunset", model="dall-e-3", quality="ultra"
             )
 
         # Test with invalid style for DALL-E 3
-        with pytest.raises(
-                InvalidRequestError, match="Style 'abstract' is not supported"):
+        with pytest.raises(InvalidRequestError, match="Style 'abstract' is not supported"):
             await provider.create_image(
-                prompt="A beautiful sunset",
-                model="dall-e-3",
-                style="abstract"
+                prompt="A beautiful sunset", model="dall-e-3", style="abstract"
             )
 
         # Test with invalid response format
-        with pytest.raises(
-                InvalidRequestError, match="Response format 'png' is not supported"):
-            await provider.create_image(
-                prompt="A beautiful sunset",
-                response_format="png"
-            )
+        with pytest.raises(InvalidRequestError, match="Response format 'png' is not supported"):
+            await provider.create_image(prompt="A beautiful sunset", response_format="png")
 
         # Patch aiohttp.ClientSession for successful test
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -1165,7 +1057,7 @@ class TestOpenAIProvider:
             model="dall-e-3",
             size="1024x1024",
             quality="hd",
-            style="vivid"
+            style="vivid",
         )
 
         # Verify result by checking structure instead of using isinstance
@@ -1180,9 +1072,9 @@ class TestOpenAIProvider:
     async def test_create_transcription(self):
         """Test audio transcription."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -1190,21 +1082,18 @@ class TestOpenAIProvider:
         mock_session_instance.__aexit__.return_value = None
 
         # Mock response for successful transcription
-        mock_response = MockResponse({
-            "text": "This is a transcription of audio content.",
-            "language": "en"
-        })
+        mock_response = MockResponse(
+            {"text": "This is a transcription of audio content.", "language": "en"}
+        )
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
         # Mock the _process_audio_file method to avoid actual file handling
         with patch.object(
-            provider, '_process_audio_file',
-            return_value=(b"mock audio data", "audio.mp3")
+            provider, "_process_audio_file", return_value=(b"mock audio data", "audio.mp3")
         ):
             # Call the method with minimum parameters
             result = await provider.create_transcription(
-                file=b"mock audio content",
-                model="whisper-1"
+                file=b"mock audio content", model="whisper-1"
             )
 
             # Verify result using dictionary access instead of isinstance
@@ -1220,7 +1109,7 @@ class TestOpenAIProvider:
                 prompt="This is a test.",
                 response_format="text",
                 temperature=0.5,
-                language="en"
+                language="en",
             )
 
             # Verify API was called with correct parameters
@@ -1234,9 +1123,9 @@ class TestOpenAIProvider:
     async def test_create_translation(self):
         """Test audio translation."""
         provider = OpenAIProvider(api_key="sk-test-key")
-        
+
         # Patch aiohttp.ClientSession
-        session_patch = patch('aiohttp.ClientSession')
+        session_patch = patch("aiohttp.ClientSession")
         mock_session = session_patch.start()
         mock_session_instance = MagicMock()
         mock_session.return_value = mock_session_instance
@@ -1244,20 +1133,16 @@ class TestOpenAIProvider:
         mock_session_instance.__aexit__.return_value = None
 
         # Mock response for successful translation
-        mock_response = MockResponse({
-            "text": "This is a translation of audio content."
-        })
+        mock_response = MockResponse({"text": "This is a translation of audio content."})
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
         # Mock the _process_audio_file method to avoid actual file handling
         with patch.object(
-            provider, '_process_audio_file',
-            return_value=(b"mock audio data", "audio.mp3")
+            provider, "_process_audio_file", return_value=(b"mock audio data", "audio.mp3")
         ):
             # Call the method with minimum parameters
             result = await provider.create_translation(
-                file=b"mock audio content",
-                model="whisper-1"
+                file=b"mock audio content", model="whisper-1"
             )
 
             # Verify result using dictionary access instead of isinstance
@@ -1270,7 +1155,7 @@ class TestOpenAIProvider:
                 model="whisper-1",
                 prompt="This is a test.",
                 response_format="text",
-                temperature=0.5
+                temperature=0.5,
             )
 
             # Verify API was called with correct parameters
@@ -1405,11 +1290,7 @@ class TestOpenAISpeechGeneration:
     async def test_create_speech_all_params(self):
         """Test speech generation with all parameters specified."""
         result = await self.provider.create_speech(
-            "Test text",
-            model="tts-1-hd",
-            voice="nova",
-            response_format="opus",
-            speed=1.5
+            "Test text", model="tts-1-hd", voice="nova", response_format="opus", speed=1.5
         )
 
         self.mock_make_request_raw.assert_called_once()
@@ -1449,29 +1330,31 @@ class TestOpenAISpeechGeneration:
     @pytest.mark.asyncio
     async def test_create_speech_invalid_response_format(self):
         """Test speech generation with invalid response format."""
-        with pytest.raises(InvalidRequestError,
-                           match="Response format 'invalid' is not supported"):
+        with pytest.raises(InvalidRequestError, match="Response format 'invalid' is not supported"):
             await self.provider.create_speech("Test text", response_format="invalid")
 
     @pytest.mark.asyncio
     async def test_create_speech_invalid_speed_too_low(self):
         """Test speech generation with speed too low."""
-        with pytest.raises(InvalidRequestError,
-                           match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
             await self.provider.create_speech("Test text", speed=0.1)
 
     @pytest.mark.asyncio
     async def test_create_speech_invalid_speed_too_high(self):
         """Test speech generation with speed too high."""
-        with pytest.raises(InvalidRequestError,
-                           match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
             await self.provider.create_speech("Test text", speed=5.0)
 
     @pytest.mark.asyncio
     async def test_create_speech_invalid_speed_type(self):
         """Test speech generation with invalid speed type."""
-        with pytest.raises(InvalidRequestError,
-                           match="Speed must be a number between 0.25 and 4.0"):
+        with pytest.raises(
+            InvalidRequestError, match="Speed must be a number between 0.25 and 4.0"
+        ):
             await self.provider.create_speech("Test text", speed="fast")  # Not a number
 
 
@@ -1502,9 +1385,7 @@ class TestOpenAIRawRequestHandling:
         self.mock_retry.side_effect = mock_retry_side_effect
 
         # Execute the test
-        result = await self.provider._make_request_raw(
-            method="GET", path="/test/endpoint"
-        )
+        result = await self.provider._make_request_raw(method="GET", path="/test/endpoint")
 
         assert result == b"test binary data"
         self.mock_retry.assert_called_once()
@@ -1523,9 +1404,7 @@ class TestOpenAIRawRequestHandling:
 
         # Execute the test
         with pytest.raises(APIError, match="Test API error"):
-            await self.provider._make_request_raw(
-                method="GET", path="/test/endpoint"
-            )
+            await self.provider._make_request_raw(method="GET", path="/test/endpoint")
 
         self.mock_retry.assert_called_once()
 
@@ -1536,7 +1415,7 @@ class TestOpenAIRawRequestHandling:
         test_error = APIError(
             "OpenAI API error: <html>Error page</html> (status code: 500)",
             provider="openai",
-            status_code=500
+            status_code=500,
         )
 
         # Set up our async side effect to raise the API error
@@ -1547,9 +1426,7 @@ class TestOpenAIRawRequestHandling:
 
         # Execute the test
         with pytest.raises(APIError) as excinfo:
-            await self.provider._make_request_raw(
-                method="GET", path="/test/endpoint"
-            )
+            await self.provider._make_request_raw(method="GET", path="/test/endpoint")
 
         # Verify the error message and status code
         assert "status code: 500" in str(excinfo.value)

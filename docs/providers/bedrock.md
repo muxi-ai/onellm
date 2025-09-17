@@ -41,7 +41,7 @@ The Bedrock provider supports multiple authentication methods:
 3. **AWS Profile**
    ```python
    from onellm import Client
-   
+
    client = Client()
    # Uses profile from bedrock.json or default profile
    ```
@@ -109,7 +109,7 @@ async def main():
         max_tokens=200,
         temperature=0.7
     )
-    
+
     print(response.choices[0].message.content)
 
 asyncio.run(main())
@@ -125,7 +125,7 @@ async def stream_example():
         max_tokens=500,
         stream=True
     )
-    
+
     async for chunk in stream:
         if chunk.choices[0].delta.content:
             print(chunk.choices[0].delta.content, end="", flush=True)
@@ -140,7 +140,7 @@ async def vision_example():
     # Read and encode image
     with open("image.jpg", "rb") as f:
         image_data = base64.b64encode(f.read()).decode()
-    
+
     response = await client.chat.completions.create(
         model="bedrock/claude-3-5-sonnet",  # or nova-pro
         messages=[{
@@ -157,7 +157,7 @@ async def vision_example():
         }],
         max_tokens=300
     )
-    
+
     print(response.choices[0].message.content)
 ```
 
@@ -169,7 +169,7 @@ async def embedding_example():
         model="bedrock/titan-embed-text-v2",
         input="The quick brown fox jumps over the lazy dog."
     )
-    
+
     print(f"Embedding dimension: {len(response.data[0].embedding)}")
     print(f"First 5 values: {response.data[0].embedding[:5]}")
 ```

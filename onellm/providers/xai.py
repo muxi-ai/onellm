@@ -17,7 +17,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 X.AI (Grok) provider implementation for OneLLM.
 
@@ -28,32 +27,30 @@ and OpenAI-compatible API endpoints.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
-
 class XAIProvider(OpenAICompatibleProvider):
     """X.AI (Grok) provider implementation."""
-    
+
     # Provider configuration
     provider_name = "xai"
     default_api_base = "https://api.x.ai/v1"
-    
+
     # Set capability flags
     json_mode_support = True
-    
+
     # Multi-modal capabilities
     vision_support = False         # Vision support coming soon
     audio_input_support = False    # No audio support
     video_input_support = False    # No video support
-    
+
     # Streaming capabilities
     streaming_support = True       # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
-    
+
     # Realtime capabilities
     realtime_support = False       # No realtime API
-    
+
     # Additional capabilities
     function_calling_support = True  # Supports function calling
-
 
 # Register the XAI provider
 register_provider("xai", XAIProvider)

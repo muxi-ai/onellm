@@ -67,7 +67,6 @@ from pathlib import Path
 from onellm import AudioTranslation
 from onellm.config import set_api_key
 
-
 def main():
     """
     Run the audio translation example.
@@ -135,7 +134,6 @@ def main():
 
     # Note: Unlike transcription, translation always outputs English text
     # regardless of the source language in the audio file.
-
 
 if __name__ == "__main__":
     main()

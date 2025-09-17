@@ -40,7 +40,6 @@ from ..errors import (
 # Type variable for the return type of the retried function
 T = TypeVar("T")
 
-
 @dataclass
 class RetryConfig:
     """Configuration for the retry mechanism."""
@@ -70,7 +69,6 @@ class RetryConfig:
                 asyncio.TimeoutError,  # Async operation timed out
             ]
 
-
 def _should_retry(error: Exception, config: RetryConfig) -> bool:
     """
     Determine if a retry should be attempted based on the error.
@@ -89,7 +87,6 @@ def _should_retry(error: Exception, config: RetryConfig) -> bool:
         # Check if the error is an instance of any of the retryable error types
         return any(isinstance(error, err_type) for err_type in config.retryable_errors)
     return False
-
 
 def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
     """
@@ -119,7 +116,6 @@ def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
         backoff = backoff * (0.5 + random.random())
 
     return backoff
-
 
 async def retry_async(
     func: Callable[..., Any],

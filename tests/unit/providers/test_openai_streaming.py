@@ -3,10 +3,7 @@ import json
 from unittest import mock
 
 from onellm.providers.openai import OpenAIProvider
-from onellm.errors import (
-    TimeoutError, AuthenticationError,
-    APIError
-)
+from onellm.errors import TimeoutError, AuthenticationError, APIError
 
 
 class MockResponse:
@@ -72,7 +69,7 @@ class TestOpenAIStreamingAndTools:
     def setup_method(self):
         """Set up the test environment."""
         # Use a patcher to completely mock get_provider_config
-        self.config_patcher = mock.patch('onellm.config.get_provider_config')
+        self.config_patcher = mock.patch("onellm.config.get_provider_config")
         self.mock_get_config = self.config_patcher.start()
         self.mock_get_config.return_value = {"api_key": "test-api-key"}
 
@@ -83,7 +80,7 @@ class TestOpenAIStreamingAndTools:
         self.provider.api_key = "test-api-key"
 
         # Patch _make_request to bypass the actual HTTP request
-        self.request_patcher = mock.patch.object(self.provider, '_make_request')
+        self.request_patcher = mock.patch.object(self.provider, "_make_request")
         self.mock_make_request = self.request_patcher.start()
 
     def teardown_method(self):
@@ -106,9 +103,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method and expect an error
         with pytest.raises(TimeoutError) as exc_info:
             async for _ in await self.provider.create_chat_completion(
-                messages=messages,
-                model="gpt-4",
-                stream=True
+                messages=messages, model="gpt-4", stream=True
             ):
                 pass
 
@@ -131,13 +126,7 @@ class TestOpenAIStreamingAndTools:
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-4",
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": "Hello"},
-                        "finish_reason": None
-                    }
-                ]
+                "choices": [{"index": 0, "delta": {"content": "Hello"}, "finish_reason": None}],
             }
 
             # The second chunk would be processed by the provider
@@ -146,13 +135,7 @@ class TestOpenAIStreamingAndTools:
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-4",
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": " world"},
-                        "finish_reason": None
-                    }
-                ]
+                "choices": [{"index": 0, "delta": {"content": " world"}, "finish_reason": None}],
             }
 
         # Set the mock to return our generator
@@ -161,9 +144,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method
         chunks_received = []
         async for chunk in await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-4",
-            stream=True
+            messages=messages, model="gpt-4", stream=True
         ):
             chunks_received.append(chunk)
 
@@ -190,12 +171,12 @@ class TestOpenAIStreamingAndTools:
                         "properties": {
                             "location": {
                                 "type": "string",
-                                "description": "The city and state, e.g. San Francisco, CA"
+                                "description": "The city and state, e.g. San Francisco, CA",
                             }
                         },
-                        "required": ["location"]
-                    }
-                }
+                        "required": ["location"],
+                    },
+                },
             }
         ]
 
@@ -208,27 +189,27 @@ class TestOpenAIStreamingAndTools:
             "object": "chat.completion",
             "created": 1677858242,
             "model": "gpt-3.5-turbo",
-            "choices": [{
-                "message": {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [{
-                        "id": "call_abc123",
-                        "type": "function",
-                        "function": {
-                            "name": "get_weather",
-                            "arguments": '{"location": "Tokyo, Japan"}'
-                        }
-                    }]
-                },
-                "finish_reason": "tool_calls",
-                "index": 0
-            }],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 10,
-                "total_tokens": 20
-            }
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_abc123",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": '{"location": "Tokyo, Japan"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                    "index": 0,
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
         }
 
         # Set our mock to return the response
@@ -236,10 +217,7 @@ class TestOpenAIStreamingAndTools:
 
         # Call the method with tools and tool_choice
         await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-3.5-turbo",
-            tools=tools,
-            tool_choice=tool_choice
+            messages=messages, model="gpt-3.5-turbo", tools=tools, tool_choice=tool_choice
         )
 
         # Verify the tool_choice parameter was passed
@@ -265,12 +243,12 @@ class TestOpenAIStreamingAndTools:
                         "properties": {
                             "location": {
                                 "type": "string",
-                                "description": "The city and state, e.g. San Francisco, CA"
+                                "description": "The city and state, e.g. San Francisco, CA",
                             }
                         },
-                        "required": ["location"]
-                    }
-                }
+                        "required": ["location"],
+                    },
+                },
             }
         ]
 
@@ -282,13 +260,7 @@ class TestOpenAIStreamingAndTools:
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-3.5-turbo",
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"role": "assistant"},
-                        "finish_reason": None
-                    }
-                ]
+                "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
             }
 
             # Tool call name chunk
@@ -306,13 +278,13 @@ class TestOpenAIStreamingAndTools:
                                     "index": 0,
                                     "id": "call_abc123",
                                     "type": "function",
-                                    "function": {"name": "get_weather"}
+                                    "function": {"name": "get_weather"},
                                 }
                             ]
                         },
-                        "finish_reason": None
+                        "finish_reason": None,
                     }
-                ]
+                ],
             }
 
             # Arguments part 1
@@ -325,16 +297,11 @@ class TestOpenAIStreamingAndTools:
                     {
                         "index": 0,
                         "delta": {
-                            "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "function": {"arguments": '{"loca'}
-                                }
-                            ]
+                            "tool_calls": [{"index": 0, "function": {"arguments": '{"loca'}}]
                         },
-                        "finish_reason": None
+                        "finish_reason": None,
                     }
-                ]
+                ],
             }
 
             # Arguments part 2
@@ -347,16 +314,11 @@ class TestOpenAIStreamingAndTools:
                     {
                         "index": 0,
                         "delta": {
-                            "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "function": {"arguments": 'tion": "Tokyo'}
-                                }
-                            ]
+                            "tool_calls": [{"index": 0, "function": {"arguments": 'tion": "Tokyo'}}]
                         },
-                        "finish_reason": None
+                        "finish_reason": None,
                     }
-                ]
+                ],
             }
 
             # Final chunk
@@ -369,16 +331,11 @@ class TestOpenAIStreamingAndTools:
                     {
                         "index": 0,
                         "delta": {
-                            "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "function": {"arguments": ', Japan"}'}
-                                }
-                            ]
+                            "tool_calls": [{"index": 0, "function": {"arguments": ', Japan"}'}}]
                         },
-                        "finish_reason": "tool_calls"
+                        "finish_reason": "tool_calls",
                     }
-                ]
+                ],
             }
 
         # Set the mock to return our generator
@@ -387,10 +344,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method
         chunks_received = []
         async for chunk in await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-3.5-turbo",
-            tools=tools,
-            stream=True
+            messages=messages, model="gpt-3.5-turbo", tools=tools, stream=True
         ):
             chunks_received.append(chunk)
 
@@ -401,8 +355,9 @@ class TestOpenAIStreamingAndTools:
         assert chunks_received[0].choices[0].delta.role == "assistant"
 
         # Check tool call name in second chunk
-        assert (chunks_received[1].choices[0].delta.tool_calls[0]["function"]["name"] ==
-               "get_weather")
+        assert (
+            chunks_received[1].choices[0].delta.tool_calls[0]["function"]["name"] == "get_weather"
+        )
 
         # Check we have tool_calls finish reason in the final chunk
         assert chunks_received[4].choices[0].finish_reason == "tool_calls"
@@ -418,7 +373,7 @@ class TestOpenAIStreamingAndTools:
             "The model 'gpt-5' does not exist",
             provider="openai",
             status_code=404,
-            request_id="req_abc123"
+            request_id="req_abc123",
         )
 
         # Make the mock _make_request raise the error
@@ -427,9 +382,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method and expect an APIError
         with pytest.raises(APIError) as exc_info:
             async for _ in await self.provider.create_chat_completion(
-                messages=messages,
-                model="gpt-5",  # Using a non-existent model
-                stream=True
+                messages=messages, model="gpt-5", stream=True  # Using a non-existent model
             ):
                 pass
 
@@ -446,11 +399,7 @@ class TestOpenAIStreamingAndTools:
         messages = [{"role": "user", "content": "Hello, world!"}]
 
         # Create a simulated authentication error
-        error = AuthenticationError(
-            "Invalid API key",
-            provider="openai",
-            status_code=401
-        )
+        error = AuthenticationError("Invalid API key", provider="openai", status_code=401)
 
         # Make the mock _make_request raise the error
         self.mock_make_request.side_effect = error
@@ -458,9 +407,7 @@ class TestOpenAIStreamingAndTools:
         # Call the non-streaming method and expect an AuthenticationError
         with pytest.raises(AuthenticationError) as exc_info:
             await self.provider.create_chat_completion(
-                messages=messages,
-                model="gpt-4",
-                stream=False
+                messages=messages, model="gpt-4", stream=False
             )
 
         # Verify error details
@@ -478,27 +425,18 @@ class TestOpenAIStreamingAndTools:
         mock_chunks = [
             # Empty dict (should be skipped)
             {},
-
             # Dict without choices (should be skipped)
             {"id": "chatcmpl-123", "created": 1677858242},
-
             # Dict with empty choices (should be skipped)
             {"id": "chatcmpl-123", "choices": []},
-
             # Valid chunk
             {
                 "id": "chatcmpl-123",
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-4",
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": "Hello"},
-                        "finish_reason": None
-                    }
-                ]
-            }
+                "choices": [{"index": 0, "delta": {"content": "Hello"}, "finish_reason": None}],
+            },
         ]
 
         # Create a mock generator that will be returned by _make_request
@@ -512,9 +450,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method
         chunks_received = []
         async for chunk in await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-4",
-            stream=True
+            messages=messages, model="gpt-4", stream=True
         ):
             chunks_received.append(chunk)
 
@@ -535,7 +471,7 @@ class TestOpenAIStreamingAndTools:
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-4",
-                "choices": []  # Empty choices array
+                "choices": [],  # Empty choices array
             }
 
             # Then a valid response
@@ -545,12 +481,8 @@ class TestOpenAIStreamingAndTools:
                 "created": 1677858242,
                 "model": "gpt-4",
                 "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": "Valid response"},
-                        "finish_reason": None
-                    }
-                ]
+                    {"index": 0, "delta": {"content": "Valid response"}, "finish_reason": None}
+                ],
             }
 
         # Set the mock to return our generator
@@ -559,9 +491,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method and collect chunks
         chunks_received = []
         async for chunk in await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-4",
-            stream=True
+            messages=messages, model="gpt-4", stream=True
         ):
             chunks_received.append(chunk)
 
@@ -587,12 +517,12 @@ class TestOpenAIStreamingAndTools:
                         "properties": {
                             "location": {
                                 "type": "string",
-                                "description": "The city and state, e.g. San Francisco, CA"
+                                "description": "The city and state, e.g. San Francisco, CA",
                             }
                         },
-                        "required": ["location"]
-                    }
-                }
+                        "required": ["location"],
+                    },
+                },
             }
         ]
 
@@ -605,13 +535,7 @@ class TestOpenAIStreamingAndTools:
                 "object": "chat.completion.chunk",
                 "created": 1677858242,
                 "model": "gpt-3.5-turbo",
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"role": "assistant"},
-                        "finish_reason": None
-                    }
-                ]
+                "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
             },
             # Tool call chunk with missing delta information
             {
@@ -623,9 +547,9 @@ class TestOpenAIStreamingAndTools:
                     {
                         "index": 0,
                         # Missing delta field - should handle gracefully
-                        "finish_reason": None
+                        "finish_reason": None,
                     }
-                ]
+                ],
             },
             # Valid tool call chunk
             {
@@ -644,15 +568,15 @@ class TestOpenAIStreamingAndTools:
                                     "type": "function",
                                     "function": {
                                         "name": "get_weather",
-                                        "arguments": '{"location": "Tokyo, Japan"}'
-                                    }
+                                        "arguments": '{"location": "Tokyo, Japan"}',
+                                    },
                                 }
                             ]
                         },
-                        "finish_reason": "tool_calls"
+                        "finish_reason": "tool_calls",
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         # Create mock generator
@@ -666,10 +590,7 @@ class TestOpenAIStreamingAndTools:
         # Call the streaming method
         chunks_received = []
         async for chunk in await self.provider.create_chat_completion(
-            messages=messages,
-            model="gpt-3.5-turbo",
-            tools=tools,
-            stream=True
+            messages=messages, model="gpt-3.5-turbo", tools=tools, stream=True
         ):
             chunks_received.append(chunk)
 
@@ -686,5 +607,6 @@ class TestOpenAIStreamingAndTools:
         assert chunks_received[1].choices[0].delta.tool_calls is None
 
         # Third chunk has the tool call
-        assert (chunks_received[2].choices[0].delta.tool_calls[0]["function"]["name"] ==
-                "get_weather")
+        assert (
+            chunks_received[2].choices[0].delta.tool_calls[0]["function"]["name"] == "get_weather"
+        )

@@ -18,7 +18,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 OpenAI provider implementation for OneLLM.
 
@@ -62,7 +61,6 @@ from ..types.common import TranscriptionResult, ImageGenerationResult
 from ..utils.retry import retry_async, RetryConfig
 
 from .base import Provider, register_provider
-
 
 class OpenAIProvider(Provider):
     """OpenAI provider implementation."""
@@ -1242,7 +1240,6 @@ class OpenAIProvider(Provider):
             created=response_data.get("created", int(time.time())),
             data=response_data.get("data", []),
         )
-
 
 # Register the OpenAI provider
 register_provider("openai", OpenAIProvider)

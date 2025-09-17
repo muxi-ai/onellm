@@ -32,13 +32,10 @@ import base64
 from urllib.parse import urlparse
 from .errors import InvalidRequestError
 
-
 # Type variable for generic type validators
 T = TypeVar("T")
 
-
 # -------------------- Type Validation System --------------------
-
 
 def validate_type(
     value: Any, expected_type: Type[T], name: str, allow_none: bool = False
@@ -71,7 +68,6 @@ def validate_type(
         )
 
     return value
-
 
 def validate_dict(
     value: Any,
@@ -127,7 +123,6 @@ def validate_dict(
 
     return value
 
-
 def validate_list(
     value: Any,
     name: str,
@@ -178,7 +173,6 @@ def validate_list(
             value[i] = item_validator(item, f"{name}[{i}]")
 
     return value
-
 
 def validate_string(
     value: Any,
@@ -242,7 +236,6 @@ def validate_string(
 
     return value
 
-
 def validate_number(
     value: Any,
     name: str,
@@ -299,7 +292,6 @@ def validate_number(
 
     return value
 
-
 def validate_boolean(value: Any, name: str, allow_none: bool = False) -> Optional[bool]:
     """
     Validate that a value is a boolean.
@@ -328,7 +320,6 @@ def validate_boolean(value: Any, name: str, allow_none: bool = False) -> Optiona
         )
 
     return value
-
 
 def validate_url(
     value: Any,
@@ -383,7 +374,6 @@ def validate_url(
         raise InvalidRequestError(f"{name} is not a valid URL: {str(e)}")
 
     return value
-
 
 def validate_base64(
     value: Any,
@@ -442,7 +432,6 @@ def validate_base64(
 
     return value
 
-
 def validate_json(
     value: Any,
     name: str,
@@ -487,9 +476,7 @@ def validate_json(
 
     return value
 
-
 # -------------------- Existing Validator Functions --------------------
-
 
 def validate_model_name(model: str) -> str:
     """
@@ -534,7 +521,6 @@ def validate_model_name(model: str) -> str:
         raise InvalidRequestError("Model name part cannot be empty")
 
     return model
-
 
 def validate_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -659,7 +645,6 @@ def validate_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     return messages
 
-
 def validate_multimodal_content(
     content: List[Dict[str, Any]], message_index: int = 0
 ) -> List[Dict[str, Any]]:
@@ -775,7 +760,6 @@ def validate_multimodal_content(
 
     return content
 
-
 def validate_temperature(temperature: Optional[float]) -> Optional[float]:
     """
     Validate temperature parameter.
@@ -808,7 +792,6 @@ def validate_temperature(temperature: Optional[float]) -> Optional[float]:
 
     return temperature
 
-
 def validate_top_p(top_p: Optional[float]) -> Optional[float]:
     """
     Validate top_p parameter.
@@ -838,7 +821,6 @@ def validate_top_p(top_p: Optional[float]) -> Optional[float]:
         raise InvalidRequestError("Top_p must be between 0 and 1")
 
     return top_p
-
 
 def validate_presence_penalty(presence_penalty: Optional[float]) -> Optional[float]:
     """
@@ -872,7 +854,6 @@ def validate_presence_penalty(presence_penalty: Optional[float]) -> Optional[flo
 
     return presence_penalty
 
-
 def validate_frequency_penalty(frequency_penalty: Optional[float]) -> Optional[float]:
     """
     Validate frequency_penalty parameter.
@@ -905,7 +886,6 @@ def validate_frequency_penalty(frequency_penalty: Optional[float]) -> Optional[f
 
     return frequency_penalty
 
-
 def validate_max_tokens(max_tokens: Optional[int]) -> Optional[int]:
     """
     Validate max_tokens parameter.
@@ -935,7 +915,6 @@ def validate_max_tokens(max_tokens: Optional[int]) -> Optional[int]:
 
     return max_tokens
 
-
 def validate_n(n: Optional[int]) -> Optional[int]:
     """
     Validate n parameter (number of completions).
@@ -962,7 +941,6 @@ def validate_n(n: Optional[int]) -> Optional[int]:
         raise InvalidRequestError("N must be greater than 0")
 
     return n
-
 
 def validate_stop(
     stop: Optional[Union[str, List[str]]],
@@ -1008,7 +986,6 @@ def validate_stop(
         f"Stop must be a string or list of strings, got {type(stop).__name__}"
     )
 
-
 def validate_prompt(prompt: Union[str, List[str]]) -> Union[str, List[str]]:
     """
     Validate prompt parameter for text completions.
@@ -1051,7 +1028,6 @@ def validate_prompt(prompt: Union[str, List[str]]) -> Union[str, List[str]]:
     raise InvalidRequestError(
         f"Prompt must be a string or list of strings, got {type(prompt).__name__}"
     )
-
 
 def validate_response_format(
     response_format: Optional[Dict[str, Any]],
@@ -1102,7 +1078,6 @@ def validate_response_format(
 
     return response_format
 
-
 def validate_input_for_embeddings(
     input_value: Union[str, List[str]],
 ) -> Union[str, List[str]]:
@@ -1149,7 +1124,6 @@ def validate_input_for_embeddings(
         f"Input must be a string or list of strings, got {type(input_value).__name__}"
     )
 
-
 def validate_stream(stream: Optional[bool]) -> Optional[bool]:
     """
     Validate stream parameter.
@@ -1177,7 +1151,6 @@ def validate_stream(stream: Optional[bool]) -> Optional[bool]:
         )
 
     return stream
-
 
 def validate_functions(
     functions: Optional[List[Dict[str, Any]]],
@@ -1234,7 +1207,6 @@ def validate_functions(
                 )
 
     return functions
-
 
 def validate_tools(
     tools: Optional[List[Dict[str, Any]]],

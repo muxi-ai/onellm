@@ -6,6 +6,7 @@ Test script to verify all providers can be instantiated.
 import os
 from onellm.providers import list_providers, get_provider
 
+
 def test_provider(name):
     """Test if a provider can be instantiated."""
     try:
@@ -39,6 +40,7 @@ def test_provider(name):
         else:
             return f"❌ {name}: Error - {error_msg}"
 
+
 def main():
     """Test all registered providers."""
     print("Testing all registered providers...\n")
@@ -62,6 +64,7 @@ def main():
     print(f"  ⚠️  Warnings: {warning_count}")
     print(f"  ❌ Errors: {error_count}")
     print(f"  Total: {len(providers)}")
+
 
 if __name__ == "__main__":
     main()
