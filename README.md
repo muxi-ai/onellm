@@ -47,10 +47,10 @@
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
-With support for 19 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+With support for 20 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
 > [!NOTE]
-> **Ready for Use**: OneLLM now supports 19 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
+> **Ready for Use**: OneLLM now supports 20 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
 
 ---
 
@@ -105,7 +105,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | Feature | Description |
 |---------|-------------|
 | **📦 Drop-in replacement** | Use your existing OpenAI code with minimal changes |
-| **🔄 Provider-agnostic** | Support for 300+ models across 19 implemented providers |
+| **🔄 Provider-agnostic** | Support for 300+ models across 20 implemented providers |
 | **🔁 Automatic fallback** | Seamlessly switch to alternative models when needed |
 | **🔄 Auto-retry mechanism** | Retry the same model multiple times before failing |
 | **🧩 OpenAI-compatible** | Familiar interface for developers used to OpenAI |
