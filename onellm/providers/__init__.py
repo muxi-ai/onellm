@@ -38,6 +38,7 @@ from .anthropic import AnthropicProvider
 
 # OpenAI-compatible providers
 from .groq import GroqProvider
+from .glm import GLMProvider
 from .xai import XAIProvider
 from .openrouter import OpenRouterProvider
 from .together import TogetherProvider
@@ -70,6 +71,7 @@ register_provider("anthropic", AnthropicProvider)
 
 # OpenAI-compatible providers
 register_provider("groq", GroqProvider)
+register_provider("glm", GLMProvider)
 register_provider("xai", XAIProvider)
 register_provider("openrouter", OpenRouterProvider)
 register_provider("together", TogetherProvider)
