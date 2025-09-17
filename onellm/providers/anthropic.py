@@ -29,7 +29,7 @@ extended thinking, prompt caching, and comprehensive tool use capabilities.
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 
@@ -453,14 +453,7 @@ class AnthropicProvider(Provider):
         # Create usage information
         usage = None
         if "usage" in anthropic_response:
-            usage = {
-                "prompt_tokens": anthropic_response["usage"].get("input_tokens", 0),
-                "completion_tokens": anthropic_response["usage"].get("output_tokens", 0),
-                "total_tokens": (
-                    anthropic_response["usage"].get("input_tokens", 0)
-                    + anthropic_response["usage"].get("output_tokens", 0)
-                ),
-            }
+            usage = self._normalize_usage(anthropic_response["usage"])
 
         # Create the response object
         return ChatCompletionResponse(
@@ -472,6 +465,61 @@ class AnthropicProvider(Provider):
             usage=usage,
             system_fingerprint=None,
         )
+
+    @staticmethod
+    def _normalize_usage(usage_payload: dict[str, Any]) -> dict[str, Any]:
+        """Return usage dict extended with cache hit/miss information."""
+
+        normalized: dict[str, Any] = dict(usage_payload)
+
+        def _as_int(value: Any) -> Optional[int]:
+            return value if isinstance(value, int) else None
+
+        prompt_total = _as_int(normalized.get("input_tokens"))
+        completion_total = _as_int(normalized.get("output_tokens"))
+
+        prompt_cached = _as_int(normalized.get("cache_read_input_tokens"))
+        prompt_uncached = _as_int(normalized.get("cache_creation_input_tokens"))
+
+        if prompt_total is None and None not in (prompt_cached, prompt_uncached):
+            prompt_total = (prompt_cached or 0) + (prompt_uncached or 0)
+
+        if prompt_total is None:
+            prompt_total = 0
+
+        if prompt_cached is None:
+            prompt_cached = 0
+
+        if prompt_uncached is None:
+            prompt_uncached = max(prompt_total - prompt_cached, 0)
+
+        completion_cached = _as_int(normalized.get("cache_read_output_tokens")) or 0
+        completion_uncached = _as_int(normalized.get("cache_creation_output_tokens"))
+
+        if completion_total is None and completion_uncached is not None:
+            completion_total = completion_uncached + completion_cached
+
+        if completion_total is None:
+            completion_total = 0
+
+        if completion_uncached is None:
+            completion_uncached = max(completion_total - completion_cached, 0)
+
+        total_tokens = prompt_total + completion_total
+
+        normalized.update(
+            {
+                "prompt_tokens": prompt_total,
+                "prompt_tokens_cached": prompt_cached,
+                "prompt_tokens_uncached": prompt_uncached,
+                "completion_tokens": completion_total,
+                "completion_tokens_cached": completion_cached,
+                "completion_tokens_uncached": completion_uncached,
+                "total_tokens": total_tokens,
+            }
+        )
+
+        return normalized
 
     async def create_chat_completion(
         self, messages: list[Message], model: str, stream: bool = False, **kwargs

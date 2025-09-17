@@ -240,6 +240,47 @@ class OpenAIProvider(Provider):
             # Streaming requests don't use retry mechanism
             return await execute_request()
 
+    def _normalize_usage(
+        self, usage: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """Augment provider usage payload with cache-aware fields."""
+
+        if not usage:
+            return usage
+
+        normalized = dict(usage)
+
+        def _extract_cached(detail_key: str) -> Optional[int]:
+            details = normalized.get(detail_key)
+            if isinstance(details, dict):
+                cached_value = details.get("cached_tokens")
+                if isinstance(cached_value, int):
+                    return cached_value
+            return None
+
+        def _set_cache_fields(total_key: str, detail_key: str) -> None:
+            total_value = normalized.get(total_key)
+            cached_key = f"{total_key}_cached"
+            uncached_key = f"{total_key}_uncached"
+
+            cached_value = normalized.get(cached_key)
+            if not isinstance(cached_value, int):
+                cached_value = _extract_cached(detail_key)
+
+            if isinstance(total_value, int):
+                if cached_value is None:
+                    cached_value = 0
+                normalized[cached_key] = cached_value
+                normalized[uncached_key] = max(total_value - cached_value, 0)
+            elif cached_value is not None:
+                # No total reported but cached is present; expose cached value
+                normalized[cached_key] = cached_value
+
+        _set_cache_fields("prompt_tokens", "prompt_tokens_details")
+        _set_cache_fields("completion_tokens", "completion_tokens_details")
+
+        return normalized
+
     async def _handle_response(
         self, response: aiohttp.ClientResponse
     ) -> Dict[str, Any]:
@@ -459,7 +500,7 @@ class OpenAIProvider(Provider):
                 created=response_data.get("created", int(time.time())),
                 model=response_data.get("model", model),
                 choices=choices,
-                usage=response_data.get("usage"),
+                usage=self._normalize_usage(response_data.get("usage")),
                 system_fingerprint=response_data.get("system_fingerprint"),
             )
             return response
@@ -622,7 +663,7 @@ class OpenAIProvider(Provider):
                 created=response_data.get("created", int(time.time())),
                 model=response_data.get("model", model),
                 choices=choices,
-                usage=response_data.get("usage"),
+                usage=self._normalize_usage(response_data.get("usage")),
                 system_fingerprint=response_data.get("system_fingerprint"),
             )
 
@@ -663,7 +704,7 @@ class OpenAIProvider(Provider):
             object=response_data.get("object", "list"),
             data=embedding_data,
             model=response_data.get("model", model),
-            usage=response_data.get("usage"),
+            usage=self._normalize_usage(response_data.get("usage")),
         )
 
     async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:

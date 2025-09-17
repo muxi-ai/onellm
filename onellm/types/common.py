@@ -137,13 +137,21 @@ class UsageInfo(TypedDict, total=False):
     Tracks token consumption for billing and monitoring.
 
     Attributes:
-        prompt_tokens: Number of tokens in the prompt
-        completion_tokens: Number of tokens in the completion
+        prompt_tokens: Number of tokens in the prompt (cached + uncached)
+        prompt_tokens_cached: Prompt tokens served from cache
+        prompt_tokens_uncached: Prompt tokens processed freshly
+        completion_tokens: Number of tokens in the completion (cached + uncached)
+        completion_tokens_cached: Completion tokens served from cache
+        completion_tokens_uncached: Completion tokens generated freshly
         total_tokens: Total tokens used in the request
     """
 
     prompt_tokens: int
+    prompt_tokens_cached: int
+    prompt_tokens_uncached: int
     completion_tokens: int
+    completion_tokens_cached: int
+    completion_tokens_uncached: int
     total_tokens: int
 
 
