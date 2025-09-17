@@ -27,7 +27,13 @@ from onellm.errors import (
 class MockResponse:
     """Mock aiohttp response object."""
 
-    def __init__(self, status: int, data: Dict[str, Any] = None, content_type="application/json"):
+    def __init__(
+        self,
+        data: Dict[str, Any] | bytes | str | None = None,
+        *,
+        status: int = 200,
+        content_type: str = "application/json",
+    ) -> None:
         self.status = status
         self._data = data
         self._content_type = content_type
@@ -112,6 +118,29 @@ def has_keys(obj, keys):
         return False
     return all(key in obj for key in keys)
 
+
+def assert_usage_metrics(
+    usage: Dict[str, Any],
+    prompt_total: int,
+    completion_total: int = 0,
+    prompt_cached: int = 0,
+    completion_cached: int = 0,
+):
+    """Assert that usage dict contains expected cache-aware metrics."""
+
+    assert usage["prompt_tokens"] == prompt_total
+    assert usage["prompt_tokens_cached"] == prompt_cached
+    assert usage["prompt_tokens_uncached"] == prompt_total - prompt_cached
+
+    if completion_total:
+        assert usage["completion_tokens"] == completion_total
+        assert usage["completion_tokens_cached"] == completion_cached
+        assert usage["completion_tokens_uncached"] == completion_total - completion_cached
+    else:
+        assert "completion_tokens" not in usage or usage["completion_tokens"] == 0
+
+    expected_total = prompt_total + completion_total
+    assert usage["total_tokens"] == expected_total
 
 @pytest.fixture
 def mock_env_api_key(monkeypatch):
@@ -250,11 +279,19 @@ class TestOpenAIProvider:
             assert headers["Authorization"] == "Bearer sk-test-key"
             assert headers["OpenAI-Organization"] == "org-123"
 
-    def test_get_provider_factory(self):
+    def test_get_provider_factory(self, mock_env_api_key):
         """Test provider factory function."""
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-key"}):
-            provider = get_provider("openai")
-            assert isinstance(provider, OpenAIProvider)
+            with patch("onellm.providers.openai.get_provider_config") as mock_get_config:
+                mock_get_config.return_value = {
+                    "api_key": "sk-test-key",
+                    "api_base": "https://api.openai.com/v1",
+                    "organization_id": None,
+                    "timeout": 60,
+                    "max_retries": 3,
+                }
+                provider = get_provider("openai")
+                assert isinstance(provider, OpenAIProvider)
 
     @pytest.mark.asyncio
     async def test_create_chat_completion(self):
@@ -454,7 +491,7 @@ class TestOpenAIProvider:
         assert response.choices[0].text == "This is a test response"
         assert response.choices[0].logprobs == {"tokens": ["test"], "token_logprobs": [-0.1]}
         assert response.choices[0].finish_reason == "stop"
-        assert response.usage == {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}
+        assert_usage_metrics(response.usage, prompt_total=5, completion_total=5)
         assert response.system_fingerprint == "fp123"
 
     @pytest.mark.asyncio
@@ -557,8 +594,47 @@ class TestOpenAIProvider:
         assert response.choices[0].message["role"] == "assistant"
         assert response.choices[0].message["content"] == "This is a test response"
         assert response.choices[0].finish_reason == "stop"
-        assert response.usage == {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+        assert_usage_metrics(response.usage, prompt_total=10, completion_total=5)
         assert response.system_fingerprint == "fp123"
+
+    @pytest.mark.asyncio
+    async def test_usage_normalization_with_cached_tokens(self):
+        """OpenAI usage includes cached token details when available."""
+        provider = OpenAIProvider(api_key="sk-test-key")
+
+        mock_response = {
+            "id": "chatcmpl-456",
+            "object": "chat.completion",
+            "created": 1677858242,
+            "model": "gpt-4o",
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": "Cached response"},
+                    "finish_reason": "stop",
+                    "index": 0,
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 20,
+                "prompt_tokens_details": {"cached_tokens": 8},
+                "completion_tokens": 6,
+                "total_tokens": 26,
+            },
+        }
+
+        provider._make_request = mock.AsyncMock(return_value=mock_response)
+
+        response = await provider.create_chat_completion(
+            messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
+        )
+
+        assert_usage_metrics(
+            response.usage,
+            prompt_total=20,
+            completion_total=6,
+            prompt_cached=8,
+        )
+        assert response.usage["prompt_tokens_uncached"] == 12
 
     @pytest.mark.asyncio
     async def test_process_messages_for_vision_no_images(self):
@@ -684,6 +760,8 @@ class TestOpenAIProvider:
             assert result.model == "text-embedding-ada-002"
             assert result.usage["prompt_tokens"] == 12
             assert result.usage["total_tokens"] == 12
+            assert result.usage["prompt_tokens_cached"] == 0
+            assert result.usage["prompt_tokens_uncached"] == 12
 
             # Verify individual embeddings
             assert result.data[0].embedding == [0.1, 0.2, 0.3]

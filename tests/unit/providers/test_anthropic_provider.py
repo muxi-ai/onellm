@@ -11,7 +11,7 @@ converts between OpenAI and Anthropic formats, and manages unique Anthropic feat
 import pytest
 import mock
 from typing import Dict, Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from onellm.providers import get_provider
 from onellm.providers.anthropic import AnthropicProvider
@@ -67,7 +67,10 @@ def mock_aiohttp_session():
         )
 
         # Set up request to return our mock response
-        session_instance.request = AsyncMock(return_value=anthropic_response)
+        request_context = AsyncMock()
+        request_context.__aenter__.return_value = anthropic_response
+        request_context.__aexit__.return_value = None
+        session_instance.request = MagicMock(return_value=request_context)
 
         # Set up the ClientSession constructor to work as a context manager
         mock_session.return_value = AsyncMock()
@@ -106,14 +109,30 @@ class TestAnthropicProvider:
             assert provider.api_key == "sk-ant-test-key"
             assert provider.api_base == "https://api.anthropic.com/v1"
 
-    def test_provider_registration(self):
+    def test_provider_registration(self, mock_env_api_key):
         """Test that the Anthropic provider is properly registered."""
-        provider = get_provider("anthropic")
-        assert isinstance(provider, AnthropicProvider)
+        with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
+            mock_get_config.return_value = {
+                "api_key": "sk-ant-test-key",
+                "api_base": "https://api.anthropic.com/v1",
+                "timeout": 60.0,
+                "max_retries": 3,
+            }
 
-    def test_capability_flags(self):
+            provider = get_provider("anthropic")
+            assert isinstance(provider, AnthropicProvider)
+
+    def test_capability_flags(self, mock_env_api_key):
         """Test that the provider has correct capability flags."""
-        provider = get_provider("anthropic")
+        with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
+            mock_get_config.return_value = {
+                "api_key": "sk-ant-test-key",
+                "api_base": "https://api.anthropic.com/v1",
+                "timeout": 60.0,
+                "max_retries": 3,
+            }
+
+            provider = get_provider("anthropic")
 
         # Check supported capabilities
         assert provider.vision_support is True
@@ -240,6 +259,10 @@ class TestAnthropicProvider:
             assert len(response.choices) == 1
             assert response.choices[0].message["content"] == "This is a test response from Claude"
             assert response.usage["total_tokens"] == 35  # 10 + 25
+            assert response.usage["prompt_tokens_cached"] == 0
+            assert response.usage["prompt_tokens_uncached"] == 10
+            assert response.usage["completion_tokens_cached"] == 0
+            assert response.usage["completion_tokens_uncached"] == 25
 
     @pytest.mark.asyncio
     async def test_completion_converts_to_chat(self, mock_env_api_key, mock_aiohttp_session):
@@ -296,8 +319,43 @@ class TestAnthropicProvider:
             assert openai_response.choices[0].message["content"] == "Hello from Claude!"
             assert openai_response.choices[0].finish_reason == "end_turn"
             assert openai_response.usage["prompt_tokens"] == 5
+            assert openai_response.usage["prompt_tokens_cached"] == 0
+            assert openai_response.usage["prompt_tokens_uncached"] == 5
             assert openai_response.usage["completion_tokens"] == 10
+            assert openai_response.usage["completion_tokens_cached"] == 0
+            assert openai_response.usage["completion_tokens_uncached"] == 10
             assert openai_response.usage["total_tokens"] == 15
+
+    def test_anthropic_usage_with_cache_metrics(self, mock_env_api_key):
+        """Usage normalization should propagate cache hit metrics."""
+        with patch("onellm.providers.anthropic.get_provider_config") as mock_get_config:
+            mock_get_config.return_value = {"api_key": "sk-ant-test-key"}
+
+            provider = AnthropicProvider()
+
+            anthropic_response = {
+                "id": "msg_cached",
+                "content": [{"type": "text", "text": "Hello from cache"}],
+                "stop_reason": "end_turn",
+                "usage": {
+                    "input_tokens": 50,
+                    "output_tokens": 5,
+                    "cache_read_input_tokens": 20,
+                    "cache_creation_input_tokens": 30,
+                },
+            }
+
+            openai_response = provider._convert_anthropic_to_openai_response(
+                anthropic_response, "claude-3-5-sonnet-20241022"
+            )
+
+            assert openai_response.usage["prompt_tokens"] == 50
+            assert openai_response.usage["prompt_tokens_cached"] == 20
+            assert openai_response.usage["prompt_tokens_uncached"] == 30
+            assert openai_response.usage["completion_tokens"] == 5
+            assert openai_response.usage["completion_tokens_cached"] == 0
+            assert openai_response.usage["completion_tokens_uncached"] == 5
+            assert openai_response.usage["total_tokens"] == 55
 
     def test_api_base_configuration(self, mock_env_api_key):
         """Test that API base URL can be configured."""
