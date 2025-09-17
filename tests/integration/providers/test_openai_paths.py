@@ -37,7 +37,7 @@ def test_openai_file_upload():
             print("\nTesting file upload...")
             file_obj = client.files.create(file=temp_path, purpose="assistants")
 
-            print(f"✅ File uploaded successfully!")
+            print("✅ File uploaded successfully!")
             print(f"File ID: {file_obj.id}")
             print(f"Filename: {file_obj.filename}")
 
