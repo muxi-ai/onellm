@@ -142,6 +142,7 @@ def assert_usage_metrics(
     expected_total = prompt_total + completion_total
     assert usage["total_tokens"] == expected_total
 
+
 @pytest.fixture
 def mock_env_api_key(monkeypatch):
     """Set a mock OpenAI API key environment variable."""

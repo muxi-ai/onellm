@@ -12,8 +12,9 @@ from onellm.utils.token_counter import (
     num_tokens_from_string,
     num_tokens_from_messages,
     TIKTOKEN_AVAILABLE,
-    SIMPLE_TOKEN_PATTERN
+    SIMPLE_TOKEN_PATTERN,
 )
+
 
 class TestTokenCounter:
     """Tests for the token_counter module."""
@@ -119,8 +120,8 @@ class TestTokenCounter:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this image?"},
-                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
-                ]
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
             }
         ]
 
@@ -142,8 +143,8 @@ class TestTokenCounter:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "What's in this image?"},
-                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
-                ]
+                    {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
             }
         ]
         model = "gpt-4-vision-preview"

@@ -8,6 +8,7 @@ Utility functions for testing the onellm package.
 import asyncio
 from functools import wraps
 
+
 def run_async(func):
     """
     Decorator to run an async function in a synchronous context.
@@ -20,6 +21,7 @@ def run_async(func):
     Returns:
         A synchronous wrapper around the async function
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         loop = asyncio.new_event_loop()
@@ -29,17 +31,21 @@ def run_async(func):
         finally:
             loop.close()
             asyncio.set_event_loop(None)
+
     return wrapper
+
 
 class AsyncMockMixin:
     """
     Mixin class to help with mocking async context managers.
     """
+
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
+
 
 class AsyncContextManager:
     """
@@ -50,6 +56,7 @@ class AsyncContextManager:
         with mock.patch('aiohttp.ClientSession', return_value=async_cm):
             result = await some_async_function()
     """
+
     def __init__(self, return_value):
         self.return_value = return_value
 
@@ -58,6 +65,7 @@ class AsyncContextManager:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
+
 
 class AsyncGeneratorMock:
     """
@@ -68,6 +76,7 @@ class AsyncGeneratorMock:
         async for item in mock_generator:
             process(item)
     """
+
     def __init__(self, items):
         self.items = items
 

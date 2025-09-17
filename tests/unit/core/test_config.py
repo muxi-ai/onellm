@@ -17,6 +17,7 @@ from onellm.config import (
     update_provider_config,
 )
 
+
 @pytest.fixture(autouse=True)
 def reset_config_after_test():
     """Reset configuration after each test."""
@@ -33,6 +34,7 @@ def reset_config_after_test():
     for key in list(config.keys()):
         config.pop(key, None)
     config.update(original_config)
+
 
 class TestConfigSystem:
     """Tests for the OneLLM configuration system."""
@@ -62,10 +64,7 @@ class TestConfigSystem:
         provider_config = get_provider_config("openai")
         assert provider_config["api_key"] == "test-key-env"
 
-    @pytest.mark.parametrize(
-        "timeout_value",
-        [10, 30, 60, 120]
-    )
+    @pytest.mark.parametrize("timeout_value", [10, 30, 60, 120])
     def test_timeout_configuration(self, timeout_value):
         """Test setting different timeout values."""
         # Set a custom timeout
@@ -104,12 +103,7 @@ class TestConfigSystem:
     def test_nested_configuration(self):
         """Test setting and getting nested configuration values."""
         # Create a nested update
-        nested_update = {
-            "advanced": {
-                "retry_on_timeout": True,
-                "retry_count": 3
-            }
-        }
+        nested_update = {"advanced": {"retry_on_timeout": True, "retry_count": 3}}
 
         # Update the config
         provider_config = get_provider_config("openai")
