@@ -377,6 +377,6 @@ The response includes the full model name (e.g., "openai/gpt-4") showing which p
 
 ## Next Steps
 
-- [Provider Setup](../providers/setup.md) - Configure additional providers
-- [Advanced Features](../advanced-features.md) - Learn about fallbacks and retries
-- [Best Practices](best-practices.md) - Optimize your usage
+- [Provider Setup]({{ site.baseurl }}/providers/setup.md) - Configure additional providers
+- [Advanced Features]({{ site.baseurl }}/advanced-features.md) - Learn about fallbacks and retries
+- [Best Practices]({{ site.baseurl }}/best-practices.md) - Optimize your usage

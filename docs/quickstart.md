@@ -252,7 +252,7 @@ response = client.chat.completions.create(
 
 ## Next Steps
 
-- [Provider List](providers/README.md) - Explore all 21 providers
-- [API Reference](api/client.md) - Detailed API documentation
-- [Examples](examples/basic.md) - More code examples
-- [Best Practices](guides/best-practices.md) - Tips for production use
+- [Provider List]({{ site.baseurl }}/providers/README.md) - Explore all 21 providers
+- [API Reference]({{ site.baseurl }}/api/client.md) - Detailed API documentation
+- [Examples]({{ site.baseurl }}/examples/basic.md) - More code examples
+- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Tips for production use

@@ -326,6 +326,6 @@ Consider these factors:
 
 ## Next Steps
 
-- [Provider Setup](setup.md) - Set up providers
-- [Examples](../examples/providers.md) - Provider-specific code
-- [Best Practices](../guides/best-practices.md) - Optimization tips
+- [Provider Setup]({{ site.baseurl }}/setup.md) - Set up providers
+- [Examples]({{ site.baseurl }}/examples/providers.md) - Provider-specific code
+- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Optimization tips

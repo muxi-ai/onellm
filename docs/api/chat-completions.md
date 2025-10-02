@@ -447,7 +447,7 @@ response = client.chat.completions.create(
 
 ## Next Steps
 
-- [Streaming](../guides/streaming.md) - Detailed streaming guide
-- [Function Calling](../guides/function-calling.md) - Advanced function calling
-- [Error Handling](../error-handling.md) - Handle errors properly
-- [Provider Capabilities](../providers/capabilities.md) - Provider-specific features
+- [Streaming]({{ site.baseurl }}/guides/streaming.md) - Detailed streaming guide
+- [Function Calling]({{ site.baseurl }}/guides/function-calling.md) - Advanced function calling
+- [Error Handling]({{ site.baseurl }}/error-handling.md) - Handle errors properly
+- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities.md) - Provider-specific features

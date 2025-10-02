@@ -23,7 +23,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Function calling, JSON mode, vision, DALL-E, embeddings
 - **Pricing**: Pay per token
 - **Best for**: General purpose, production applications
-- **Setup**: [OpenAI Setup Guide](setup.md#openai)
+- **Setup**: [OpenAI Setup Guide]({{ site.baseurl }}/setup.md#openai)
 
 #### Anthropic
 - **Models**:
@@ -34,7 +34,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: 200K+ context, vision support
 - **Pricing**: Pay per token
 - **Best for**: Long context, careful reasoning
-- **Setup**: [Anthropic Setup Guide](setup.md#anthropic)
+- **Setup**: [Anthropic Setup Guide]({{ site.baseurl }}/setup.md#anthropic)
 
 #### Google AI Studio
 - **Models**:
@@ -45,7 +45,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Multimodal, 1M+ context, JSON mode
 - **Pricing**: Free tier available
 - **Best for**: Multimodal tasks, long context
-- **Setup**: [Google Setup Guide](setup.md#google)
+- **Setup**: [Google Setup Guide]({{ site.baseurl }}/setup.md#google)
 
 #### Mistral
 - **Models**:
@@ -56,7 +56,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: European hosting, function calling
 - **Pricing**: Pay per token
 - **Best for**: EU compliance, multilingual
-- **Setup**: [Mistral Setup Guide](setup.md#mistral)
+- **Setup**: [Mistral Setup Guide]({{ site.baseurl }}/setup.md#mistral)
 
 ### ⚡ Fast Inference Providers
 
@@ -69,7 +69,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Ultra-fast LPU inference, 10x faster
 - **Pricing**: Pay per token
 - **Best for**: Real-time applications, low latency
-- **Setup**: [Groq Setup Guide](setup.md#groq)
+- **Setup**: [Groq Setup Guide]({{ site.baseurl }}/setup.md#groq)
 
 #### Together AI
 - **Models**:
@@ -82,7 +82,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Open source models, custom fine-tunes
 - **Pricing**: Simple per-token pricing
 - **Best for**: Open source models, research
-- **Setup**: [Together Setup Guide](setup.md#together)
+- **Setup**: [Together Setup Guide]({{ site.baseurl }}/setup.md#together)
 
 #### Fireworks
 - **Models**:
@@ -94,7 +94,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Optimized inference, function calling
 - **Pricing**: Competitive per-token
 - **Best for**: Fast open model serving
-- **Setup**: [Fireworks Setup Guide](setup.md#fireworks)
+- **Setup**: [Fireworks Setup Guide]({{ site.baseurl }}/setup.md#fireworks)
 
 #### Anyscale
 - **Models**:
@@ -105,7 +105,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Ray integration, schema-based JSON
 - **Pricing**: $1/million tokens flat rate
 - **Best for**: Scale-out workloads
-- **Setup**: [Anyscale Setup Guide](setup.md#anyscale)
+- **Setup**: [Anyscale Setup Guide]({{ site.baseurl }}/setup.md#anyscale)
 
 ### 🌐 Specialized Providers
 
@@ -117,7 +117,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: 128K context window
 - **Pricing**: Premium
 - **Best for**: Large context, reasoning
-- **Setup**: [X.AI Setup Guide](setup.md#xai)
+- **Setup**: [X.AI Setup Guide]({{ site.baseurl }}/setup.md#xai)
 
 #### Perplexity
 - **Models**:
@@ -127,7 +127,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Real-time web access, citations
 - **Pricing**: Pay per request
 - **Best for**: Current information, research
-- **Setup**: [Perplexity Setup Guide](setup.md#perplexity)
+- **Setup**: [Perplexity Setup Guide]({{ site.baseurl }}/setup.md#perplexity)
 
 #### DeepSeek
 - **Models**:
@@ -137,7 +137,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Chinese/English bilingual
 - **Pricing**: Competitive
 - **Best for**: Chinese language, coding
-- **Setup**: [DeepSeek Setup Guide](setup.md#deepseek)
+- **Setup**: [DeepSeek Setup Guide]({{ site.baseurl }}/setup.md#deepseek)
 
 #### Moonshot
 - **Models**:
@@ -148,7 +148,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Long-context (200K+ tokens), Chinese/English bilingual, vision support
 - **Pricing**: Cost-effective (~5x cheaper than Claude/Gemini)
 - **Best for**: Long-context processing, Chinese language, document analysis
-- **Setup**: [Moonshot Setup Guide](setup.md#moonshot)
+- **Setup**: [Moonshot Setup Guide]({{ site.baseurl }}/setup.md#moonshot)
 
 #### GLM (Zhipu AI)
 - **Models**:
@@ -158,7 +158,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Chinese/English bilingual, streaming, function calling, vision
 - **Pricing**: Competitive
 - **Best for**: Chinese language tasks, cost-effective inference
-- **Setup**: [GLM Setup Guide](setup.md#glm)
+- **Setup**: [GLM Setup Guide]({{ site.baseurl }}/setup.md#glm)
 
 #### Cohere
 - **Models**:
@@ -167,7 +167,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: RAG optimization, embeddings
 - **Pricing**: Enterprise/startup plans
 - **Best for**: Enterprise NLP, search
-- **Setup**: [Cohere Setup Guide](setup.md#cohere)
+- **Setup**: [Cohere Setup Guide]({{ site.baseurl }}/setup.md#cohere)
 
 ### 🌍 Multi-Provider Gateways
 
@@ -179,7 +179,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Unified billing, free models
 - **Pricing**: Small markup on provider prices
 - **Best for**: Model exploration, fallbacks
-- **Setup**: [OpenRouter Setup Guide](setup.md#openrouter)
+- **Setup**: [OpenRouter Setup Guide]({{ site.baseurl }}/setup.md#openrouter)
 
 #### Vercel AI Gateway
 - **Models**:
@@ -192,7 +192,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Unified billing, streaming, function calling, vision
 - **Pricing**: Provider passthrough with optional markup
 - **Best for**: Production deployments, unified billing
-- **Setup**: [Vercel Setup Guide](setup.md#vercel)
+- **Setup**: [Vercel Setup Guide]({{ site.baseurl }}/setup.md#vercel)
 
 ### ☁️ Enterprise Cloud
 
@@ -205,7 +205,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Enterprise SLA, VNet integration
 - **Pricing**: Same as OpenAI
 - **Best for**: Enterprise, compliance
-- **Setup**: [Azure Setup Guide](setup.md#azure)
+- **Setup**: [Azure Setup Guide]({{ site.baseurl }}/setup.md#azure)
 
 #### AWS Bedrock
 - **Models**:
@@ -217,7 +217,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: AWS integration, multiple providers
 - **Pricing**: Pay per use
 - **Best for**: AWS ecosystem
-- **Setup**: [Bedrock Setup Guide](setup.md#bedrock)
+- **Setup**: [Bedrock Setup Guide]({{ site.baseurl }}/setup.md#bedrock)
 
 #### Google Vertex AI
 - **Models**:
@@ -227,7 +227,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: MLOps platform, enterprise
 - **Pricing**: Enterprise pricing
 - **Best for**: GCP ecosystem
-- **Setup**: [Vertex AI Setup Guide](setup.md#vertex)
+- **Setup**: [Vertex AI Setup Guide]({{ site.baseurl }}/setup.md#vertex)
 
 ### 💻 Local Providers
 
@@ -241,7 +241,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Local hosting, model management
 - **Pricing**: Free (self-hosted)
 - **Best for**: Privacy, offline use
-- **Setup**: [Ollama Setup Guide](setup.md#ollama)
+- **Setup**: [Ollama Setup Guide]({{ site.baseurl }}/setup.md#ollama)
 
 #### llama.cpp
 - **Models**:
@@ -253,7 +253,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Features**: Direct inference, GPU support
 - **Pricing**: Free (self-hosted)
 - **Best for**: Maximum control, embedded
-- **Setup**: [llama.cpp Setup Guide](setup.md#llama-cpp)
+- **Setup**: [llama.cpp Setup Guide]({{ site.baseurl }}/setup.md#llama-cpp)
 
 ## Provider Comparison
 
@@ -412,7 +412,7 @@ response = client.chat.completions.create(
 
 ## Next Steps
 
-- [Provider Setup](setup.md) - Detailed setup instructions
-- [Provider Capabilities](capabilities.md) - Feature comparison matrix
-- [Examples](../examples/providers.md) - Provider-specific examples
-- [Best Practices](../guides/best-practices.md) - Choosing providers
+- [Provider Setup]({% link providers/setup.md %}) - Detailed setup instructions
+- [Provider Capabilities]({% link providers/capabilities.md %}) - Feature comparison matrix
+- [Examples]({% link examples/providers.md %}) - Provider-specific examples
+- [Best Practices]({% link guides/best-practices.md %}) - Choosing providers

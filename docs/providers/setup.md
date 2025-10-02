@@ -661,6 +661,6 @@ client = OpenAI(
 
 ## Next Steps
 
-- [Provider Capabilities](capabilities.md) - Compare features
-- [Examples](../examples/providers.md) - Provider examples
-- [Configuration](../configuration.md) - Advanced config
+- [Provider Capabilities]({% link providers/capabilities.md %}) - Compare features
+- [Examples]({% link examples/providers.md %}) - Provider examples
+- [Configuration]({% link configuration.md %}) - Advanced config

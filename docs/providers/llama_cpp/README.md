@@ -300,6 +300,6 @@ response = await client.completions.create(
 - ❌ File uploads
 
 ## See Also
-- [llama.cpp Tutorial](../llama_cpp_tutorial.md) - Detailed setup guide
+- [llama.cpp Tutorial]({{ site.baseurl }}/llama_cpp_tutorial.md) - Detailed setup guide
 - [llama.cpp GitHub](https://github.com/ggerganov/llama.cpp)
 - [Model Downloads](https://huggingface.co/models?search=gguf)

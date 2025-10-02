@@ -447,6 +447,6 @@ except OneLLMError as e:
 
 ## Next Steps
 
-- [Provider Capabilities](providers/capabilities.md) - Compare provider features
-- [Error Handling](error-handling.md) - Handle errors gracefully
-- [Best Practices](guides/best-practices.md) - Production recommendations
+- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities.md) - Compare provider features
+- [Error Handling]({{ site.baseurl }}/error-handling.md) - Handle errors gracefully
+- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Production recommendations
