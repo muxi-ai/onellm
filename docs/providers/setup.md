@@ -23,8 +23,10 @@ Detailed setup instructions for each provider supported by OneLLM.
 - [Perplexity](#perplexity)
 - [DeepSeek](#deepseek)
 - [Moonshot](#moonshot)
+- [GLM (Zhipu AI)](#glm)
 - [Cohere](#cohere)
 - [OpenRouter](#openrouter)
+- [Vercel AI Gateway](#vercel)
 - [Azure OpenAI](#azure)
 - [AWS Bedrock](#bedrock)
 - [Google Vertex AI](#vertex)
@@ -33,7 +35,7 @@ Detailed setup instructions for each provider supported by OneLLM.
 
 ---
 
-## OpenAI {#openai}
+## OpenAI
 
 ### 1. Get API Key
 1. Go to [platform.openai.com](https://platform.openai.com)
@@ -66,7 +68,7 @@ print(response.choices[0].message['content'])
 
 ---
 
-## Anthropic {#anthropic}
+## Anthropic
 
 ### 1. Get API Key
 1. Go to [console.anthropic.com](https://console.anthropic.com)
@@ -95,7 +97,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Google AI Studio {#google}
+## Google AI Studio
 
 ### 1. Get API Key
 1. Go to [makersuite.google.com](https://makersuite.google.com)
@@ -122,7 +124,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Mistral {#mistral}
+## Mistral
 
 ### 1. Get API Key
 1. Go to [console.mistral.ai](https://console.mistral.ai)
@@ -151,7 +153,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Groq {#groq}
+## Groq
 
 ### 1. Get API Key
 1. Go to [console.groq.com](https://console.groq.com)
@@ -179,7 +181,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Together AI {#together}
+## Together AI
 
 ### 1. Get API Key
 1. Go to [api.together.xyz](https://api.together.xyz)
@@ -207,7 +209,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Fireworks {#fireworks}
+## Fireworks
 
 ### 1. Get API Key
 1. Go to [app.fireworks.ai](https://app.fireworks.ai)
@@ -229,7 +231,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Anyscale {#anyscale}
+## Anyscale
 
 ### 1. Get API Key
 1. Go to [anyscale.com](https://www.anyscale.com)
@@ -251,7 +253,7 @@ response = client.chat.completions.create(
 
 ---
 
-## X.AI {#xai}
+## X.AI
 
 ### 1. Get API Key
 1. Go to [x.ai](https://x.ai)
@@ -273,7 +275,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Perplexity {#perplexity}
+## Perplexity
 
 ### 1. Get API Key
 1. Go to [perplexity.ai/settings/api](https://www.perplexity.ai/settings/api)
@@ -295,7 +297,7 @@ response = client.chat.completions.create(
 
 ---
 
-## DeepSeek {#deepseek}
+## DeepSeek
 
 ### 1. Get API Key
 1. Go to [platform.deepseek.com](https://platform.deepseek.com)
@@ -317,7 +319,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Moonshot {#moonshot}
+## Moonshot
 
 ### 1. Get API Key
 1. Go to [platform.moonshot.ai](https://platform.moonshot.ai)
@@ -352,6 +354,45 @@ response = client.chat.completions.create(
 
 ---
 
+## GLM (Zhipu AI) {#glm}
+
+### 1. Get API Key
+1. Go to [open.bigmodel.cn](https://open.bigmodel.cn)
+2. Register account
+3. Navigate to API Keys section
+4. Create new API key
+
+### 2. Set Environment Variable
+```bash
+export GLM_API_KEY="..."
+# Or alternatively:
+export ZAI_API_KEY="..."
+```
+
+### 3. Test Connection
+```python
+response = client.chat.completions.create(
+    model="glm/glm-4",
+    messages=[{"role": "user", "content": "你好!"}]
+)
+```
+
+### 4. Available Models
+- `glm-4` - Latest GLM-4 model
+- `glm-4-plus` - Enhanced version
+- `glm-4-air` - Lightweight version
+- `glm-4-flash` - Fastest version
+- `glm-4v` - Vision support
+
+### 5. Features
+- **Bilingual**: Strong Chinese and English support
+- **Vision**: GLM-4V supports image understanding
+- **Function Calling**: Tool use capabilities
+- **Streaming**: Real-time response streaming
+- **Cost-effective**: Competitive pricing for Chinese market
+
+---
+
 ## Cohere {#cohere}
 
 ### 1. Get API Key
@@ -374,7 +415,7 @@ response = client.chat.completions.create(
 
 ---
 
-## OpenRouter {#openrouter}
+## OpenRouter
 
 ### 1. Get API Key
 1. Go to [openrouter.ai](https://openrouter.ai)
@@ -394,6 +435,48 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Hello!"}]
 )
 ```
+
+---
+
+## Vercel AI Gateway {#vercel}
+
+### 1. Get API Key
+1. Go to [vercel.com/ai-gateway](https://vercel.com/ai-gateway)
+2. Sign up or log in to Vercel
+3. Navigate to AI Gateway dashboard
+4. Create new API key
+
+### 2. Set Environment Variable
+```bash
+export VERCEL_AI_API_KEY="..."
+```
+
+### 3. Test Connection
+```python
+response = client.chat.completions.create(
+    model="vercel/openai/gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### 4. Available Models
+Use the format `vercel/{vendor}/{model}`:
+- OpenAI: `vercel/openai/gpt-4o-mini`, `vercel/openai/gpt-4o`
+- Anthropic: `vercel/anthropic/claude-sonnet-4`, `vercel/anthropic/claude-opus-4`
+- Google: `vercel/google/gemini-2.5-pro`, `vercel/google/gemini-2.5-flash`
+- Meta: `vercel/meta/llama-3.1-70b-instruct`, `vercel/meta/llama-3.1-8b-instruct`
+- xAI: `vercel/xai/grok-2-latest`
+- Mistral: `vercel/mistral/mistral-large-latest`
+- DeepSeek: `vercel/deepseek/deepseek-chat`
+- Many more providers and models
+
+### 5. Features
+- **Multi-Provider Gateway**: Access 100+ models from multiple providers
+- **Unified Billing**: Single bill for all model usage
+- **Streaming**: Real-time response streaming
+- **Function Calling**: Tool use support for compatible models
+- **Vision**: Multimodal capabilities for supported models
+- **Production Ready**: Built for scale with Vercel's infrastructure
 
 ---
 
@@ -430,7 +513,7 @@ response = client.chat.completions.create(
 
 ---
 
-## AWS Bedrock {#bedrock}
+## AWS Bedrock
 
 ### 1. Setup AWS
 1. Create AWS account
@@ -457,7 +540,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Google Vertex AI {#vertex}
+## Google Vertex AI
 
 ### 1. Setup GCP
 1. Create GCP project
@@ -480,7 +563,7 @@ response = client.chat.completions.create(
 
 ---
 
-## Ollama {#ollama}
+## Ollama
 
 ### 1. Install Ollama
 ```bash
@@ -514,7 +597,7 @@ response = client.chat.completions.create(
 
 ---
 
-## llama.cpp {#llama-cpp}
+## llama.cpp
 
 ### 1. Install Dependencies
 ```bash
