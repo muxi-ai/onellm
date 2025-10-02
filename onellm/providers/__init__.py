@@ -41,6 +41,7 @@ from .groq import GroqProvider
 from .glm import GLMProvider
 from .xai import XAIProvider
 from .openrouter import OpenRouterProvider
+from .vercel import VercelProvider
 from .together import TogetherProvider
 from .fireworks import FireworksProvider
 from .perplexity import PerplexityProvider
@@ -74,6 +75,7 @@ register_provider("groq", GroqProvider)
 register_provider("glm", GLMProvider)
 register_provider("xai", XAIProvider)
 register_provider("openrouter", OpenRouterProvider)
+register_provider("vercel", VercelProvider)
 register_provider("together", TogetherProvider)
 register_provider("fireworks", FireworksProvider)
 register_provider("perplexity", PerplexityProvider)

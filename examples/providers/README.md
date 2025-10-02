@@ -1,6 +1,6 @@
 # OneLLM Provider Examples
 
-This directory contains comprehensive examples for all 18 providers supported by OneLLM. Each example demonstrates the unique features and capabilities of that provider.
+This directory contains comprehensive examples for all 21 providers supported by OneLLM. Each example demonstrates the unique features and capabilities of that provider.
 
 ## 📚 Provider Examples
 
@@ -75,31 +75,48 @@ This directory contains comprehensive examples for all 18 providers supported by
     - Model routing, variety showcase
     - Required: `OPENROUTER_API_KEY`
 
+14. **[Moonshot](moonshot_example.py)** - Kimi models with long-context capabilities
+    - Up to 200K token context
+    - Multilingual Chinese/English support
+    - Required: `MOONSHOT_API_KEY`
+
+15. **[GLM (Zhipu AI)](glm_example.py)** - Chinese AI with GLM-4 models
+    - Strong Chinese language capabilities
+    - Vision and function calling support
+    - Required: `GLM_API_KEY` or `ZAI_API_KEY`
+
+### Multi-Provider Gateways
+
+16. **[Vercel AI Gateway](vercel_example.py)** - Gateway to 100+ models
+    - Access to OpenAI, Anthropic, Google, Meta models
+    - Unified billing and streaming
+    - Required: `VERCEL_AI_API_KEY`
+
 ### Enterprise Cloud
 
-14. **[Azure OpenAI](azure_example.py)** - Microsoft-hosted OpenAI
+17. **[Azure OpenAI](azure_example.py)** - Microsoft-hosted OpenAI
     - Enterprise deployments, content filtering
     - Custom endpoints, DALL-E 3
     - Required: Azure configuration file
 
-15. **[AWS Bedrock](bedrock_example.py)** - Multi-provider on AWS
+18. **[AWS Bedrock](bedrock_example.py)** - Multi-provider on AWS
     - Claude, Llama, Titan models
     - Streaming, embeddings
     - Required: AWS credentials in `bedrock.json`
 
-16. **[Vertex AI](vertexai_example.py)** - Google Cloud enterprise AI
+19. **[Vertex AI](vertexai_example.py)** - Google Cloud enterprise AI
     - Gemini models, multimodal support
     - Enterprise features, batch processing
     - Required: Service account JSON
 
 ### Local Providers
 
-17. **[Ollama](ollama_example.py)** - Local model management
+20. **[Ollama](ollama_example.py)** - Local model management
     - Dynamic endpoint routing
     - Model management, custom endpoints
     - Required: Ollama running locally
 
-18. **[llama.cpp](llama_cpp_example.py)** - Direct GGUF execution
+21. **[llama.cpp](llama_cpp_example.py)** - Direct GGUF execution
     - Model loading, GPU acceleration
     - Token counting, performance tuning
     - Required: GGUF model files

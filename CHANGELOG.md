@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 0.1.4 - Vercel AI Gateway & 2025 Model Updates
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New Providers
+
+- **Vercel AI Gateway**: Added OpenAI-compatible provider for Vercel AI Gateway
+  - Access 100+ models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, and more
+  - API Base: `https://ai-gateway.vercel.sh/v1`
+  - Model naming: `vercel/vendor/model` (e.g., `vercel/openai/gpt-4o-mini`, `vercel/anthropic/claude-sonnet-4`)
+  - Supports streaming, JSON mode, function calling, and vision capabilities
+  - Authentication via `VERCEL_AI_API_KEY` environment variable
+
+### Model Updates (2025 Releases)
+
+- **OpenAI**: Added GPT-5 family (gpt-5, gpt-5-pro, gpt-5-mini, gpt-5-nano)
+- **Anthropic**: Added Claude 4 family (claude-sonnet-4.5, claude-opus-4.1, claude-sonnet-4, claude-opus-4)
+- **Google**: Added Gemini 2.5 family (gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, gemini-2.5-flash-image)
+- **Mistral**: Added specialized models (codestral, pixtral, devstral, voxtral, ministral)
+
+### Documentation
+
+- Updated provider count from 20 to 21 across all documentation
+- Added comprehensive provider documentation with model lists
+- Added Vercel setup guide and examples
+
 ## 0.1.3 - Cache Metrics & GLM Provider
 
 **Status**: Development Status :: 5 - Production/Stable
