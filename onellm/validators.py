@@ -1284,3 +1284,139 @@ def validate_tools(
             )
 
     return tools
+
+
+# -------------------- Parameter Validators --------------------
+
+def validate_chat_params(**kwargs) -> None:
+    """
+    Validate all chat completion parameters.
+    
+    This is a convenience function that validates all common parameters
+    used in chat completion requests.
+    
+    Args:
+        **kwargs: Parameters to validate
+        
+    Raises:
+        InvalidRequestError: If any parameter is invalid
+    """
+    validate_temperature(kwargs.get("temperature"))
+    validate_max_tokens(kwargs.get("max_tokens"))
+    validate_max_tokens(kwargs.get("max_completion_tokens"))  # OpenAI new param
+    validate_top_p(kwargs.get("top_p"))
+    validate_n(kwargs.get("n"))
+    validate_presence_penalty(kwargs.get("presence_penalty"))
+    validate_frequency_penalty(kwargs.get("frequency_penalty"))
+    
+    # Validate stop sequences using existing validator
+    validate_stop(kwargs.get("stop"))
+
+
+def validate_provider_model(model: str, provider_name: str) -> None:
+    """
+    Validate model name for a specific provider.
+    
+    Performs provider-specific validation to catch common errors early.
+    
+    Args:
+        model: Model name (without provider prefix)
+        provider_name: Provider name
+        
+    Raises:
+        InvalidRequestError: If model is invalid for the provider
+    """
+    if not model or not isinstance(model, str):
+        raise InvalidRequestError(
+            f"Model must be a non-empty string, got: {type(model).__name__}"
+        )
+    
+    model = model.strip()
+    if not model:
+        raise InvalidRequestError("Model name cannot be empty or whitespace")
+    
+    # Provider-specific validation
+    if provider_name == "openai":
+        # OpenAI model patterns
+        valid_patterns = [
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "gpt-4-turbo",
+            "gpt-4o",
+            "o1-preview",
+            "o1-mini",
+            "o3-mini",
+            "whisper-1",
+            "tts-1",
+            "dall-e-2",
+            "dall-e-3",
+            "text-embedding",
+        ]
+        
+        if not any(pattern in model for pattern in valid_patterns):
+            raise InvalidRequestError(
+                f"Unrecognized OpenAI model: {model}. "
+                f"Common models: gpt-4, gpt-4o, gpt-3.5-turbo"
+            )
+    
+    elif provider_name == "anthropic":
+        # Anthropic Claude models
+        if not any(x in model for x in ["claude-3", "claude-2", "claude-instant"]):
+            raise InvalidRequestError(
+                f"Unrecognized Anthropic model: {model}. "
+                f"Expected Claude models like claude-3-opus, claude-3-sonnet"
+            )
+    
+    elif provider_name == "mistral":
+        # Mistral models
+        if not any(x in model for x in ["mistral", "mixtral", "codestral"]):
+            raise InvalidRequestError(
+                f"Unrecognized Mistral model: {model}. "
+                f"Expected models like mistral-large, mixtral-8x7b"
+            )
+    
+    # For other providers, just ensure the model name is reasonable
+    if len(model) > 200:
+        raise InvalidRequestError(
+            f"Model name too long: {len(model)} characters (max: 200)"
+        )
+
+
+def validate_completion_params(**kwargs) -> None:
+    """
+    Validate text completion parameters.
+    
+    Args:
+        **kwargs: Parameters to validate
+        
+    Raises:
+        InvalidRequestError: If any parameter is invalid
+    """
+    # Reuse chat validation for common parameters
+    validate_chat_params(**kwargs)
+    
+    # Validate suffix (completion-specific)
+    suffix = kwargs.get("suffix")
+    if suffix is not None:
+        if not isinstance(suffix, str):
+            raise InvalidRequestError(
+                f"suffix must be a string, got {type(suffix).__name__}"
+            )
+    
+    # Validate best_of
+    best_of = kwargs.get("best_of")
+    if best_of is not None:
+        if not isinstance(best_of, int):
+            raise InvalidRequestError(
+                f"best_of must be an integer, got {type(best_of).__name__}"
+            )
+        if best_of < 1:
+            raise InvalidRequestError(
+                f"best_of must be at least 1, got {best_of}"
+            )
+        
+        n = kwargs.get("n", 1)
+        if best_of < n:
+            raise InvalidRequestError(
+                f"best_of ({best_of}) must be >= n ({n})"
+            )
