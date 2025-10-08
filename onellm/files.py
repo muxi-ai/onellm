@@ -34,6 +34,40 @@ from .errors import InvalidRequestError
 from .utils.async_helpers import run_async
 from .utils.file_validator import FileValidator
 
+
+class SizeLimitedFileWrapper:
+    """
+    Wrapper for file-like objects that enforces size limits during reading.
+    
+    This is used for non-seekable streams where we can't check the size upfront.
+    The wrapper tracks bytes read and raises an error if the limit is exceeded.
+    """
+    
+    def __init__(self, file_obj: BinaryIO, max_size: int, name: str = "file"):
+        self._file = file_obj
+        self._max_size = max_size
+        self._bytes_read = 0
+        self._name = name
+    
+    def read(self, size: int = -1) -> bytes:
+        """Read from the underlying file while tracking size."""
+        data = self._file.read(size)
+        self._bytes_read += len(data)
+        
+        if self._bytes_read > self._max_size:
+            max_mb = self._max_size / (1024 * 1024)
+            actual_mb = self._bytes_read / (1024 * 1024)
+            raise InvalidRequestError(
+                f"{self._name} too large: exceeds {max_mb:.2f}MB (read {actual_mb:.2f}MB so far)"
+            )
+        
+        return data
+    
+    def __getattr__(self, name: str):
+        """Delegate all other attributes to the wrapped file object."""
+        return getattr(self._file, name)
+
+
 class File:
     """Interface for file operations across different providers."""
 
@@ -144,6 +178,7 @@ class File:
             # For size validation, try to get size without reading entire file
             if max_size is not None:
                 file_size = None
+                is_seekable = False
                 
                 # Try to get size from seekable file-like object
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
@@ -152,8 +187,9 @@ class File:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
                         file.seek(current_pos)  # Restore position
+                        is_seekable = True
                     except (OSError, IOError):
-                        # File is not seekable, will need to read
+                        # File is not seekable
                         pass
                 
                 # If we got the size, validate it
@@ -164,9 +200,13 @@ class File:
                         raise InvalidRequestError(
                             f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
                         )
+                
+                # For non-seekable streams, wrap with size-limiting wrapper
+                # This enforces size limits as the file is being read by provider
+                if not is_seekable:
+                    file = SizeLimitedFileWrapper(file, max_size, filename)
             
-            # Pass the original file-like object to provider for optimal handling
-            # Provider can stream the file or handle as needed
+            # Pass the file-like object (wrapped if non-seekable) to provider
             file_to_upload = file
             if "filename" not in kwargs:
                 kwargs["filename"] = filename
@@ -291,6 +331,7 @@ class File:
             # For size validation, try to get size without reading entire file
             if max_size is not None:
                 file_size = None
+                is_seekable = False
                 
                 # Try to get size from seekable file-like object
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
@@ -299,8 +340,9 @@ class File:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
                         file.seek(current_pos)  # Restore position
+                        is_seekable = True
                     except (OSError, IOError):
-                        # File is not seekable, will need to read
+                        # File is not seekable
                         pass
                 
                 # If we got the size, validate it
@@ -311,9 +353,13 @@ class File:
                         raise InvalidRequestError(
                             f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
                         )
+                
+                # For non-seekable streams, wrap with size-limiting wrapper
+                # This enforces size limits as the file is being read by provider
+                if not is_seekable:
+                    file = SizeLimitedFileWrapper(file, max_size, filename)
             
-            # Pass the original file-like object to provider for optimal handling
-            # Provider can stream the file or handle as needed
+            # Pass the file-like object (wrapped if non-seekable) to provider
             file_to_upload = file
             if "filename" not in kwargs:
                 kwargs["filename"] = filename
