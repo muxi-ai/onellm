@@ -159,8 +159,9 @@ class File:
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
             
-            # Get filename from file.name or kwargs - required if allowed_extensions is set
-            filename = getattr(file, "name", None) or kwargs.get("filename")
+            # Get filename - prefer user-provided kwargs, then file.name, then default
+            # This ensures we validate the ACTUAL filename that will be sent to provider
+            filename = kwargs.get("filename") or getattr(file, "name", None)
             if filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
@@ -174,6 +175,9 @@ class File:
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
+            
+            # Always set the validated filename in kwargs to ensure provider receives it
+            kwargs["filename"] = filename
             
             # For size validation, try to get size without reading entire file
             if max_size is not None:
@@ -207,9 +211,8 @@ class File:
                     file = SizeLimitedFileWrapper(file, max_size, filename)
             
             # Pass the file-like object (wrapped if non-seekable) to provider
+            # Filename already set in kwargs during validation
             file_to_upload = file
-            if "filename" not in kwargs:
-                kwargs["filename"] = filename
             
         else:
             raise InvalidRequestError(
@@ -312,8 +315,9 @@ class File:
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
             
-            # Get filename from file.name or kwargs - required if allowed_extensions is set
-            filename = getattr(file, "name", None) or kwargs.get("filename")
+            # Get filename - prefer user-provided kwargs, then file.name, then default
+            # This ensures we validate the ACTUAL filename that will be sent to provider
+            filename = kwargs.get("filename") or getattr(file, "name", None)
             if filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
@@ -327,6 +331,9 @@ class File:
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
+            
+            # Always set the validated filename in kwargs to ensure provider receives it
+            kwargs["filename"] = filename
             
             # For size validation, try to get size without reading entire file
             if max_size is not None:
@@ -360,9 +367,8 @@ class File:
                     file = SizeLimitedFileWrapper(file, max_size, filename)
             
             # Pass the file-like object (wrapped if non-seekable) to provider
+            # Filename already set in kwargs during validation
             file_to_upload = file
-            if "filename" not in kwargs:
-                kwargs["filename"] = filename
             
         else:
             raise InvalidRequestError(
