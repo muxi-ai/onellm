@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -26,7 +25,7 @@ These types provide a consistent interface for working with various LLM provider
 while maintaining compatibility with the OpenAI API format.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union, TypedDict, IO
+from typing import IO, Any, Literal, TypedDict
 
 # Role types for chat messages
 Role = Literal["system", "user", "assistant", "tool", "function"]
@@ -87,7 +86,7 @@ class ImageUrl(TypedDict, total=False):
     """
 
     url: str
-    detail: Optional[ImageUrlDetail]
+    detail: ImageUrlDetail | None
 
 
 class ContentItem(TypedDict, total=False):
@@ -103,8 +102,8 @@ class ContentItem(TypedDict, total=False):
     """
 
     type: ContentType
-    text: Optional[str]
-    image_url: Optional[ImageUrl]
+    text: str | None
+    image_url: ImageUrl | None
 
 
 class Message(TypedDict, total=False):
@@ -123,11 +122,11 @@ class Message(TypedDict, total=False):
     """
 
     role: Role
-    content: Union[str, List[ContentItem]]
-    name: Optional[str]
-    function_call: Optional[Dict[str, Any]]
-    tool_call_id: Optional[str]
-    tool_calls: Optional[List[Dict[str, Any]]]
+    content: str | list[ContentItem]
+    name: str | None
+    function_call: dict[str, Any] | None
+    tool_call_id: str | None
+    tool_calls: list[dict[str, Any]] | None
 
 
 class UsageInfo(TypedDict, total=False):
@@ -174,16 +173,16 @@ class ModelParams(TypedDict, total=False):
         user: User identifier for the request
     """
 
-    temperature: Optional[float]
-    top_p: Optional[float]
-    n: Optional[int]
-    stream: Optional[bool]
-    max_tokens: Optional[int]
-    presence_penalty: Optional[float]
-    frequency_penalty: Optional[float]
-    stop: Optional[Union[str, List[str]]]
-    logit_bias: Optional[Dict[str, float]]
-    user: Optional[str]
+    temperature: float | None
+    top_p: float | None
+    n: int | None
+    stream: bool | None
+    max_tokens: int | None
+    presence_penalty: float | None
+    frequency_penalty: float | None
+    stop: str | list[str] | None
+    logit_bias: dict[str, float] | None
+    user: str | None
 
 
 class ResponseFormat(TypedDict, total=False):
@@ -214,12 +213,12 @@ class AudioTranscriptionParams(TypedDict, total=False):
         temperature: Optional temperature setting
     """
 
-    file: Union[str, bytes, IO[bytes]]
+    file: str | bytes | IO[bytes]
     model: str
-    language: Optional[str]
-    prompt: Optional[str]
-    response_format: Optional[AudioResponseFormat]
-    temperature: Optional[float]
+    language: str | None
+    prompt: str | None
+    response_format: AudioResponseFormat | None
+    temperature: float | None
 
 
 class AudioTranslationParams(TypedDict, total=False):
@@ -236,11 +235,11 @@ class AudioTranslationParams(TypedDict, total=False):
         temperature: Optional temperature setting
     """
 
-    file: Union[str, bytes, IO[bytes]]
+    file: str | bytes | IO[bytes]
     model: str
-    prompt: Optional[str]
-    response_format: Optional[AudioResponseFormat]
-    temperature: Optional[float]
+    prompt: str | None
+    response_format: AudioResponseFormat | None
+    temperature: float | None
 
 
 class TranscriptionResult(TypedDict, total=False):
@@ -259,11 +258,11 @@ class TranscriptionResult(TypedDict, total=False):
     """
 
     text: str
-    task: Optional[str]
-    language: Optional[str]
-    duration: Optional[float]
-    segments: Optional[List[Dict[str, Any]]]
-    words: Optional[List[Dict[str, Any]]]
+    task: str | None
+    language: str | None
+    duration: float | None
+    segments: list[dict[str, Any]] | None
+    words: list[dict[str, Any]] | None
 
 
 class SpeechParams(TypedDict, total=False):
@@ -283,8 +282,8 @@ class SpeechParams(TypedDict, total=False):
     input: str
     model: str
     voice: SpeechVoice
-    response_format: Optional[SpeechFormat]
-    speed: Optional[float]
+    response_format: SpeechFormat | None
+    speed: float | None
 
 
 class ImageGenerationParams(TypedDict, total=False):
@@ -306,12 +305,12 @@ class ImageGenerationParams(TypedDict, total=False):
 
     prompt: str
     model: str
-    n: Optional[int]
-    size: Optional[ImageSize]
-    quality: Optional[ImageQuality]
-    style: Optional[ImageStyle]
-    response_format: Optional[ImageResponseFormat]
-    user: Optional[str]
+    n: int | None
+    size: ImageSize | None
+    quality: ImageQuality | None
+    style: ImageStyle | None
+    response_format: ImageResponseFormat | None
+    user: str | None
 
 
 class ImageData(TypedDict, total=False):
@@ -327,10 +326,10 @@ class ImageData(TypedDict, total=False):
         filepath: Optional local path where the image was saved
     """
 
-    url: Optional[str]
-    b64_json: Optional[str]
-    revised_prompt: Optional[str]
-    filepath: Optional[str]  # Added locally when saving images
+    url: str | None
+    b64_json: str | None
+    revised_prompt: str | None
+    filepath: str | None  # Added locally when saving images
 
 
 class ImageGenerationResult(TypedDict, total=False):
@@ -345,7 +344,7 @@ class ImageGenerationResult(TypedDict, total=False):
     """
 
     created: int
-    data: List[ImageData]
+    data: list[ImageData]
 
 
 # Export everything for convenience

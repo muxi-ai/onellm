@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,16 +26,16 @@ including uploading, retrieving, and listing files.
 
 import os
 from pathlib import Path
-from typing import BinaryIO, Optional, Set, Union
+from typing import BinaryIO
 
-from .providers.base import get_provider
-from .models import FileObject
 from .errors import InvalidRequestError
+from .models import FileObject
+from .providers.base import get_provider
 from .utils.async_helpers import run_async
 from .utils.file_validator import FileValidator
 
 
-def _sanitize_filename(filename: Optional[str], default: str = "file.bin") -> str:
+def _sanitize_filename(filename: str | None, default: str = "file.bin") -> str:
     """
     Sanitize a filename by removing directory components and null bytes.
     
@@ -61,17 +60,17 @@ def _sanitize_filename(filename: Optional[str], default: str = "file.bin") -> st
     """
     if not filename:
         return default
-    
+
     # Remove null bytes
     filename = filename.replace('\x00', '')
-    
+
     # Strip directory components (works for / and \ separators)
     filename = os.path.basename(filename)
-    
+
     # If basename is empty after sanitization, use default
     if not filename or filename in ('.', '..'):
         return default
-    
+
     return filename
 
 
@@ -90,27 +89,27 @@ class SizeLimitedFileWrapper:
     exists where the file could be modified between size check and read for
     seekable files. For untrusted sources, validate both before and after.
     """
-    
+
     def __init__(self, file_obj: BinaryIO, max_size: int, name: str = "file"):
         self._file = file_obj
         self._max_size = max_size
         self._bytes_read = 0
         self._name = name
-    
+
     def read(self, size: int = -1) -> bytes:
         """Read from the underlying file while tracking size."""
         data = self._file.read(size)
         self._bytes_read += len(data)
-        
+
         if self._bytes_read > self._max_size:
             max_mb = self._max_size / (1024 * 1024)
             actual_mb = self._bytes_read / (1024 * 1024)
             raise InvalidRequestError(
                 f"{self._name} too large: exceeds {max_mb:.2f}MB (read {actual_mb:.2f}MB so far)"
             )
-        
+
         return data
-    
+
     def __getattr__(self, name: str):
         """
         Delegate all other attributes and methods to the wrapped file object.
@@ -127,11 +126,11 @@ class File:
     @classmethod
     def upload(
         cls,
-        file: Union[str, Path, BinaryIO, bytes],
+        file: str | Path | BinaryIO | bytes,
         purpose: str = "assistants",
         provider: str = "openai",  # Required but defaults for compatibility
-        max_size: Optional[int] = None,
-        allowed_extensions: Optional[Set[str]] = None,
+        max_size: int | None = None,
+        allowed_extensions: set[str] | None = None,
         validate_mime: bool = True,
         **kwargs
     ) -> FileObject:
@@ -162,7 +161,7 @@ class File:
         """
         # Get provider instance
         provider_instance = get_provider(provider)
-        
+
         # Validate file based on type, but preserve original object for provider
         # This allows providers to optimize (e.g., streaming) while ensuring security
         if isinstance(file, (str, Path)):
@@ -173,13 +172,13 @@ class File:
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime,
             )
-            
+
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
             # Set filename in kwargs if not provided
             if "filename" not in kwargs:
                 kwargs["filename"] = validated_path.name
-            
+
         elif isinstance(file, bytes):
             # Validate bytes size
             FileValidator.validate_bytes_size(
@@ -187,7 +186,7 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            
+
             # Get and sanitize filename from kwargs - required if allowed_extensions is set
             raw_filename = kwargs.get("filename")
             if raw_filename is None:
@@ -199,23 +198,23 @@ class File:
             else:
                 # Sanitize filename to remove directory components and null bytes
                 filename = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always update kwargs with sanitized filename to ensure provider receives safe value
             kwargs["filename"] = filename
-            
+
             # Pass bytes as-is to provider
             file_to_upload = file
-            
+
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
-            
+
             # Get filename - prefer user-provided kwargs, then file.name, then default
             # This ensures we validate the ACTUAL filename that will be sent to provider
             raw_filename = kwargs.get("filename") or getattr(file, "name", None)
@@ -228,22 +227,22 @@ class File:
             else:
                 # Sanitize filename to remove directory components and null bytes
                 filename = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always set the sanitized and validated filename in kwargs to ensure provider receives safe value
             kwargs["filename"] = filename
-            
+
             # For size validation, try to get size without reading entire file
             if max_size is not None:
                 file_size = None
                 is_seekable = False
-                
+
                 # Try to get size from seekable file-like object
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
                     try:
@@ -256,13 +255,13 @@ class File:
                             # Always restore position, even if an error occurs
                             try:
                                 file.seek(current_pos)
-                            except (OSError, IOError):
+                            except OSError:
                                 # If we can't restore position, file is likely broken
                                 pass
-                    except (OSError, IOError):
+                    except OSError:
                         # File is not seekable
                         pass
-                
+
                 # If we got the size, validate it
                 if file_size is not None:
                     max_mb = max_size / (1024 * 1024)
@@ -271,16 +270,16 @@ class File:
                         raise InvalidRequestError(
                             f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
                         )
-                
+
                 # For non-seekable streams, wrap with size-limiting wrapper
                 # This enforces size limits as the file is being read by provider
                 if not is_seekable:
                     file = SizeLimitedFileWrapper(file, max_size, filename)
-            
+
             # Pass the file-like object (wrapped if non-seekable) to provider
             # Filename already set in kwargs during validation
             file_to_upload = file
-            
+
         else:
             raise InvalidRequestError(
                 f"file must be a path (str/Path), bytes, or file-like object, "
@@ -300,11 +299,11 @@ class File:
     @classmethod
     async def aupload(
         cls,
-        file: Union[str, Path, BinaryIO, bytes],
+        file: str | Path | BinaryIO | bytes,
         purpose: str = "assistants",
         provider: str = "openai",  # Required but defaults for compatibility
-        max_size: Optional[int] = None,
-        allowed_extensions: Optional[Set[str]] = None,
+        max_size: int | None = None,
+        allowed_extensions: set[str] | None = None,
         validate_mime: bool = True,
         **kwargs
     ) -> FileObject:
@@ -332,7 +331,7 @@ class File:
         """
         # Get provider instance
         provider_instance = get_provider(provider)
-        
+
         # Validate file based on type, but preserve original object for provider
         # This allows providers to optimize (e.g., streaming) while ensuring security
         if isinstance(file, (str, Path)):
@@ -343,13 +342,13 @@ class File:
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime,
             )
-            
+
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
             # Set filename in kwargs if not provided
             if "filename" not in kwargs:
                 kwargs["filename"] = validated_path.name
-            
+
         elif isinstance(file, bytes):
             # Validate bytes size
             FileValidator.validate_bytes_size(
@@ -357,7 +356,7 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            
+
             # Get and sanitize filename from kwargs - required if allowed_extensions is set
             raw_filename = kwargs.get("filename")
             if raw_filename is None:
@@ -369,23 +368,23 @@ class File:
             else:
                 # Sanitize filename to remove directory components and null bytes
                 filename = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always update kwargs with sanitized filename to ensure provider receives safe value
             kwargs["filename"] = filename
-            
+
             # Pass bytes as-is to provider
             file_to_upload = file
-            
+
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
-            
+
             # Get filename - prefer user-provided kwargs, then file.name, then default
             # This ensures we validate the ACTUAL filename that will be sent to provider
             raw_filename = kwargs.get("filename") or getattr(file, "name", None)
@@ -398,22 +397,22 @@ class File:
             else:
                 # Sanitize filename to remove directory components and null bytes
                 filename = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always set the sanitized and validated filename in kwargs to ensure provider receives safe value
             kwargs["filename"] = filename
-            
+
             # For size validation, try to get size without reading entire file
             if max_size is not None:
                 file_size = None
                 is_seekable = False
-                
+
                 # Try to get size from seekable file-like object
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
                     try:
@@ -426,13 +425,13 @@ class File:
                             # Always restore position, even if an error occurs
                             try:
                                 file.seek(current_pos)
-                            except (OSError, IOError):
+                            except OSError:
                                 # If we can't restore position, file is likely broken
                                 pass
-                    except (OSError, IOError):
+                    except OSError:
                         # File is not seekable
                         pass
-                
+
                 # If we got the size, validate it
                 if file_size is not None:
                     max_mb = max_size / (1024 * 1024)
@@ -441,16 +440,16 @@ class File:
                         raise InvalidRequestError(
                             f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
                         )
-                
+
                 # For non-seekable streams, wrap with size-limiting wrapper
                 # This enforces size limits as the file is being read by provider
                 if not is_seekable:
                     file = SizeLimitedFileWrapper(file, max_size, filename)
-            
+
             # Pass the file-like object (wrapped if non-seekable) to provider
             # Filename already set in kwargs during validation
             file_to_upload = file
-            
+
         else:
             raise InvalidRequestError(
                 f"file must be a path (str/Path), bytes, or file-like object, "
@@ -469,10 +468,10 @@ class File:
     def download(
         cls,
         file_id: str,
-        destination: Union[str, Path, None] = None,
+        destination: str | Path | None = None,
         provider: str = "openai",  # Required but defaults for compatibility
         **kwargs
-    ) -> Union[bytes, str]:
+    ) -> bytes | str:
         """
         Download a file from the provider's API.
 
@@ -517,10 +516,10 @@ class File:
     async def adownload(
         cls,
         file_id: str,
-        destination: Union[str, Path, None] = None,
+        destination: str | Path | None = None,
         provider: str = "openai",  # Required but defaults for compatibility
         **kwargs
-    ) -> Union[bytes, str]:
+    ) -> bytes | str:
         """
         Download a file from the provider's API asynchronously.
 

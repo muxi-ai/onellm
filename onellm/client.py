@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,15 +24,16 @@ This module implements an interface that matches OpenAI's Python client structur
 making it a drop-in replacement for OpenAI's client with the same API structure.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
+from .audio import AudioTranscription, AudioTranslation
 from .chat_completion import ChatCompletion
 from .completion import Completion
 from .embedding import Embedding
 from .files import File
 from .image import Image
-from .audio import AudioTranscription, AudioTranslation
 from .speech import Speech
+
 
 class ChatCompletionsResource:
     """Chat completions API resource"""
@@ -41,9 +41,9 @@ class ChatCompletionsResource:
     def create(
         self,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -82,9 +82,9 @@ class ChatCompletionsResource:
     async def acreate(
         self,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -135,7 +135,7 @@ class CompletionsResource:
         model: str,
         prompt: str,
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -174,7 +174,7 @@ class CompletionsResource:
         model: str,
         prompt: str,
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -214,8 +214,8 @@ class EmbeddingsResource:
     def create(
         self,
         model: str,
-        input: Union[str, List[str]],
-        fallback_models: Optional[List[str]] = None,
+        input: str | list[str],
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -250,8 +250,8 @@ class EmbeddingsResource:
     async def acreate(
         self,
         model: str,
-        input: Union[str, List[str]],
-        fallback_models: Optional[List[str]] = None,
+        input: str | list[str],
+        fallback_models: list[str] | None = None,
         **kwargs
     ):
         """
@@ -638,7 +638,7 @@ class Client:
     This provides a drop-in replacement for OpenAI's client.
     """
 
-    def __init__(self, api_key: Optional[str] = None, **kwargs):
+    def __init__(self, api_key: str | None = None, **kwargs):
         """
         Initialize client with API key and other options.
 

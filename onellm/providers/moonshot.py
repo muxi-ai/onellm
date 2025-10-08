@@ -28,6 +28,7 @@ performance on coding and reasoning tasks.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class MoonshotProvider(OpenAICompatibleProvider):
     """Moonshot provider implementation."""
 

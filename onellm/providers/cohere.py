@@ -28,7 +28,7 @@ NLP with advanced RAG capabilities and multilingual support.
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 
@@ -56,6 +56,7 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
+
 
 class CohereProvider(Provider):
     """Cohere provider implementation."""
@@ -118,7 +119,7 @@ class CohereProvider(Provider):
             max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         """
         Get headers for API requests.
 
@@ -132,8 +133,8 @@ class CohereProvider(Provider):
         }
 
     def _convert_messages_to_cohere(
-        self, messages: List[Message]
-    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+        self, messages: list[Message]
+    ) -> tuple[str | None, list[dict[str, Any]]]:
         """
         Convert OpenAI-style messages to Cohere format.
 
@@ -187,10 +188,10 @@ class CohereProvider(Provider):
         self,
         method: str,
         path: str,
-        data: Dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
         timeout: float | None = None,
-    ) -> Dict[str, Any] | AsyncGenerator[Dict[str, Any], None]:
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the Cohere API.
 
@@ -236,7 +237,7 @@ class CohereProvider(Provider):
 
     async def _handle_streaming_response(
         self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -255,7 +256,7 @@ class CohereProvider(Provider):
                 except json.JSONDecodeError:
                     continue
 
-    def _handle_error_response(self, status_code: int, response_data: Dict[str, Any]) -> None:
+    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -284,7 +285,7 @@ class CohereProvider(Provider):
             )
 
     def _convert_cohere_to_openai_response(
-        self, cohere_response: Dict[str, Any], model: str
+        self, cohere_response: dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Cohere response to OpenAI format.
@@ -342,7 +343,7 @@ class CohereProvider(Provider):
         )
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
     ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with Cohere.
@@ -532,7 +533,7 @@ class CohereProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: str | List[str], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings.

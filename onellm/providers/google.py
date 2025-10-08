@@ -27,7 +27,7 @@ This is different from Vertex AI which is Google Cloud's enterprise offering.
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 
@@ -55,6 +55,7 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
+
 
 class GoogleProvider(Provider):
     """Google AI Studio (Gemini) provider implementation."""
@@ -126,8 +127,8 @@ class GoogleProvider(Provider):
         )
 
     def _convert_messages_to_gemini(
-        self, messages: List[Message]
-    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+        self, messages: list[Message]
+    ) -> tuple[str | None, list[dict[str, Any]]]:
         """
         Convert OpenAI-style messages to Gemini format.
 
@@ -196,10 +197,10 @@ class GoogleProvider(Provider):
         self,
         method: str,
         path: str,
-        data: Dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
         timeout: float | None = None,
-    ) -> Dict[str, Any] | AsyncGenerator[Dict[str, Any], None]:
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the Google API.
 
@@ -247,7 +248,7 @@ class GoogleProvider(Provider):
 
     async def _handle_streaming_response(
         self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -270,7 +271,7 @@ class GoogleProvider(Provider):
                 except json.JSONDecodeError:
                     continue
 
-    def _handle_error_response(self, status_code: int, response_data: Dict[str, Any]) -> None:
+    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -300,7 +301,7 @@ class GoogleProvider(Provider):
             )
 
     def _convert_gemini_to_openai_response(
-        self, gemini_response: Dict[str, Any], model: str
+        self, gemini_response: dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Gemini response to OpenAI format.
@@ -360,7 +361,7 @@ class GoogleProvider(Provider):
         )
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
     ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with Google Gemini.
@@ -521,7 +522,7 @@ class GoogleProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: str | List[str], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings.

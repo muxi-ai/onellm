@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -26,14 +25,15 @@ When a primary model or provider fails, these utilities help gracefully
 fall back to alternative models or providers to maintain service reliability.
 """
 
-from typing import Callable, List, Optional, Type, TypeVar
 import inspect
+from collections.abc import Callable
+from typing import TypeVar
 
 from ..errors import (
-    ServiceUnavailableError,
-    TimeoutError,
     BadGatewayError,
     RateLimitError,
+    ServiceUnavailableError,
+    TimeoutError,
 )
 
 # Define a generic type for the return value
@@ -51,10 +51,10 @@ class FallbackConfig:
 
     def __init__(
         self,
-        retriable_errors: Optional[List[Type[Exception]]] = None,
-        max_fallbacks: Optional[int] = None,
+        retriable_errors: list[type[Exception]] | None = None,
+        max_fallbacks: int | None = None,
         log_fallbacks: bool = True,
-        fallback_callback: Optional[Callable] = None,
+        fallback_callback: Callable | None = None,
     ):
         """
         Initialize fallback configuration.

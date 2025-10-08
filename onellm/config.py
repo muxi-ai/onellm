@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,7 +26,7 @@ for various LLM providers.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -233,7 +232,7 @@ def _load_env_vars() -> None:
         ]
 
 
-def _update_nested_dict(d: Dict[str, Any], u: Dict[str, Any]) -> Dict[str, Any]:
+def _update_nested_dict(d: dict[str, Any], u: dict[str, Any]) -> dict[str, Any]:
     """
     Update a nested dictionary with values from another dictionary.
 
@@ -261,7 +260,7 @@ _load_env_vars()
 
 
 # Public API for configuration
-def get_api_key(provider: str) -> Optional[str]:
+def get_api_key(provider: str) -> str | None:
     """
     Get the API key for the specified provider.
 
@@ -293,7 +292,7 @@ def set_api_key(api_key: str, provider: str) -> None:
         globals()[f"{provider}_api_key"] = api_key
 
 
-def get_provider_config(provider: str) -> Dict[str, Any]:
+def get_provider_config(provider: str) -> dict[str, Any]:
     """
     Get the configuration for the specified provider.
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,13 +24,15 @@ This module provides a Completion class that can be used to create text
 completions from various providers in a manner compatible with OpenAI's API.
 """
 
-from typing import Any, AsyncGenerator, List, Optional, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from .providers.base import get_provider_with_fallbacks, parse_model_name
 from .models import CompletionResponse
-from .utils.fallback import FallbackConfig
+from .providers.base import get_provider_with_fallbacks
 from .utils.async_helpers import run_async
+from .utils.fallback import FallbackConfig
 from .validators import validate_model_name, validate_prompt, validate_stream
+
 
 class Completion:
     """Class for creating text completions with various providers."""
@@ -42,11 +43,11 @@ class Completion:
         model: str,
         prompt: str,
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -81,7 +82,7 @@ class Completion:
         validate_model_name(model)
         validate_prompt(prompt)
         validate_stream(stream)
-        
+
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
@@ -125,11 +126,11 @@ class Completion:
         model: str,
         prompt: str,
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion asynchronously.
 
@@ -165,7 +166,7 @@ class Completion:
         validate_model_name(model)
         validate_prompt(prompt)
         validate_stream(stream)
-        
+
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:

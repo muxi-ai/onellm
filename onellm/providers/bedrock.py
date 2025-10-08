@@ -31,11 +31,11 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     raise ImportError(
         "AWS SDK (boto3) is required for Bedrock provider. " "Install it with: pip install boto3"
@@ -66,6 +66,7 @@ from ..models import (
 )
 from ..types import Message
 from .base import Provider, register_provider
+
 
 class BedrockProvider(Provider):
     """AWS Bedrock provider implementation."""
@@ -149,7 +150,7 @@ class BedrockProvider(Provider):
         bedrock_config = {}
         bedrock_json_path = os.path.join(os.path.dirname(__file__), "..", "..", "bedrock.json")
         if os.path.exists(bedrock_json_path):
-            with open(bedrock_json_path, "r") as f:
+            with open(bedrock_json_path) as f:
                 bedrock_config = json.load(f)
 
         # Get configuration with potential overrides
@@ -237,8 +238,8 @@ class BedrockProvider(Provider):
         return model
 
     def _convert_openai_to_bedrock_messages(
-        self, messages: List[Message], model_id: str
-    ) -> tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]]]:
+        self, messages: list[Message], model_id: str
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:
         """
         Convert OpenAI-style messages to Bedrock Converse API format.
 
@@ -315,7 +316,7 @@ class BedrockProvider(Provider):
         return bedrock_messages, system_messages if system_messages else None
 
     def _convert_bedrock_to_openai_response(
-        self, bedrock_response: Dict[str, Any], model: str
+        self, bedrock_response: dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Bedrock Converse API response to OpenAI format.
@@ -431,8 +432,8 @@ class BedrockProvider(Provider):
             raise error
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with AWS Bedrock using the Converse API.
 
@@ -577,7 +578,7 @@ class BedrockProvider(Provider):
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -644,7 +645,7 @@ class BedrockProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: Union[str, List[str]], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input using Amazon Titan Embeddings models.

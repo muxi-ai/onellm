@@ -27,6 +27,7 @@ information from the internet and provide responses with citations.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class PerplexityProvider(OpenAICompatibleProvider):
     """Perplexity AI provider implementation."""
 

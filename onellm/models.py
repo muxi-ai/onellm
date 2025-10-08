@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,14 +24,16 @@ This module contains the data models used for responses and requests
 across different API endpoints and providers.
 """
 
-from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
+from typing import Any
+
 from .types import Message, UsageInfo
 from .utils.text_cleaner import clean_unicode_artifacts
 
+
 def _clean_message_content(
-    content: Union[str, List[Dict[str, Any]], None]
-) -> Union[str, List[Dict[str, Any]], None]:
+    content: str | list[dict[str, Any]] | None
+) -> str | list[dict[str, Any]] | None:
     """
     Clean Unicode artifacts from message content.
 
@@ -81,11 +82,11 @@ class ChoiceDelta:
         finish_reason: Reason why the response finished (e.g., 'stop', 'length')
     """
 
-    content: Optional[str] = None
-    role: Optional[str] = None
-    function_call: Optional[Dict[str, Any]] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    finish_reason: Optional[str] = None
+    content: str | None = None
+    role: str | None = None
+    function_call: dict[str, Any] | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    finish_reason: str | None = None
 
     def __post_init__(self):
         """Clean Unicode artifacts from content after initialization."""
@@ -107,13 +108,13 @@ class Choice:
     """
 
     message: Message
-    finish_reason: Optional[str] = None
+    finish_reason: str | None = None
     index: int = 0
 
     def __init__(
         self,
-        message: Optional[Message] = None,
-        finish_reason: Optional[str] = None,
+        message: Message | None = None,
+        finish_reason: str | None = None,
         index: int = 0,
         **kwargs
     ):
@@ -149,13 +150,13 @@ class StreamingChoice:
     """
 
     delta: ChoiceDelta
-    finish_reason: Optional[str] = None
+    finish_reason: str | None = None
     index: int = 0
 
     def __init__(
         self,
-        delta: Optional[ChoiceDelta] = None,
-        finish_reason: Optional[str] = None,
+        delta: ChoiceDelta | None = None,
+        finish_reason: str | None = None,
         index: int = 0,
         **kwargs
     ):
@@ -194,9 +195,9 @@ class ChatCompletionResponse:
     object: str
     created: int
     model: str
-    choices: List[Choice]
-    usage: Optional[UsageInfo] = None
-    system_fingerprint: Optional[str] = None
+    choices: list[Choice]
+    usage: UsageInfo | None = None
+    system_fingerprint: str | None = None
 
     def __init__(
         self,
@@ -204,9 +205,9 @@ class ChatCompletionResponse:
         object: str,
         created: int,
         model: str,
-        choices: List[Choice],
-        usage: Optional[UsageInfo] = None,
-        system_fingerprint: Optional[str] = None,
+        choices: list[Choice],
+        usage: UsageInfo | None = None,
+        system_fingerprint: str | None = None,
         **kwargs
     ):
         """
@@ -251,8 +252,8 @@ class ChatCompletionChunk:
     object: str
     created: int
     model: str
-    choices: List[StreamingChoice]
-    system_fingerprint: Optional[str] = None
+    choices: list[StreamingChoice]
+    system_fingerprint: str | None = None
 
     def __init__(
         self,
@@ -260,8 +261,8 @@ class ChatCompletionChunk:
         object: str,
         created: int,
         model: str,
-        choices: List[StreamingChoice],
-        system_fingerprint: Optional[str] = None,
+        choices: list[StreamingChoice],
+        system_fingerprint: str | None = None,
         **kwargs
     ):
         """
@@ -299,8 +300,8 @@ class CompletionChoice:
 
     text: str
     index: int = 0
-    logprobs: Optional[Dict[str, Any]] = None
-    finish_reason: Optional[str] = None
+    logprobs: dict[str, Any] | None = None
+    finish_reason: str | None = None
 
     def __post_init__(self):
         """Clean Unicode artifacts from text after initialization."""
@@ -329,9 +330,9 @@ class CompletionResponse:
     object: str
     created: int
     model: str
-    choices: List[CompletionChoice]
-    usage: Optional[UsageInfo] = None
-    system_fingerprint: Optional[str] = None
+    choices: list[CompletionChoice]
+    usage: UsageInfo | None = None
+    system_fingerprint: str | None = None
 
 @dataclass
 class EmbeddingData:
@@ -346,7 +347,7 @@ class EmbeddingData:
         object: Type of object (typically 'embedding')
     """
 
-    embedding: List[float]
+    embedding: list[float]
     index: int = 0
     object: str = "embedding"
 
@@ -366,9 +367,9 @@ class EmbeddingResponse:
     """
 
     object: str
-    data: List[EmbeddingData]
+    data: list[EmbeddingData]
     model: str
-    usage: Optional[UsageInfo] = None
+    usage: UsageInfo | None = None
 
 @dataclass
 class FileObject:
@@ -395,5 +396,5 @@ class FileObject:
     created_at: int
     filename: str
     purpose: str
-    status: Optional[str] = None
-    status_details: Optional[str] = None
+    status: str | None = None
+    status_details: str | None = None

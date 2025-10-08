@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,6 +26,7 @@ and AI detection tools. This module helps normalize text to safe ASCII equivalen
 """
 
 import re
+
 
 def clean_unicode_artifacts(text: str) -> str:
     """

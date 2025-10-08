@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -26,12 +25,13 @@ when the primary model fails.
 """
 
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from ..errors import APIError, FallbackExhaustionError
 from ..models import (
-    ChatCompletionResponse,
     ChatCompletionChunk,
+    ChatCompletionResponse,
     CompletionResponse,
     EmbeddingResponse,
     FileObject,
@@ -40,11 +40,12 @@ from ..types import Message
 from ..utils.fallback import FallbackConfig, maybe_await
 from .base import Provider, get_provider, parse_model_name
 
+
 class FallbackProviderProxy(Provider):
     """Provider implementation that supports fallbacks to alternative models."""
 
     def __init__(
-        self, models: List[str], fallback_config: Optional[FallbackConfig] = None
+        self, models: list[str], fallback_config: FallbackConfig | None = None
     ):
         """
         Initialize with a list of models to try.
@@ -54,7 +55,7 @@ class FallbackProviderProxy(Provider):
             fallback_config: Optional configuration for fallback behavior
         """
         self.models = models
-        self.providers: Dict[str, Provider] = {}  # Lazy-loaded providers
+        self.providers: dict[str, Provider] = {}  # Lazy-loaded providers
         self.fallback_config = fallback_config or FallbackConfig()
         self.logger = logging.getLogger("onellm.fallback")
 
@@ -415,11 +416,11 @@ class FallbackProviderProxy(Provider):
 
     async def create_chat_completion(
         self,
-        messages: List[Message],
+        messages: list[Message],
         model: str = None,  # Ignored since we use models from the proxy
         stream: bool = False,
         **kwargs,
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with fallback support.
 
@@ -466,7 +467,7 @@ class FallbackProviderProxy(Provider):
         model: str = None,  # Ignored since we use models from the proxy
         stream: bool = False,
         **kwargs,
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion with fallback support.
 
@@ -508,7 +509,7 @@ class FallbackProviderProxy(Provider):
 
     async def create_embedding(
         self,
-        input: Union[str, List[str]],
+        input: str | list[str],
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
     ) -> EmbeddingResponse:
@@ -593,7 +594,7 @@ class FallbackProviderProxy(Provider):
         prompt: str,
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Create images with fallback support.
 
@@ -616,7 +617,7 @@ class FallbackProviderProxy(Provider):
         file: Any,
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a transcription with fallback support.
 
@@ -638,7 +639,7 @@ class FallbackProviderProxy(Provider):
         file: Any,
         model: str = None,  # Ignored since we use models from the proxy
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a translation with fallback support.
 
@@ -655,7 +656,7 @@ class FallbackProviderProxy(Provider):
         """
         return await self._try_with_fallbacks("create_translation", file=file, **kwargs)
 
-    async def list_files(self, **kwargs) -> List[Dict[str, Any]]:
+    async def list_files(self, **kwargs) -> list[dict[str, Any]]:
         """
         List files with fallback support.
 
@@ -670,7 +671,7 @@ class FallbackProviderProxy(Provider):
         """
         return await self._try_with_fallbacks("list_files", **kwargs)
 
-    async def delete_file(self, file_id: str, **kwargs) -> Dict[str, Any]:
+    async def delete_file(self, file_id: str, **kwargs) -> dict[str, Any]:
         """
         Delete a file with fallback support.
 

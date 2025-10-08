@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -26,11 +25,11 @@ It supports various providers and models with fallback options, and offers both
 synchronous and asynchronous interfaces for speech generation.
 """
 
-from typing import List, Optional
 
 from .providers.base import get_provider_with_fallbacks
-from .utils.fallback import FallbackConfig
 from .utils.async_helpers import run_async
+from .utils.fallback import FallbackConfig
+
 
 class Speech:
     """
@@ -46,8 +45,8 @@ class Speech:
         input: str,
         model: str = "openai/tts-1",
         voice: str = "alloy",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
     ) -> bytes:
         """
@@ -106,8 +105,8 @@ class Speech:
         input: str,
         model: str = "openai/tts-1",
         voice: str = "alloy",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
     ) -> bytes:
         """

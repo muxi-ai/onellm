@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,13 +26,14 @@ due to transient errors, with configurable backoff strategies.
 
 import asyncio
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 from ..errors import (
+    BadGatewayError,
     RateLimitError,
     ServiceUnavailableError,
-    BadGatewayError,
     TimeoutError,
 )
 
@@ -49,7 +49,7 @@ class RetryConfig:
     max_backoff: float = 60.0  # Maximum backoff time in seconds
     backoff_multiplier: float = 2.0  # Factor by which backoff increases with each retry
     jitter: bool = True  # Whether to add randomness to backoff times
-    retryable_errors: Optional[List[Type[Exception]]] = None  # Exceptions that should trigger retry
+    retryable_errors: list[type[Exception]] | None = None  # Exceptions that should trigger retry
 
     def __post_init__(self):
         """
@@ -120,7 +120,7 @@ def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
 async def retry_async(
     func: Callable[..., Any],
     *args: Any,
-    config: Optional[RetryConfig] = None,
+    config: RetryConfig | None = None,
     **kwargs: Any
 ) -> Any:
     """

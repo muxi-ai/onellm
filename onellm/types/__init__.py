@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -38,14 +37,14 @@ The types defined here include:
 
 # Import all type definitions from the common module
 from .common import (
-    Role,                # Defines possible message roles (system, user, assistant)
-    ContentType,         # Defines content types (text, image, audio, etc.)
-    Provider,            # Enumerates supported LLM providers
-    ContentItem,         # Structure for multi-modal content items
-    Message,             # Structure for messages in a conversation
-    UsageInfo,           # Structure for token usage statistics
-    ModelParams,         # Configuration parameters for model requests
-    ResponseFormat,      # Structure for specifying response format preferences
+    ContentItem,  # Structure for multi-modal content items
+    ContentType,  # Defines content types (text, image, audio, etc.)
+    Message,  # Structure for messages in a conversation
+    ModelParams,  # Configuration parameters for model requests
+    Provider,  # Enumerates supported LLM providers
+    ResponseFormat,  # Structure for specifying response format preferences
+    Role,  # Defines possible message roles (system, user, assistant)
+    UsageInfo,  # Structure for token usage statistics
 )
 
 # Define the public API for this module

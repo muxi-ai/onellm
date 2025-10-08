@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,9 +24,10 @@ This module fixes the streaming utilities to properly handle async transform fun
 """
 
 import asyncio
-import json
 import inspect
-from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
+import json
+from collections.abc import AsyncGenerator, Callable
+from typing import Any, TypeVar
 
 from ..errors import MuxiLLMError
 
@@ -40,8 +40,8 @@ class StreamingError(MuxiLLMError):
 
 async def stream_generator(
     source_generator: AsyncGenerator[Any, None],
-    transform_func: Optional[Callable[[Any], T]] = None,
-    timeout: Optional[float] = None,
+    transform_func: Callable[[Any], T] | None = None,
+    timeout: float | None = None,
 ) -> AsyncGenerator[T, None]:
     """
     Create a transformed stream from a source generator.
@@ -111,7 +111,7 @@ async def stream_generator(
 
 async def _stream_with_timeout(
     source_generator: AsyncGenerator[Any, None],
-    transform_func: Optional[Callable[[Any], T]],
+    transform_func: Callable[[Any], T] | None,
     timeout: float,
 ) -> AsyncGenerator[T, None]:
     """
@@ -173,8 +173,8 @@ async def _stream_with_timeout(
 
 async def json_stream_generator(
     source_generator: AsyncGenerator[str, None],
-    data_key: Optional[str] = None,
-    timeout: Optional[float] = None,
+    data_key: str | None = None,
+    timeout: float | None = None,
 ) -> AsyncGenerator[Any, None]:
     """
     Create a JSON stream from a source generator of JSON strings.
@@ -194,7 +194,7 @@ async def json_stream_generator(
         StreamingError: If an error occurs during streaming or JSON parsing
     """
 
-    async def transform_json(text: str) -> Optional[Any]:
+    async def transform_json(text: str) -> Any | None:
         """
         Inner function to parse JSON and extract data.
 
@@ -250,10 +250,10 @@ async def json_stream_generator(
         raise StreamingError(f"Error in JSON streaming: {str(e)}") from e
 
 async def line_stream_generator(
-    source_generator: AsyncGenerator[Union[str, bytes], None],
-    prefix: Optional[str] = None,
-    timeout: Optional[float] = None,
-    transform_func: Optional[Callable[[str], str]] = None,
+    source_generator: AsyncGenerator[str | bytes, None],
+    prefix: str | None = None,
+    timeout: float | None = None,
+    transform_func: Callable[[str], str] | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     Create a line stream from a source generator, optionally filtering by prefix.
@@ -274,7 +274,7 @@ async def line_stream_generator(
         StreamingError: If an error occurs during streaming or line processing
     """
 
-    async def process_line(line: Union[str, bytes]) -> Optional[str]:
+    async def process_line(line: str | bytes) -> str | None:
         """
         Inner function to process each line from the source generator.
 

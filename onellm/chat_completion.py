@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,13 +26,15 @@ completions from various providers in a manner compatible with OpenAI's API.
 
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from .providers.base import get_provider_with_fallbacks, parse_model_name
-from .models import ChatCompletionResponse, ChatCompletionChunk
-from .utils.fallback import FallbackConfig
+from .models import ChatCompletionChunk, ChatCompletionResponse
+from .providers.base import get_provider_with_fallbacks
 from .utils.async_helpers import run_async
-from .validators import validate_model_name, validate_messages, validate_stream
+from .utils.fallback import FallbackConfig
+from .validators import validate_messages, validate_model_name, validate_stream
+
 
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
@@ -44,9 +45,9 @@ class ChatCompletion:
     def _process_capabilities(
         cls,
         provider: Any,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool,
-        kwargs: Dict[str, Any]
+        kwargs: dict[str, Any]
     ) -> tuple:
         """
         Process messages and kwargs based on provider capabilities.
@@ -220,13 +221,13 @@ class ChatCompletion:
     def create(
         cls,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[Dict[str, Any]] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict[str, Any] | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion.
 
@@ -306,13 +307,13 @@ class ChatCompletion:
     async def acreate(
         cls,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[Dict[str, Any]] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict[str, Any] | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion asynchronously.
 
