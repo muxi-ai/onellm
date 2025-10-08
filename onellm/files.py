@@ -101,8 +101,16 @@ class File:
                 name="file data"
             )
             
-            # Get and validate filename
-            filename = kwargs.get("filename", "file.bin")
+            # Get filename from kwargs - required if allowed_extensions is set
+            filename = kwargs.get("filename")
+            if filename is None:
+                if allowed_extensions:
+                    raise InvalidRequestError(
+                        "filename parameter is required when uploading bytes with allowed_extensions set"
+                    )
+                filename = "file.bin"
+            
+            # Validate filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -128,8 +136,16 @@ class File:
                 name="file data"
             )
             
-            # Get and validate filename
-            filename = getattr(file, "name", None) or kwargs.get("filename", "file.bin")
+            # Get filename from file.name or kwargs - required if allowed_extensions is set
+            filename = getattr(file, "name", None) or kwargs.get("filename")
+            if filename is None:
+                if allowed_extensions:
+                    raise InvalidRequestError(
+                        "filename parameter is required when uploading file-like object without .name attribute with allowed_extensions set"
+                    )
+                filename = "file.bin"
+            
+            # Validate filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -218,8 +234,16 @@ class File:
                 name="file data"
             )
             
-            # Get and validate filename
-            filename = kwargs.get("filename", "file.bin")
+            # Get filename from kwargs - required if allowed_extensions is set
+            filename = kwargs.get("filename")
+            if filename is None:
+                if allowed_extensions:
+                    raise InvalidRequestError(
+                        "filename parameter is required when uploading bytes with allowed_extensions set"
+                    )
+                filename = "file.bin"
+            
+            # Validate filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -245,8 +269,16 @@ class File:
                 name="file data"
             )
             
-            # Get and validate filename
-            filename = getattr(file, "name", None) or kwargs.get("filename", "file.bin")
+            # Get filename from file.name or kwargs - required if allowed_extensions is set
+            filename = getattr(file, "name", None) or kwargs.get("filename")
+            if filename is None:
+                if allowed_extensions:
+                    raise InvalidRequestError(
+                        "filename parameter is required when uploading file-like object without .name attribute with allowed_extensions set"
+                    )
+                filename = "file.bin"
+            
+            # Validate filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
