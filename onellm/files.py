@@ -88,7 +88,8 @@ class File:
             
             # Safely read file contents
             file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
-            filename = validated_path.name
+            # Use caller-provided filename if given, otherwise use actual filename
+            filename = kwargs.pop("filename", validated_path.name)
             
         elif isinstance(file, bytes):
             # Validate bytes size
@@ -180,7 +181,8 @@ class File:
             
             # Safely read file contents
             file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
-            filename = validated_path.name
+            # Use caller-provided filename if given, otherwise use actual filename
+            filename = kwargs.pop("filename", validated_path.name)
             
         elif isinstance(file, bytes):
             # Validate bytes size
