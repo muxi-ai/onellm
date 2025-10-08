@@ -540,8 +540,8 @@ class BedrockProvider(Provider):
                     
                     # Helper function for queue.get with timeout (for run_in_executor)
                     def get_with_timeout():
-                        """Get item from queue with timeout, using proper keyword arguments"""
-                        return sync_queue.get(block=True, timeout=30.0)
+                        """Get item from queue with timeout"""
+                        return sync_queue.get(True, 30.0)
                     
                     try:
                         # Process events from the queue with timeout to prevent indefinite hangs
