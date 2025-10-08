@@ -235,9 +235,21 @@ class File:
 
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
-            # Set filename in kwargs if not provided
-            if "filename" not in kwargs:
-                kwargs["filename"] = validated_path.name
+            
+            # Sanitize and validate the filename even for paths
+            # This prevents smuggling disallowed extensions or path segments
+            raw_filename = kwargs.get("filename") or validated_path.name
+            sanitized_name = _sanitize_filename(raw_filename, "file.bin")
+            
+            # Validate the sanitized filename
+            FileValidator.validate_filename(
+                sanitized_name,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
+            
+            # Always set the sanitized and validated filename
+            kwargs["filename"] = sanitized_name
 
         elif isinstance(file, bytes):
             # Validate bytes size
@@ -411,9 +423,21 @@ class File:
 
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
-            # Set filename in kwargs if not provided
-            if "filename" not in kwargs:
-                kwargs["filename"] = validated_path.name
+            
+            # Sanitize and validate the filename even for paths
+            # This prevents smuggling disallowed extensions or path segments
+            raw_filename = kwargs.get("filename") or validated_path.name
+            sanitized_name = _sanitize_filename(raw_filename, "file.bin")
+            
+            # Validate the sanitized filename
+            FileValidator.validate_filename(
+                sanitized_name,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
+            
+            # Always set the sanitized and validated filename
+            kwargs["filename"] = sanitized_name
 
         elif isinstance(file, bytes):
             # Validate bytes size

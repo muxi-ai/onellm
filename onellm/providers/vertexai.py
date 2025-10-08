@@ -30,6 +30,9 @@ import time
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 
+if TYPE_CHECKING:
+    import aiohttp
+
 try:
     import aiohttp
     from google.auth.transport.requests import Request
@@ -38,9 +41,6 @@ try:
     VERTEX_AI_AVAILABLE = True
 except ImportError:
     VERTEX_AI_AVAILABLE = False
-
-if TYPE_CHECKING:
-    import aiohttp
 
 from ..config import get_provider_config
 from ..errors import (

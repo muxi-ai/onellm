@@ -26,15 +26,18 @@ Stability AI through AWS's managed service. Bedrock provides enterprise features
 guardrails, batch processing, and cross-region inference.
 """
 
+import asyncio
 import base64
 import json
 import os
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
 try:
     import boto3
+    from botocore.config import Config
     from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     raise ImportError(
@@ -210,11 +213,22 @@ class BedrockProvider(Provider):
             if self.aws_session_token:
                 client_kwargs["aws_session_token"] = self.aws_session_token
 
+        # Create botocore Config with sensible timeouts and retry settings
+        boto_config = Config(
+            connect_timeout=10,
+            read_timeout=60,
+            retries={
+                'max_attempts': 3,
+                'mode': 'adaptive'
+            }
+        )
+        client_kwargs["config"] = boto_config
+
         # Create the Bedrock runtime client
         self.client = session.client(**client_kwargs)
 
         # Also create a Bedrock client for model listing (if needed)
-        self.bedrock_client = session.client("bedrock", region_name=self.region)
+        self.bedrock_client = session.client("bedrock", region_name=self.region, config=boto_config)
 
     def _map_model_name(self, model: str) -> str:
         """
@@ -491,14 +505,51 @@ class BedrockProvider(Provider):
 
         try:
             if stream:
-                # Handle streaming response
+                # Handle streaming response using asyncio.Queue for thread bridging
                 async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                     """Generator function to process streaming chunks"""
-                    # Use converse_stream for streaming
-                    response = self.client.converse_stream(**request_params)
-
-                    # Process the event stream
-                    for event in response.get("stream", []):
+                    # Create a queue for thread-to-async communication
+                    queue: asyncio.Queue = asyncio.Queue()
+                    
+                    # Generate a unique stream ID for consistent chunk IDs
+                    stream_id = str(uuid.uuid4())
+                    chunk_counter = 0
+                    
+                    def stream_worker():
+                        """Worker function to run sync boto3 streaming in a thread"""
+                        try:
+                            # Use converse_stream for streaming (runs in thread)
+                            response = self.client.converse_stream(**request_params)
+                            
+                            # Process the event stream
+                            for event in response.get("stream", []):
+                                # Put events in queue for async processing
+                                queue.put_nowait(event)
+                        except Exception as e:
+                            # Put exception in queue
+                            queue.put_nowait(("error", e))
+                        finally:
+                            # Signal completion
+                            queue.put_nowait(None)
+                    
+                    # Start the streaming worker in a background thread
+                    loop = asyncio.get_event_loop()
+                    loop.run_in_executor(None, stream_worker)
+                    
+                    # Process events from the queue
+                    while True:
+                        event = await queue.get()
+                        
+                        # Check for completion signal
+                        if event is None:
+                            break
+                        
+                        # Check for error
+                        if isinstance(event, tuple) and event[0] == "error":
+                            raise event[1]
+                        
+                        chunk_counter += 1
+                        
                         if "contentBlockStart" in event:
                             # Beginning of a content block
                             continue
@@ -521,9 +572,9 @@ class BedrockProvider(Provider):
                                     index=0,
                                 )
 
-                                # Create the chunk response object
+                                # Create the chunk response object with deterministic ID
                                 chunk_resp = ChatCompletionChunk(
-                                    id=f"bedrock-stream-{int(time.time())}",
+                                    id=f"chatcmpl-{stream_id}-{chunk_counter}",
                                     object="chat.completion.chunk",
                                     created=int(time.time()),
                                     model=model,
@@ -538,6 +589,7 @@ class BedrockProvider(Provider):
                             # End of the message
                             stop_reason = event["messageStop"].get("stopReason", "stop")
 
+                            chunk_counter += 1
                             # Send final chunk with finish_reason
                             choice_delta = ChoiceDelta(
                                 content=None,
@@ -553,7 +605,7 @@ class BedrockProvider(Provider):
                             )
 
                             chunk_resp = ChatCompletionChunk(
-                                id=f"bedrock-stream-{int(time.time())}",
+                                id=f"chatcmpl-{stream_id}-{chunk_counter}",
                                 object="chat.completion.chunk",
                                 created=int(time.time()),
                                 model=model,
@@ -567,8 +619,8 @@ class BedrockProvider(Provider):
 
                 return chunk_generator()
             else:
-                # Handle non-streaming response
-                response = self.client.converse(**request_params)
+                # Handle non-streaming response - offload to thread to avoid blocking
+                response = await asyncio.to_thread(self.client.converse, **request_params)
 
                 # Convert Bedrock response to OpenAI format
                 return self._convert_bedrock_to_openai_response(response, model)
