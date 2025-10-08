@@ -30,6 +30,7 @@ import asyncio
 import base64
 import json
 import os
+import queue
 import time
 import uuid
 from collections.abc import AsyncGenerator
@@ -508,8 +509,6 @@ class BedrockProvider(Provider):
                 # Handle streaming response using thread-safe queue
                 async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                     """Generator function to process streaming chunks"""
-                    import queue
-                    
                     # Use thread-safe queue (not asyncio.Queue) for cross-thread communication
                     sync_queue: queue.Queue = queue.Queue()
                     
