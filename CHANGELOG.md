@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 0.20251008.0 - ScalVer Adoption
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Versioning Change
+
+- **ScalVer Adoption**: OneLLM now uses [ScalVer (Scalable Calendar Versioning)](https://scalver.org) instead of Semantic Versioning
+  - Version format: `MAJOR.YYYYMMDD.PATCH` (daily cadence)
+  - Current version: `0.20251008.0` (October 8, 2025)
+  - MAJOR = 0 indicates alpha/experimental status per ScalVer convention
+  - DATE segment uses daily format (YYYYMMDD) for maximum release flexibility
+  - PATCH increments for multiple releases on the same day
+  - ScalVer is SemVer-compatible, so existing tooling continues to work
+  - Provides clear calendar-based release tracking while maintaining compatibility guarantees
+
+### Why ScalVer?
+
+ScalVer offers the best of both worlds:
+- **Time-based clarity**: Know exactly when a release was made from the version number
+- **SemVer compatibility**: All existing package managers and tooling work unchanged
+- **Flexible cadence**: Daily format allows for rapid iteration and hotfixes
+- **Breaking change tracking**: MAJOR version still signals breaking changes
+- **Tool support**: Every ScalVer tag is syntactically valid SemVer 2.0
+
+For more information about ScalVer, visit [scalver.org](https://scalver.org).
+
 ## 0.1.4 - Vercel AI Gateway & 2025 Model Updates
 
 **Status**: Development Status :: 5 - Production/Stable
