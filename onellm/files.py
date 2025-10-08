@@ -194,10 +194,11 @@ class File:
                 validate_mime=validate_mime
             )
             
+            # Always update kwargs with sanitized filename to ensure provider receives safe value
+            kwargs["filename"] = filename
+            
             # Pass bytes as-is to provider
             file_to_upload = file
-            if "filename" not in kwargs:
-                kwargs["filename"] = filename
             
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
@@ -222,7 +223,7 @@ class File:
                 validate_mime=validate_mime
             )
             
-            # Always set the validated filename in kwargs to ensure provider receives it
+            # Always set the sanitized and validated filename in kwargs to ensure provider receives safe value
             kwargs["filename"] = filename
             
             # For size validation, try to get size without reading entire file
@@ -356,10 +357,11 @@ class File:
                 validate_mime=validate_mime
             )
             
+            # Always update kwargs with sanitized filename to ensure provider receives safe value
+            kwargs["filename"] = filename
+            
             # Pass bytes as-is to provider
             file_to_upload = file
-            if "filename" not in kwargs:
-                kwargs["filename"] = filename
             
         elif hasattr(file, "read"):
             # File-like object - try to validate without reading entire file
@@ -384,7 +386,7 @@ class File:
                 validate_mime=validate_mime
             )
             
-            # Always set the validated filename in kwargs to ensure provider receives it
+            # Always set the sanitized and validated filename in kwargs to ensure provider receives safe value
             kwargs["filename"] = filename
             
             # For size validation, try to get size without reading entire file
