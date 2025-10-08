@@ -124,30 +124,36 @@ class FileValidator:
         if allowed_extensions is None:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
 
-        # Basic input validation: check for obvious directory traversal attempts
-        # This provides an early check before resolution
-        # Check for ".." as a path component, not as a substring (to avoid false positives)
-        # Normalize both / and \ separators for cross-platform detection
-        normalized_path = file_path.replace("\\", "/")
-        path_parts = normalized_path.split("/")
-        if ".." in path_parts:
-            raise InvalidRequestError(
-                "Directory traversal detected"
-            )
+        # Early check for directory traversal attempts in input
+        # Normalize both / and \\ separators for cross-platform detection
+        normalized_input = file_path.replace("\\", "/")
+        if "/.." in normalized_input or normalized_input.startswith(".."):
+            raise InvalidRequestError("Directory traversal detected")
 
         try:
-            # Convert to Path and resolve to absolute path with strict=True
-            # This follows symlinks, normalizes the path, AND checks existence atomically
-            # Note: strict=True is supported in Python 3.6+ (deprecated in 3.10, but still functional)
-            # Using it prevents TOCTOU race conditions by ensuring file exists during resolution
-            path = Path(file_path).resolve(strict=True)
+            # Convert to Path and resolve to absolute path
+            # This follows symlinks and normalizes the path
+            # Using strict=False to avoid deprecated parameter issues in Python 3.10+
+            path = Path(file_path).resolve(strict=False)
+            
+            # Verify the file exists after resolving
+            if not path.exists():
+                raise InvalidRequestError("File not found")
+            
+            # Verify it's a regular file (not a directory, device, etc.)
+            if not path.is_file():
+                if path.is_dir():
+                    raise InvalidRequestError("Path is a directory, not a file")
+                else:
+                    raise InvalidRequestError("Path is not a regular file")
 
             # If base_directory specified, ensure resolved path is within it
-            # This provides protection against symlink attacks
+            # This provides protection against symlink attacks when base_directory is set
             if base_directory is not None:
-                base = base_directory.resolve()
+                base = base_directory.resolve(strict=False)
                 try:
                     # Check if resolved path is relative to base directory
+                    # This catches symlink attacks that try to escape the base directory
                     path.relative_to(base)
                 except ValueError:
                     # Path is outside base_directory
@@ -155,23 +161,10 @@ class FileValidator:
                         "File path outside allowed directory"
                     )
 
-        except FileNotFoundError:
-            raise InvalidRequestError("File not found")
         except (OSError, RuntimeError) as e:
             raise InvalidRequestError(
                 f"Invalid file path: {str(e)}"
             )
-
-        # Verify it's a regular file (not a directory, device, etc.)
-        if not path.is_file():
-            if path.is_dir():
-                raise InvalidRequestError(
-                    "Path is a directory, not a file"
-                )
-            else:
-                raise InvalidRequestError(
-                    "Path is not a regular file"
-                )
 
         # Validate file extension if restrictions are set
         if allowed_extensions:

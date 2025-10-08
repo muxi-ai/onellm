@@ -32,7 +32,7 @@ from .errors import InvalidRequestError
 from .models import FileObject
 from .providers.base import get_provider
 from .utils.async_helpers import run_async
-from .utils.file_validator import FileValidator
+from .utils.file_validator import FileValidator, DEFAULT_MAX_FILE_SIZE
 
 
 def _sanitize_filename(filename: str | None, default: str = "file.bin") -> str:
@@ -132,6 +132,7 @@ class File:
         max_size: int | None = None,
         allowed_extensions: set[str] | None = None,
         validate_mime: bool = True,
+        base_directory: Path | None = None,
         **kwargs
     ) -> FileObject:
         """
@@ -144,6 +145,7 @@ class File:
             max_size: Maximum file size in bytes (default: 100MB)
             allowed_extensions: Set of allowed file extensions (default: common types)
             validate_mime: Whether to validate MIME type (default: True)
+            base_directory: Optional base directory to restrict file access (for path validation)
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
@@ -159,6 +161,10 @@ class File:
             >>> # With custom size limit
             >>> file_obj = File.upload("large.mp3", purpose="transcription", max_size=200*1024*1024)
         """
+        # Enforce default max_size if not specified (100MB)
+        if max_size is None:
+            max_size = DEFAULT_MAX_FILE_SIZE
+
         # Get provider instance
         provider_instance = get_provider(provider)
 
@@ -171,6 +177,7 @@ class File:
                 max_size=max_size,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime,
+                base_directory=base_directory,
             )
 
             # Pass the validated path string to provider (allows provider to stream)
@@ -239,42 +246,43 @@ class File:
             kwargs["filename"] = filename
 
             # For size validation, try to get size without reading entire file
-            if max_size is not None:
-                file_size = None
-                is_seekable = False
+            # max_size is always set (defaults to 100MB if not specified)
+            file_size = None
+            is_seekable = False
 
-                # Try to get size from seekable file-like object
-                if hasattr(file, 'seek') and hasattr(file, 'tell'):
+            # Try to get size from seekable file-like object
+            if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                try:
+                    current_pos = file.tell()
                     try:
-                        current_pos = file.tell()
+                        file.seek(0, 2)  # Seek to end
+                        file_size = file.tell()
+                        is_seekable = True
+                    finally:
+                        # Always restore position, even if an error occurs
                         try:
-                            file.seek(0, 2)  # Seek to end
-                            file_size = file.tell()
-                            is_seekable = True
-                        finally:
-                            # Always restore position, even if an error occurs
-                            try:
-                                file.seek(current_pos)
-                            except OSError:
-                                # If we can't restore position, file is likely broken
-                                pass
-                    except OSError:
-                        # File is not seekable
-                        pass
+                            file.seek(current_pos)
+                        except OSError:
+                            # If we can't restore position, file is likely broken
+                            pass
+                except OSError:
+                    # File is not seekable
+                    pass
 
-                # If we got the size, validate it
-                if file_size is not None:
-                    max_mb = max_size / (1024 * 1024)
-                    actual_mb = file_size / (1024 * 1024)
-                    if file_size > max_size:
-                        raise InvalidRequestError(
-                            f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
-                        )
+            # If we got the size, validate it
+            if file_size is not None:
+                max_mb = max_size / (1024 * 1024)
+                actual_mb = file_size / (1024 * 1024)
+                if file_size > max_size:
+                    raise InvalidRequestError(
+                        f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
+                    )
 
-                # For non-seekable streams, wrap with size-limiting wrapper
-                # This enforces size limits as the file is being read by provider
-                if not is_seekable:
-                    file = SizeLimitedFileWrapper(file, max_size, filename)
+            # ALWAYS wrap with size-limiting wrapper to prevent TOCTOU attacks
+            # For seekable files: prevents size changes after validation
+            # For non-seekable streams: enforces size limits during reading
+            # The wrapper is transparent and delegates all operations
+            file = SizeLimitedFileWrapper(file, max_size, filename)
 
             # Pass the file-like object (wrapped if non-seekable) to provider
             # Filename already set in kwargs during validation
@@ -305,6 +313,7 @@ class File:
         max_size: int | None = None,
         allowed_extensions: set[str] | None = None,
         validate_mime: bool = True,
+        base_directory: Path | None = None,
         **kwargs
     ) -> FileObject:
         """
@@ -317,6 +326,7 @@ class File:
             max_size: Maximum file size in bytes (default: 100MB)
             allowed_extensions: Set of allowed file extensions (default: common types)
             validate_mime: Whether to validate MIME type (default: True)
+            base_directory: Optional base directory to restrict file access (for path validation)
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
@@ -329,6 +339,10 @@ class File:
             >>> file_obj = await File.aupload("file.pdf", purpose="fine-tune", provider="openai")
             >>> print(f"Uploaded file ID: {file_obj.id}")
         """
+        # Enforce default max_size if not specified (100MB)
+        if max_size is None:
+            max_size = DEFAULT_MAX_FILE_SIZE
+
         # Get provider instance
         provider_instance = get_provider(provider)
 
@@ -341,6 +355,7 @@ class File:
                 max_size=max_size,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime,
+                base_directory=base_directory,
             )
 
             # Pass the validated path string to provider (allows provider to stream)
@@ -409,42 +424,43 @@ class File:
             kwargs["filename"] = filename
 
             # For size validation, try to get size without reading entire file
-            if max_size is not None:
-                file_size = None
-                is_seekable = False
+            # max_size is always set (defaults to 100MB if not specified)
+            file_size = None
+            is_seekable = False
 
-                # Try to get size from seekable file-like object
-                if hasattr(file, 'seek') and hasattr(file, 'tell'):
+            # Try to get size from seekable file-like object
+            if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                try:
+                    current_pos = file.tell()
                     try:
-                        current_pos = file.tell()
+                        file.seek(0, 2)  # Seek to end
+                        file_size = file.tell()
+                        is_seekable = True
+                    finally:
+                        # Always restore position, even if an error occurs
                         try:
-                            file.seek(0, 2)  # Seek to end
-                            file_size = file.tell()
-                            is_seekable = True
-                        finally:
-                            # Always restore position, even if an error occurs
-                            try:
-                                file.seek(current_pos)
-                            except OSError:
-                                # If we can't restore position, file is likely broken
-                                pass
-                    except OSError:
-                        # File is not seekable
-                        pass
+                            file.seek(current_pos)
+                        except OSError:
+                            # If we can't restore position, file is likely broken
+                            pass
+                except OSError:
+                    # File is not seekable
+                    pass
 
-                # If we got the size, validate it
-                if file_size is not None:
-                    max_mb = max_size / (1024 * 1024)
-                    actual_mb = file_size / (1024 * 1024)
-                    if file_size > max_size:
-                        raise InvalidRequestError(
-                            f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
-                        )
+            # If we got the size, validate it
+            if file_size is not None:
+                max_mb = max_size / (1024 * 1024)
+                actual_mb = file_size / (1024 * 1024)
+                if file_size > max_size:
+                    raise InvalidRequestError(
+                        f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
+                    )
 
-                # For non-seekable streams, wrap with size-limiting wrapper
-                # This enforces size limits as the file is being read by provider
-                if not is_seekable:
-                    file = SizeLimitedFileWrapper(file, max_size, filename)
+            # ALWAYS wrap with size-limiting wrapper to prevent TOCTOU attacks
+            # For seekable files: prevents size changes after validation
+            # For non-seekable streams: enforces size limits during reading
+            # The wrapper is transparent and delegates all operations
+            file = SizeLimitedFileWrapper(file, max_size, filename)
 
             # Pass the file-like object (wrapped if non-seekable) to provider
             # Filename already set in kwargs during validation
