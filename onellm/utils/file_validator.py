@@ -50,7 +50,7 @@ DEFAULT_ALLOWED_EXTENSIONS: Set[str] = {
     # Archive formats
     ".zip", ".tar", ".gz", ".bz2", ".7z",
     # Video formats (for future support)
-    ".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv",
+    ".avi", ".mov", ".mkv", ".wmv", ".flv",
 }
 
 

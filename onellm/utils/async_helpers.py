@@ -56,46 +56,43 @@ def run_async(coro: Coroutine[Any, Any, T]) -> T:
         >>> print(result)
         'data'
     """
+    # Check if there's already a running event loop
     try:
-        # Check if there's already a running event loop
         loop = asyncio.get_running_loop()
+        has_running_loop = True
     except RuntimeError:
-        # No running loop - we can safely create one
+        # No running loop
+        has_running_loop = False
         loop = None
     
-    if loop is not None:
-        # We're already in an async context
-        # This is a programming error - the caller should use await
-        raise RuntimeError(
-            "Cannot use synchronous method from async context. "
-            "Use the async version (acreate, aupload, etc.) instead."
-        )
-    
-    # Check if we're in an environment with a custom event loop policy
-    # (like Jupyter/IPython with nest_asyncio)
-    if _is_jupyter_environment():
-        # Try to use nest_asyncio if available
-        try:
-            import nest_asyncio
-            nest_asyncio.apply()
-            # Get the current loop or create a new one
+    # If there's a running loop, check if we're in Jupyter/IPython first
+    if has_running_loop:
+        # Check if we're in Jupyter/IPython environment
+        if _is_jupyter_environment():
+            # Jupyter environment - try to use nest_asyncio
             try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro)
-        except ImportError:
-            # nest_asyncio not available, provide helpful error
+                import nest_asyncio
+                nest_asyncio.apply()
+                # Reuse the running loop with nest_asyncio
+                return loop.run_until_complete(coro)
+            except ImportError:
+                # nest_asyncio not available, provide helpful error
+                raise RuntimeError(
+                    "Detected Jupyter/IPython environment with a running event loop. "
+                    "Please install nest_asyncio to use synchronous methods:\n"
+                    "  pip install nest_asyncio\n"
+                    "Or use async methods (acreate, aupload, etc.) with await."
+                )
+        else:
+            # Not Jupyter - we're in an async context (e.g., FastAPI, async function)
+            # This is a programming error - the caller should use await
             raise RuntimeError(
-                "Detected Jupyter/IPython environment. "
-                "Please install nest_asyncio to use synchronous methods: "
-                "pip install nest_asyncio\n"
-                "Or use async methods (acreate, aupload, etc.) with await."
+                "Cannot use synchronous method from async context. "
+                "Use the async version (acreate, aupload, etc.) instead."
             )
     
-    # Standard case - use asyncio.run()
-    # This creates a new event loop, runs the coroutine, and cleans up
+    # No running loop - standard case
+    # Use asyncio.run() which creates a new event loop, runs the coroutine, and cleans up
     return asyncio.run(coro)
 
 
