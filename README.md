@@ -35,6 +35,7 @@
 - [Migration from OpenAI](https://github.com/muxi-ai/onellm/blob/main/README.md#-migration-from-openai)
 - [Model Naming Convention](https://github.com/muxi-ai/onellm/blob/main/README.md#-model-naming-convention)
 - [Configuration](https://github.com/muxi-ai/onellm/blob/main/README.md#-configuration)
+- [Versioning](https://github.com/muxi-ai/onellm/blob/main/README.md#-versioning)
 - [Test Coverage](https://github.com/muxi-ai/onellm/blob/main/README.md#-test-coverage)
 - [Documentation](https://github.com/muxi-ai/onellm/blob/main/README.md#-documentation)
 - [Call for Contributions](https://github.com/muxi-ai/onellm/blob/main/README.md#-call-for-contributions)
@@ -732,6 +733,51 @@ onellm.config.fallback = {
     "max_retries": 3
 }
 ```
+
+---
+
+## 📅 Versioning
+
+OneLLM uses [ScalVer (Scalable Calendar Versioning)](https://scalver.org) for its version numbering scheme.
+
+### What is ScalVer?
+
+ScalVer is a calendar-aware versioning scheme that's fully compatible with SemVer while providing clear time-based information. The format is `MAJOR.DATE.PATCH`:
+
+- **MAJOR** - Breaking changes (same as SemVer)
+  - `0` = Alpha/Experimental (current status)
+  - `1+` = Stable with compatibility guarantees
+- **DATE** - Release date in `YYYYMMDD` format (e.g., `20251008` for October 8, 2025)
+  - Clearly shows when the release was made
+  - Can expand from yearly (`YYYY`) to monthly (`YYYYMM`) to daily (`YYYYMMDD`)
+  - OneLLM uses daily format for maximum release flexibility
+- **PATCH** - Incremental counter for same-day releases
+  - `0` for first release of the day
+  - `1`, `2`, etc. for subsequent releases
+
+### Current Version
+
+**0.20251008.0** - Released October 8, 2025 (first release of the day)
+
+### Why ScalVer?
+
+1. **Time Transparency**: Know exactly when a release was made just by looking at the version
+2. **SemVer Compatible**: Works with all existing package managers (pip, npm, cargo, etc.)
+3. **Flexible Cadence**: Daily format supports rapid iteration and urgent hotfixes
+4. **Breaking Change Tracking**: MAJOR version still indicates compatibility breaks
+5. **Universal Tooling**: Every ScalVer version is valid SemVer 2.0
+
+### Examples
+
+| Version | Meaning |
+|---------|---------|
+| `0.20251008.0` | First release on Oct 8, 2025 (alpha) |
+| `0.20251008.1` | Second release on Oct 8, 2025 (alpha) |
+| `0.20251015.0` | First release on Oct 15, 2025 (alpha) |
+| `1.20251101.0` | First stable release on Nov 1, 2025 (breaking changes possible when going to 2.x) |
+| `1.20251101.3` | Fourth release on Nov 1, 2025 (stable, backward compatible) |
+
+Learn more at [scalver.org](https://scalver.org)
 
 ---
 
