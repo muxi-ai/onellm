@@ -130,17 +130,14 @@ class FileValidator:
         try:
             # Convert to Path object and resolve with strict=True
             # This atomically resolves and checks existence, minimizing TOCTOU window
-            try:
-                path = Path(file_path).resolve(strict=True)
-            except FileNotFoundError:
-                raise InvalidRequestError("File not found")
+            path = Path(file_path).resolve(strict=True)
             
             # Use stat() to check file type atomically
             # This minimizes TOCTOU window compared to separate exists() and is_file() calls
             try:
                 stat_result = path.stat()
             except (FileNotFoundError, OSError) as e:
-                raise InvalidRequestError(f"Cannot access file: {e}")
+                raise InvalidRequestError(f"Cannot access file: {e}") from e
             
             # Check if it's a regular file using stat result
             import stat as stat_module
@@ -164,10 +161,11 @@ class FileValidator:
                         "File path outside allowed directory"
                     )
 
+        except FileNotFoundError as e:
+            # Preserve detailed error message from resolve() or stat()
+            raise InvalidRequestError(f"File not found: {str(e)}") from e
         except (OSError, RuntimeError) as e:
-            raise InvalidRequestError(
-                f"Invalid file path: {str(e)}"
-            )
+            raise InvalidRequestError(f"Invalid file path: {str(e)}") from e
 
         # Validate file extension if restrictions are set
         if allowed_extensions:
