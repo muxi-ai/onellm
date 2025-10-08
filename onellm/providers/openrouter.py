@@ -28,6 +28,7 @@ fallback options, and competitive pricing.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class OpenRouterProvider(OpenAICompatibleProvider):
     """OpenRouter provider implementation."""
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -29,33 +28,34 @@ with different LLM providers while maintaining compatibility with the OpenAI API
 
 import os
 
-# Public API imports - core functionality
-from .chat_completion import ChatCompletion
-from .completion import Completion
-from .embedding import Embedding
-
 # Media handling
 from .audio import AudioTranscription, AudioTranslation
-from .files import File
-from .image import Image
-from .speech import Speech
 
-# Configuration and providers
-from .config import get_api_key, get_provider_config, set_api_key
-from .providers import get_provider, list_providers, register_provider
-from .providers.base import parse_model_name
+# Public API imports - core functionality
+from .chat_completion import ChatCompletion
 
 # Client interface (OpenAI compatibility)
 from .client import Client, OpenAI
+from .completion import Completion
+
+# Configuration and providers
+from .config import get_api_key, get_provider_config, set_api_key
+from .embedding import Embedding
 
 # Error handling
 from .errors import (
-    MuxiLLMError,
     APIError,
     AuthenticationError,
-    RateLimitError,
     InvalidRequestError,
+    MuxiLLMError,
+    RateLimitError,
 )
+from .files import File
+from .image import Image
+from .providers import get_provider, list_providers, register_provider
+from .providers.base import parse_model_name
+from .speech import Speech
+
 
 def get_version() -> str:
     """
@@ -69,7 +69,7 @@ def get_version() -> str:
         The version string is stripped of any whitespace to ensure clean formatting.
     """
     version_file = os.path.join(os.path.dirname(__file__), ".version")
-    with open(version_file, "r", encoding="utf-8") as f:
+    with open(version_file, encoding="utf-8") as f:
         return f.read().strip()
 
 # Initialize package version from .version file

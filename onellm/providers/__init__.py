@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -28,39 +27,39 @@ The provider system is designed to be extensible, allowing new LLM providers
 to be added by implementing the Provider interface and registering them.
 """
 
-from .base import get_provider, list_providers, parse_model_name, register_provider
-from .fallback import FallbackProviderProxy
-
-# Import provider implementations
-from .openai import OpenAIProvider
-from .mistral import MistralProvider
 from .anthropic import AnthropicProvider
-
-# OpenAI-compatible providers
-from .groq import GroqProvider
-from .glm import GLMProvider
-from .xai import XAIProvider
-from .openrouter import OpenRouterProvider
-from .vercel import VercelProvider
-from .together import TogetherProvider
-from .fireworks import FireworksProvider
-from .perplexity import PerplexityProvider
-from .deepseek import DeepSeekProvider
-from .moonshot import MoonshotProvider
-from .google import GoogleProvider
-from .azure import AzureProvider
 from .anyscale import AnyscaleProvider
-
-# Native API providers
-from .cohere import CohereProvider
-from .vertexai import VertexAIProvider
-
-# Local providers
-from .ollama import OllamaProvider
-from .llama_cpp import LlamaCppProvider
+from .azure import AzureProvider
+from .base import get_provider, list_providers, parse_model_name, register_provider
 
 # Cloud provider integrations
 from .bedrock import BedrockProvider
+
+# Native API providers
+from .cohere import CohereProvider
+from .deepseek import DeepSeekProvider
+from .fallback import FallbackProviderProxy
+from .fireworks import FireworksProvider
+from .glm import GLMProvider
+from .google import GoogleProvider
+
+# OpenAI-compatible providers
+from .groq import GroqProvider
+from .llama_cpp import LlamaCppProvider
+from .mistral import MistralProvider
+from .moonshot import MoonshotProvider
+
+# Local providers
+from .ollama import OllamaProvider
+
+# Import provider implementations
+from .openai import OpenAIProvider
+from .openrouter import OpenRouterProvider
+from .perplexity import PerplexityProvider
+from .together import TogetherProvider
+from .vercel import VercelProvider
+from .vertexai import VertexAIProvider
+from .xai import XAIProvider
 
 # Register all provider implementations with the provider registry
 # This makes the providers available through the get_provider function

@@ -27,6 +27,7 @@ specialized optimizations including Multi-LoRA serving and function calling.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class FireworksProvider(OpenAICompatibleProvider):
     """Fireworks AI provider implementation."""
 

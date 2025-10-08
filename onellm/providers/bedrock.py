@@ -26,16 +26,20 @@ Stability AI through AWS's managed service. Bedrock provides enterprise features
 guardrails, batch processing, and cross-region inference.
 """
 
+import asyncio
 import base64
 import json
 import os
+import queue
 import time
+import uuid
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.config import Config
+    from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     raise ImportError(
         "AWS SDK (boto3) is required for Bedrock provider. " "Install it with: pip install boto3"
@@ -66,6 +70,7 @@ from ..models import (
 )
 from ..types import Message
 from .base import Provider, register_provider
+
 
 class BedrockProvider(Provider):
     """AWS Bedrock provider implementation."""
@@ -149,7 +154,7 @@ class BedrockProvider(Provider):
         bedrock_config = {}
         bedrock_json_path = os.path.join(os.path.dirname(__file__), "..", "..", "bedrock.json")
         if os.path.exists(bedrock_json_path):
-            with open(bedrock_json_path, "r") as f:
+            with open(bedrock_json_path, encoding="utf-8") as f:
                 bedrock_config = json.load(f)
 
         # Get configuration with potential overrides
@@ -209,11 +214,22 @@ class BedrockProvider(Provider):
             if self.aws_session_token:
                 client_kwargs["aws_session_token"] = self.aws_session_token
 
+        # Create botocore Config with sensible timeouts and retry settings
+        boto_config = Config(
+            connect_timeout=10,
+            read_timeout=60,
+            retries={
+                'max_attempts': 3,
+                'mode': 'adaptive'
+            }
+        )
+        client_kwargs["config"] = boto_config
+
         # Create the Bedrock runtime client
         self.client = session.client(**client_kwargs)
 
         # Also create a Bedrock client for model listing (if needed)
-        self.bedrock_client = session.client("bedrock", region_name=self.region)
+        self.bedrock_client = session.client("bedrock", region_name=self.region, config=boto_config)
 
     def _map_model_name(self, model: str) -> str:
         """
@@ -237,8 +253,8 @@ class BedrockProvider(Provider):
         return model
 
     def _convert_openai_to_bedrock_messages(
-        self, messages: List[Message], model_id: str
-    ) -> tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]]]:
+        self, messages: list[Message], model_id: str
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:
         """
         Convert OpenAI-style messages to Bedrock Converse API format.
 
@@ -315,7 +331,7 @@ class BedrockProvider(Provider):
         return bedrock_messages, system_messages if system_messages else None
 
     def _convert_bedrock_to_openai_response(
-        self, bedrock_response: Dict[str, Any], model: str
+        self, bedrock_response: dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Bedrock Converse API response to OpenAI format.
@@ -431,8 +447,8 @@ class BedrockProvider(Provider):
             raise error
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with AWS Bedrock using the Converse API.
 
@@ -490,84 +506,161 @@ class BedrockProvider(Provider):
 
         try:
             if stream:
-                # Handle streaming response
+                # Handle streaming response using thread-safe queue
                 async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                     """Generator function to process streaming chunks"""
-                    # Use converse_stream for streaming
-                    response = self.client.converse_stream(**request_params)
+                    # Use thread-safe queue (not asyncio.Queue) for cross-thread communication
+                    sync_queue: queue.Queue = queue.Queue()
+                    
+                    # Generate a unique stream ID for consistent chunk IDs
+                    stream_id = str(uuid.uuid4())
+                    chunk_counter = 0
+                    
+                    def stream_worker():
+                        """Worker function to run sync boto3 streaming in a thread"""
+                        try:
+                            # Use converse_stream for streaming (runs in thread)
+                            response = self.client.converse_stream(**request_params)
+                            
+                            # Process the event stream
+                            for event in response.get("stream", []):
+                                # Put events in thread-safe queue
+                                sync_queue.put(("event", event))
+                        except Exception as e:
+                            # Put exception in queue
+                            sync_queue.put(("error", e))
+                        finally:
+                            # Signal completion
+                            sync_queue.put(("done", None))
+                    
+                    # Start the streaming worker in a background thread
+                    # Use default executor (None) for simpler lifecycle management
+                    loop = asyncio.get_event_loop()
+                    future = loop.run_in_executor(None, stream_worker)
+                    
+                    # Helper function for queue.get with timeout (for run_in_executor)
+                    def get_with_timeout():
+                        """Get item from queue with timeout to detect worker failures"""
+                        return sync_queue.get(block=True, timeout=30.0)
+                    
+                    try:
+                        # Process events from the queue with timeout to prevent indefinite hangs
+                        while True:
+                            # Use timeout on queue.get() to prevent hanging if worker dies
+                            try:
+                                msg_type, data = await loop.run_in_executor(None, get_with_timeout)
+                            except queue.Empty:
+                                # Timeout occurred - check if worker is still alive
+                                if future.done():
+                                    # Worker finished - check for exception
+                                    try:
+                                        future.result()
+                                        # Worker finished but no "done" signal - abnormal termination
+                                        raise RuntimeError("Streaming worker terminated without completion signal")
+                                    except Exception as e:
+                                        raise RuntimeError(f"Streaming worker failed: {str(e)}") from e
+                                # Worker still running but no data - timeout
+                                raise TimeoutError("Streaming timeout: no data received within 30 seconds")
+                            
+                            # Check for completion signal
+                            if msg_type == "done":
+                                break
+                            
+                            # Check for error
+                            if msg_type == "error":
+                                raise data
+                            
+                            # Process event
+                            if msg_type == "event":
+                                event = data
+                                chunk_counter += 1
+                                
+                                if "contentBlockStart" in event:
+                                    # Beginning of a content block
+                                    continue
+                                elif "contentBlockDelta" in event:
+                                    # Content delta with text
+                                    delta = event["contentBlockDelta"].get("delta", {})
+                                    if "text" in delta:
+                                        # Create a ChoiceDelta object
+                                        choice_delta = ChoiceDelta(
+                                            content=delta["text"],
+                                            role=None,
+                                            function_call=None,
+                                            tool_calls=None,
+                                            finish_reason=None,
+                                        )
+                                        # Create a StreamingChoice object
+                                        choice = StreamingChoice(
+                                            delta=choice_delta,
+                                            finish_reason=None,
+                                            index=0,
+                                        )
 
-                    # Process the event stream
-                    for event in response.get("stream", []):
-                        if "contentBlockStart" in event:
-                            # Beginning of a content block
-                            continue
-                        elif "contentBlockDelta" in event:
-                            # Content delta with text
-                            delta = event["contentBlockDelta"].get("delta", {})
-                            if "text" in delta:
-                                # Create a ChoiceDelta object
-                                choice_delta = ChoiceDelta(
-                                    content=delta["text"],
-                                    role=None,
-                                    function_call=None,
-                                    tool_calls=None,
-                                    finish_reason=None,
-                                )
-                                # Create a StreamingChoice object
-                                choice = StreamingChoice(
-                                    delta=choice_delta,
-                                    finish_reason=None,
-                                    index=0,
-                                )
+                                        # Create the chunk response object with deterministic ID
+                                        chunk_resp = ChatCompletionChunk(
+                                            id=f"chatcmpl-{stream_id}-{chunk_counter}",
+                                            object="chat.completion.chunk",
+                                            created=int(time.time()),
+                                            model=model,
+                                            choices=[choice],
+                                            system_fingerprint=None,
+                                        )
+                                        yield chunk_resp
+                                elif "contentBlockStop" in event:
+                                    # End of a content block
+                                    continue
+                                elif "messageStop" in event:
+                                    # End of the message
+                                    stop_reason = event["messageStop"].get("stopReason", "stop")
 
-                                # Create the chunk response object
-                                chunk_resp = ChatCompletionChunk(
-                                    id=f"bedrock-stream-{int(time.time())}",
-                                    object="chat.completion.chunk",
-                                    created=int(time.time()),
-                                    model=model,
-                                    choices=[choice],
-                                    system_fingerprint=None,
-                                )
-                                yield chunk_resp
-                        elif "contentBlockStop" in event:
-                            # End of a content block
-                            continue
-                        elif "messageStop" in event:
-                            # End of the message
-                            stop_reason = event["messageStop"].get("stopReason", "stop")
+                                    chunk_counter += 1
+                                    # Send final chunk with finish_reason
+                                    choice_delta = ChoiceDelta(
+                                        content=None,
+                                        role=None,
+                                        function_call=None,
+                                        tool_calls=None,
+                                        finish_reason=stop_reason,
+                                    )
+                                    choice = StreamingChoice(
+                                        delta=choice_delta,
+                                        finish_reason=stop_reason,
+                                        index=0,
+                                    )
 
-                            # Send final chunk with finish_reason
-                            choice_delta = ChoiceDelta(
-                                content=None,
-                                role=None,
-                                function_call=None,
-                                tool_calls=None,
-                                finish_reason=stop_reason,
-                            )
-                            choice = StreamingChoice(
-                                delta=choice_delta,
-                                finish_reason=stop_reason,
-                                index=0,
-                            )
-
-                            chunk_resp = ChatCompletionChunk(
-                                id=f"bedrock-stream-{int(time.time())}",
-                                object="chat.completion.chunk",
-                                created=int(time.time()),
-                                model=model,
-                                choices=[choice],
-                                system_fingerprint=None,
-                            )
-                            yield chunk_resp
-                        elif "metadata" in event:
-                            # Metadata about usage, etc.
-                            continue
+                                    chunk_resp = ChatCompletionChunk(
+                                        id=f"chatcmpl-{stream_id}-{chunk_counter}",
+                                        object="chat.completion.chunk",
+                                        created=int(time.time()),
+                                        model=model,
+                                        choices=[choice],
+                                        system_fingerprint=None,
+                                    )
+                                    yield chunk_resp
+                                elif "metadata" in event:
+                                    # Metadata about usage, etc.
+                                    continue
+                    finally:
+                        # Ensure proper cleanup: wait for worker thread to complete
+                        try:
+                            # Wait for worker to complete (with timeout to prevent hanging)
+                            await asyncio.wait_for(future, timeout=5.0)
+                        except asyncio.TimeoutError:
+                            # Worker is stuck - thread will be cleaned up by executor
+                            pass
+                        except Exception:
+                            # Suppress other exceptions during cleanup
+                            pass
 
                 return chunk_generator()
             else:
-                # Handle non-streaming response
-                response = self.client.converse(**request_params)
+                # Handle non-streaming response - offload to thread to avoid blocking
+                # Use run_in_executor for Python 3.8+ compatibility (asyncio.to_thread is 3.9+)
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None, lambda: self.client.converse(**request_params)
+                )
 
                 # Convert Bedrock response to OpenAI format
                 return self._convert_bedrock_to_openai_response(response, model)
@@ -577,7 +670,7 @@ class BedrockProvider(Provider):
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -644,7 +737,7 @@ class BedrockProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: Union[str, List[str]], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input using Amazon Titan Embeddings models.

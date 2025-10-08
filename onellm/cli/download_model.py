@@ -22,9 +22,10 @@ CLI utility for downloading GGUF models from HuggingFace.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
-import os
+
 
 def download_gguf(repo_id: str, filename: str, output_dir: str = None):
     """
@@ -64,12 +65,12 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
             local_dir=output_dir,
             local_dir_use_symlinks=False
         )
-        print(f"\n✓ Downloaded successfully!")
+        print("\n✓ Downloaded successfully!")
         print(f"  File: {file_path}")
 
         # Show how to use it
         model_name = Path(file_path).name
-        print(f"\nTo use this model with OneLLM:")
+        print("\nTo use this model with OneLLM:")
         print(f'  model="llama_cpp/{model_name}"')
 
         return file_path

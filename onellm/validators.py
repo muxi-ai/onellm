@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,11 +24,13 @@ This module provides validation functions for ensuring that the data passed
 to the API methods is correctly formatted and within expected ranges.
 """
 
-from typing import Any, Dict, List, Optional, Union, TypeVar, Callable, Type
-import re
-import json
 import base64
+import json
+import re
+from collections.abc import Callable
+from typing import Any, TypeVar
 from urllib.parse import urlparse
+
 from .errors import InvalidRequestError
 
 # Type variable for generic type validators
@@ -38,8 +39,8 @@ T = TypeVar("T")
 # -------------------- Type Validation System --------------------
 
 def validate_type(
-    value: Any, expected_type: Type[T], name: str, allow_none: bool = False
-) -> T:
+    value: Any, expected_type: type[T], name: str, allow_none: bool = False
+) -> T | None:
     """
     Validate that a value has the expected type.
 
@@ -50,7 +51,7 @@ def validate_type(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated value
+        The validated value, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value has an incorrect type
@@ -72,10 +73,10 @@ def validate_type(
 def validate_dict(
     value: Any,
     name: str,
-    required_keys: Optional[List[str]] = None,
-    optional_keys: Optional[List[str]] = None,
+    required_keys: list[str] | None = None,
+    optional_keys: list[str] | None = None,
     allow_none: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Validate that a value is a dictionary with the expected keys.
 
@@ -87,7 +88,7 @@ def validate_dict(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated dictionary
+        The validated dictionary, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value is not a valid dictionary
@@ -126,11 +127,11 @@ def validate_dict(
 def validate_list(
     value: Any,
     name: str,
-    item_validator: Optional[Callable[[Any, str], Any]] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
+    item_validator: Callable[[Any, str], Any] | None = None,
+    min_length: int | None = None,
+    max_length: int | None = None,
     allow_none: bool = False,
-) -> List[Any]:
+) -> list[Any] | None:
     """
     Validate that a value is a list with items of the expected type.
 
@@ -143,7 +144,7 @@ def validate_list(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated list
+        The validated list, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value is not a valid list
@@ -177,12 +178,12 @@ def validate_list(
 def validate_string(
     value: Any,
     name: str,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    pattern: Optional[str] = None,
-    allowed_values: Optional[List[str]] = None,
+    min_length: int | None = None,
+    max_length: int | None = None,
+    pattern: str | None = None,
+    allowed_values: list[str] | None = None,
     allow_none: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """
     Validate that a value is a string with the expected properties.
 
@@ -239,11 +240,11 @@ def validate_string(
 def validate_number(
     value: Any,
     name: str,
-    min_value: Optional[float] = None,
-    max_value: Optional[float] = None,
+    min_value: float | None = None,
+    max_value: float | None = None,
     integer_only: bool = False,
     allow_none: bool = False,
-) -> Optional[Union[int, float]]:
+) -> int | float | None:
     """
     Validate that a value is a number with the expected properties.
 
@@ -292,7 +293,7 @@ def validate_number(
 
     return value
 
-def validate_boolean(value: Any, name: str, allow_none: bool = False) -> Optional[bool]:
+def validate_boolean(value: Any, name: str, allow_none: bool = False) -> bool | None:
     """
     Validate that a value is a boolean.
 
@@ -324,9 +325,9 @@ def validate_boolean(value: Any, name: str, allow_none: bool = False) -> Optiona
 def validate_url(
     value: Any,
     name: str,
-    allowed_schemes: Optional[List[str]] = None,
+    allowed_schemes: list[str] | None = None,
     allow_none: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """
     Validate that a value is a valid URL.
 
@@ -379,8 +380,8 @@ def validate_base64(
     value: Any,
     name: str,
     allow_none: bool = False,
-    max_size_bytes: Optional[int] = None,
-) -> Optional[str]:
+    max_size_bytes: int | None = None,
+) -> str | None:
     """
     Validate that a value is a valid base64-encoded string.
 
@@ -435,9 +436,9 @@ def validate_base64(
 def validate_json(
     value: Any,
     name: str,
-    schema: Optional[Dict[str, Any]] = None,
+    schema: dict[str, Any] | None = None,
     allow_none: bool = False,
-) -> Optional[Union[Dict[str, Any], List[Any]]]:
+) -> dict[str, Any] | list[Any] | None:
     """
     Validate that a value is valid JSON or a JSON-serializable object.
 
@@ -522,7 +523,7 @@ def validate_model_name(model: str) -> str:
 
     return model
 
-def validate_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def validate_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Validate chat messages format.
 
@@ -646,8 +647,8 @@ def validate_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return messages
 
 def validate_multimodal_content(
-    content: List[Dict[str, Any]], message_index: int = 0
-) -> List[Dict[str, Any]]:
+    content: list[dict[str, Any]], message_index: int = 0
+) -> list[dict[str, Any]]:
     """
     Validate multi-modal content format.
 
@@ -760,7 +761,7 @@ def validate_multimodal_content(
 
     return content
 
-def validate_temperature(temperature: Optional[float]) -> Optional[float]:
+def validate_temperature(temperature: float | None) -> float | None:
     """
     Validate temperature parameter.
 
@@ -792,7 +793,7 @@ def validate_temperature(temperature: Optional[float]) -> Optional[float]:
 
     return temperature
 
-def validate_top_p(top_p: Optional[float]) -> Optional[float]:
+def validate_top_p(top_p: float | None) -> float | None:
     """
     Validate top_p parameter.
 
@@ -822,7 +823,7 @@ def validate_top_p(top_p: Optional[float]) -> Optional[float]:
 
     return top_p
 
-def validate_presence_penalty(presence_penalty: Optional[float]) -> Optional[float]:
+def validate_presence_penalty(presence_penalty: float | None) -> float | None:
     """
     Validate presence_penalty parameter.
 
@@ -854,7 +855,7 @@ def validate_presence_penalty(presence_penalty: Optional[float]) -> Optional[flo
 
     return presence_penalty
 
-def validate_frequency_penalty(frequency_penalty: Optional[float]) -> Optional[float]:
+def validate_frequency_penalty(frequency_penalty: float | None) -> float | None:
     """
     Validate frequency_penalty parameter.
 
@@ -886,7 +887,7 @@ def validate_frequency_penalty(frequency_penalty: Optional[float]) -> Optional[f
 
     return frequency_penalty
 
-def validate_max_tokens(max_tokens: Optional[int]) -> Optional[int]:
+def validate_max_tokens(max_tokens: int | None) -> int | None:
     """
     Validate max_tokens parameter.
 
@@ -915,7 +916,7 @@ def validate_max_tokens(max_tokens: Optional[int]) -> Optional[int]:
 
     return max_tokens
 
-def validate_n(n: Optional[int]) -> Optional[int]:
+def validate_n(n: int | None) -> int | None:
     """
     Validate n parameter (number of completions).
 
@@ -943,8 +944,8 @@ def validate_n(n: Optional[int]) -> Optional[int]:
     return n
 
 def validate_stop(
-    stop: Optional[Union[str, List[str]]],
-) -> Optional[Union[str, List[str]]]:
+    stop: str | list[str] | None,
+) -> str | list[str] | None:
     """
     Validate stop parameter.
 
@@ -986,7 +987,7 @@ def validate_stop(
         f"Stop must be a string or list of strings, got {type(stop).__name__}"
     )
 
-def validate_prompt(prompt: Union[str, List[str]]) -> Union[str, List[str]]:
+def validate_prompt(prompt: str | list[str]) -> str | list[str]:
     """
     Validate prompt parameter for text completions.
 
@@ -1030,8 +1031,8 @@ def validate_prompt(prompt: Union[str, List[str]]) -> Union[str, List[str]]:
     )
 
 def validate_response_format(
-    response_format: Optional[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+    response_format: dict[str, Any] | None,
+) -> dict[str, Any] | None:
     """
     Validate response_format parameter.
 
@@ -1079,8 +1080,8 @@ def validate_response_format(
     return response_format
 
 def validate_input_for_embeddings(
-    input_value: Union[str, List[str]],
-) -> Union[str, List[str]]:
+    input_value: str | list[str],
+) -> str | list[str]:
     """
     Validate input parameter for embeddings.
 
@@ -1124,7 +1125,7 @@ def validate_input_for_embeddings(
         f"Input must be a string or list of strings, got {type(input_value).__name__}"
     )
 
-def validate_stream(stream: Optional[bool]) -> Optional[bool]:
+def validate_stream(stream: bool | None) -> bool | None:
     """
     Validate stream parameter.
 
@@ -1153,8 +1154,8 @@ def validate_stream(stream: Optional[bool]) -> Optional[bool]:
     return stream
 
 def validate_functions(
-    functions: Optional[List[Dict[str, Any]]],
-) -> Optional[List[Dict[str, Any]]]:
+    functions: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]] | None:
     """
     Validate functions parameter.
 
@@ -1209,8 +1210,8 @@ def validate_functions(
     return functions
 
 def validate_tools(
-    tools: Optional[List[Dict[str, Any]]],
-) -> Optional[List[Dict[str, Any]]]:
+    tools: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]] | None:
     """
     Validate tools parameter.
 
@@ -1308,7 +1309,7 @@ def validate_chat_params(**kwargs) -> None:
     validate_n(kwargs.get("n"))
     validate_presence_penalty(kwargs.get("presence_penalty"))
     validate_frequency_penalty(kwargs.get("frequency_penalty"))
-    
+
     # Validate stop sequences using existing validator
     validate_stop(kwargs.get("stop"))
 
@@ -1330,11 +1331,11 @@ def validate_provider_model(model: str, provider_name: str) -> None:
         raise InvalidRequestError(
             f"Model must be a non-empty string, got: {type(model).__name__}"
         )
-    
+
     model = model.strip()
     if not model:
         raise InvalidRequestError("Model name cannot be empty or whitespace")
-    
+
     # Provider-specific validation
     if provider_name == "openai":
         # OpenAI model patterns
@@ -1352,13 +1353,13 @@ def validate_provider_model(model: str, provider_name: str) -> None:
             "dall-e-3",
             "text-embedding",
         ]
-        
+
         if not any(pattern in model for pattern in valid_patterns):
             raise InvalidRequestError(
                 f"Unrecognized OpenAI model: {model}. "
                 f"Common models: gpt-4, gpt-4o, gpt-3.5-turbo"
             )
-    
+
     elif provider_name == "anthropic":
         # Anthropic Claude models
         if not any(x in model for x in ["claude-3", "claude-2", "claude-instant"]):
@@ -1366,7 +1367,7 @@ def validate_provider_model(model: str, provider_name: str) -> None:
                 f"Unrecognized Anthropic model: {model}. "
                 f"Expected Claude models like claude-3-opus, claude-3-sonnet"
             )
-    
+
     elif provider_name == "mistral":
         # Mistral models
         if not any(x in model for x in ["mistral", "mixtral", "codestral"]):
@@ -1374,7 +1375,7 @@ def validate_provider_model(model: str, provider_name: str) -> None:
                 f"Unrecognized Mistral model: {model}. "
                 f"Expected models like mistral-large, mixtral-8x7b"
             )
-    
+
     # For other providers, just ensure the model name is reasonable
     if len(model) > 200:
         raise InvalidRequestError(
@@ -1394,7 +1395,7 @@ def validate_completion_params(**kwargs) -> None:
     """
     # Reuse chat validation for common parameters
     validate_chat_params(**kwargs)
-    
+
     # Validate suffix (completion-specific)
     suffix = kwargs.get("suffix")
     if suffix is not None:
@@ -1402,7 +1403,7 @@ def validate_completion_params(**kwargs) -> None:
             raise InvalidRequestError(
                 f"suffix must be a string, got {type(suffix).__name__}"
             )
-    
+
     # Validate best_of
     best_of = kwargs.get("best_of")
     if best_of is not None:
@@ -1414,7 +1415,7 @@ def validate_completion_params(**kwargs) -> None:
             raise InvalidRequestError(
                 f"best_of must be at least 1, got {best_of}"
             )
-        
+
         n = kwargs.get("n", 1)
         if best_of < n:
             raise InvalidRequestError(

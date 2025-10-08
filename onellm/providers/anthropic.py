@@ -29,7 +29,7 @@ extended thinking, prompt caching, and comprehensive tool use capabilities.
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any
 
 import aiohttp
 
@@ -59,6 +59,7 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
+
 
 class AnthropicProvider(Provider):
     """Anthropic provider implementation."""
@@ -472,7 +473,7 @@ class AnthropicProvider(Provider):
 
         normalized: dict[str, Any] = dict(usage_payload)
 
-        def _as_int(value: Any) -> Optional[int]:
+        def _as_int(value: Any) -> int | None:
             return value if isinstance(value, int) else None
 
         prompt_total = _as_int(normalized.get("input_tokens"))

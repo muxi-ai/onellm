@@ -28,20 +28,20 @@ Model naming format:
 - Model name: llama-cpp/model.gguf (searches in configured directory)
 """
 
+import asyncio
+import multiprocessing
 import os
 import time
-import multiprocessing
-from pathlib import Path
-from typing import Any, Dict
 from collections.abc import AsyncGenerator
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Any
 
 from ..config import get_provider_config
 from ..errors import (
+    InvalidConfigurationError,
     InvalidRequestError,
     ResourceNotFoundError,
-    InvalidConfigurationError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -50,17 +50,17 @@ from ..models import (
     ChoiceDelta,
     CompletionChoice,
     CompletionResponse,
-    StreamingChoice,
     EmbeddingResponse,
     FileObject,
+    StreamingChoice,
 )
 from ..types import Message
 from .base import Provider, register_provider
 
 # Global model cache to avoid reloading
-_MODEL_CACHE: Dict[str, Any] = {}
+_MODEL_CACHE: dict[str, Any] = {}
 _CACHE_TIMEOUT = 300  # 5 minutes
-_LAST_ACCESS: Dict[str, float] = {}
+_LAST_ACCESS: dict[str, float] = {}
 
 class LlamaCppProvider(Provider):
     """llama.cpp provider implementation using Python bindings."""

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -28,11 +27,11 @@ with fallback options.
 
 import os
 import time
-from typing import Dict, List, Optional
 
 from .providers.base import get_provider_with_fallbacks
-from .utils.fallback import FallbackConfig
 from .utils.async_helpers import run_async
+from .utils.fallback import FallbackConfig
+
 
 class Image:
     """API class for image generation."""
@@ -44,10 +43,10 @@ class Image:
         model: str = "openai/dall-e-3",
         n: int = 1,
         size: str = "1024x1024",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs,
-    ) -> Dict:
+    ) -> dict:
         """
         Generate images from a text prompt.
 
@@ -141,10 +140,10 @@ class Image:
         model: str = "openai/dall-e-3",
         n: int = 1,
         size: str = "1024x1024",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs,
-    ) -> Dict:
+    ) -> dict:
         """
         Synchronous version of create().
 

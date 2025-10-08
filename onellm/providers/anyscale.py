@@ -25,8 +25,9 @@ models like Llama, Mistral, and CodeLlama through an OpenAI-compatible API.
 """
 
 from ..config import get_provider_config
-from .openai_compatible import OpenAICompatibleProvider
 from .base import register_provider
+from .openai_compatible import OpenAICompatibleProvider
+
 
 class AnyscaleProvider(OpenAICompatibleProvider):
     """Anyscale Endpoints provider implementation.

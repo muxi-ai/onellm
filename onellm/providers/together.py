@@ -27,6 +27,7 @@ They offer a wide selection of models including Llama, Mistral, Mixtral, and man
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class TogetherProvider(OpenAICompatibleProvider):
     """Together AI provider implementation."""
 

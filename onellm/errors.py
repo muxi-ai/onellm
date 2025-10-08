@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,7 +24,8 @@ This module provides consistent error classes across different LLM providers
 to help with error handling in client code.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 
 class MuxiLLMError(Exception):
     """
@@ -45,10 +45,10 @@ class MuxiLLMError(Exception):
     def __init__(
         self,
         message: str,
-        provider: Optional[str] = None,
-        status_code: Optional[int] = None,
-        request_id: Optional[str] = None,
-        error_data: Optional[Dict[str, Any]] = None,
+        provider: str | None = None,
+        status_code: int | None = None,
+        request_id: str | None = None,
+        error_data: dict[str, Any] | None = None,
     ):
         # Initialize the parent Exception class with the error message
         super().__init__(message)
@@ -202,8 +202,8 @@ class FallbackExhaustionError(MuxiLLMError):
         self,
         message: str,
         primary_model: str,
-        fallback_models: List[str],
-        models_tried: List[str],
+        fallback_models: list[str],
+        models_tried: list[str],
         original_error: Exception,
         **kwargs,
     ):

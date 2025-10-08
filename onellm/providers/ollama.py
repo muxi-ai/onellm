@@ -31,8 +31,8 @@ Examples:
 """
 
 import re
-from typing import Any, Dict, Optional, Tuple
 from collections.abc import AsyncGenerator
+from typing import Any
 
 import aiohttp
 
@@ -46,6 +46,7 @@ from ..models import ChatCompletionChunk, ChatCompletionResponse
 from ..types import Message
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
+
 
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama provider implementation with dynamic endpoint routing."""
@@ -75,8 +76,8 @@ class OllamaProvider(OpenAICompatibleProvider):
             **kwargs: Configuration options
         """
         # Initialize endpoint cache for different servers
-        self._endpoint_cache: Dict[str, str] = {}
-        self._model_cache: Dict[str, set] = {}  # Cache available models per endpoint
+        self._endpoint_cache: dict[str, str] = {}
+        self._model_cache: dict[str, set] = {}  # Cache available models per endpoint
 
         # Call parent init
         super().__init__(**kwargs)
@@ -84,7 +85,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         # Override to not require API key
         self.api_key = "not-required"  # Ollama ignores this but OpenAI client needs it
 
-    def _parse_ollama_model(self, model: str) -> Tuple[str, str]:
+    def _parse_ollama_model(self, model: str) -> tuple[str, str]:
         """
         Parse Ollama model string to extract model name and endpoint.
 
@@ -158,11 +159,11 @@ class OllamaProvider(OpenAICompatibleProvider):
         self,
         method: str,
         path: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
-        timeout: Optional[float] = None,
-        files: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any] | AsyncGenerator[Dict[str, Any], None]:
+        timeout: float | None = None,
+        files: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the Ollama API with dynamic endpoint routing.
 
@@ -273,7 +274,7 @@ class OllamaProvider(OpenAICompatibleProvider):
             messages=messages, model=model, stream=stream, **kwargs
         )
 
-    async def list_models(self, endpoint: Optional[str] = None) -> list[str]:
+    async def list_models(self, endpoint: str | None = None) -> list[str]:
         """
         List available models on an Ollama server.
 

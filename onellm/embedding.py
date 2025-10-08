@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -25,15 +24,15 @@ This module provides an Embedding class that can be used to create embeddings
 from various providers in a manner compatible with OpenAI's API.
 """
 
-from typing import List, Optional, Union
 
-from .providers.base import get_provider_with_fallbacks
-from .models import EmbeddingResponse
-from .utils.fallback import FallbackConfig
-from .utils.async_helpers import run_async
 from .errors import InvalidRequestError
+from .models import EmbeddingResponse
+from .providers.base import get_provider_with_fallbacks
+from .utils.async_helpers import run_async
+from .utils.fallback import FallbackConfig
 
-def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
+
+def validate_embedding_input(input_data: str | list[str]) -> None:
     """
     Validate the input for embedding.
 
@@ -63,9 +62,9 @@ class Embedding:
     def create(
         cls,
         model: str,
-        input: Union[str, List[str]],
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        input: str | list[str],
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
     ) -> EmbeddingResponse:
         """
@@ -118,9 +117,9 @@ class Embedding:
     async def acreate(
         cls,
         model: str,
-        input: Union[str, List[str]],
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        input: str | list[str],
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
     ) -> EmbeddingResponse:
         """

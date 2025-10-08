@@ -28,12 +28,15 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import aiohttp
 
 try:
+    import aiohttp
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
-    import aiohttp
 
     VERTEX_AI_AVAILABLE = True
 except ImportError:
@@ -43,11 +46,11 @@ from ..config import get_provider_config
 from ..errors import (
     APIError,
     AuthenticationError,
+    InvalidConfigurationError,
     InvalidRequestError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    InvalidConfigurationError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -64,6 +67,7 @@ from ..models import (
 from ..types import Message
 from ..utils.retry import RetryConfig
 from .base import Provider, register_provider
+
 
 class VertexAIProvider(Provider):
     """Vertex AI provider implementation."""
@@ -134,7 +138,7 @@ class VertexAIProvider(Provider):
         # Load service account data
         self.service_account_path = self.config["service_account_json"]
         if os.path.exists(self.service_account_path):
-            with open(self.service_account_path, "r") as f:
+            with open(self.service_account_path, encoding="utf-8") as f:
                 self.service_account_data = json.load(f)
                 # Extract project ID from service account if not provided
                 if not self.config.get("project_id"):
@@ -187,8 +191,8 @@ class VertexAIProvider(Provider):
         return self.credentials.token
 
     def _convert_messages_to_vertex(
-        self, messages: List[Message]
-    ) -> tuple[List[Dict[str, Any]], Optional[str]]:
+        self, messages: list[Message]
+    ) -> tuple[list[dict[str, Any]], str | None]:
         """
         Convert OpenAI-style messages to Vertex AI format.
 
@@ -254,10 +258,10 @@ class VertexAIProvider(Provider):
         self,
         method: str,
         path: str,
-        data: Dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
         timeout: float | None = None,
-    ) -> Dict[str, Any] | AsyncGenerator[Dict[str, Any], None]:
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the Vertex AI API.
 
@@ -308,8 +312,8 @@ class VertexAIProvider(Provider):
                 )
 
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        self, response: "aiohttp.ClientResponse"
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -332,7 +336,7 @@ class VertexAIProvider(Provider):
                 except json.JSONDecodeError:
                     continue
 
-    def _handle_error_response(self, status_code: int, response_data: Dict[str, Any]) -> None:
+    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -362,7 +366,7 @@ class VertexAIProvider(Provider):
             )
 
     def _convert_vertex_to_openai_response(
-        self, vertex_response: Dict[str, Any], model: str
+        self, vertex_response: dict[str, Any], model: str
     ) -> ChatCompletionResponse:
         """
         Convert Vertex AI response to OpenAI format.
@@ -422,7 +426,7 @@ class VertexAIProvider(Provider):
         )
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
     ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with Vertex AI.
@@ -590,7 +594,7 @@ class VertexAIProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: str | List[str], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings with Vertex AI.

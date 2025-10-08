@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -32,19 +31,18 @@ streaming responses when working with different LLM providers.
 """
 
 # Import retry-related utilities for handling transient API failures
-from .retry import retry_async, RetryConfig
-
-# Import streaming utilities for handling real-time response processing
-from .streaming import stream_generator, StreamingError
-
-# Import text cleaning utilities for processing AI model responses
-from .text_cleaner import clean_unicode_artifacts
-
 # Import async helper utilities for safe event loop management
-from .async_helpers import run_async, maybe_await
+from .async_helpers import maybe_await, run_async
 
 # Import file validation utilities for security
 from .file_validator import FileValidator
+from .retry import RetryConfig, retry_async
+
+# Import streaming utilities for handling real-time response processing
+from .streaming import StreamingError, stream_generator
+
+# Import text cleaning utilities for processing AI model responses
+from .text_cleaner import clean_unicode_artifacts
 
 # Define the public API for this module
 __all__ = [

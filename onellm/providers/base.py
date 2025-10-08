@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,11 +26,12 @@ working with providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from ..models import (
-    ChatCompletionResponse,
     ChatCompletionChunk,
+    ChatCompletionResponse,
     CompletionResponse,
     EmbeddingResponse,
     FileObject,
@@ -39,7 +39,8 @@ from ..models import (
 from ..types import Message
 from ..utils.fallback import FallbackConfig
 
-def parse_model_name(model: str) -> Tuple[str, str]:
+
+def parse_model_name(model: str) -> tuple[str, str]:
     """
     Parse a model name with a provider prefix.
 
@@ -101,8 +102,8 @@ class Provider(ABC):
 
     @abstractmethod
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion.
 
@@ -120,7 +121,7 @@ class Provider(ABC):
     @abstractmethod
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -137,7 +138,7 @@ class Provider(ABC):
 
     @abstractmethod
     async def create_embedding(
-        self, input: Union[str, List[str]], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
@@ -182,9 +183,9 @@ class Provider(ABC):
         pass
 
 # Registry of provider classes - stores mapping of provider names to their implementation classes
-_PROVIDER_REGISTRY: Dict[str, Type[Provider]] = {}
+_PROVIDER_REGISTRY: dict[str, type[Provider]] = {}
 
-def register_provider(provider_name: str, provider_class: Type[Provider]) -> None:
+def register_provider(provider_name: str, provider_class: type[Provider]) -> None:
     """
     Register a provider class.
 
@@ -228,7 +229,7 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
     # Instantiate and return the provider class with the provided kwargs
     return provider_class(**kwargs)
 
-def list_providers() -> List[str]:
+def list_providers() -> list[str]:
     """
     Get a list of registered provider names.
 
@@ -240,9 +241,9 @@ def list_providers() -> List[str]:
 
 def get_provider_with_fallbacks(
     primary_model: str,
-    fallback_models: Optional[List[str]] = None,
-    fallback_config: Optional[FallbackConfig] = None,
-) -> Tuple[Provider, str]:
+    fallback_models: list[str] | None = None,
+    fallback_config: FallbackConfig | None = None,
+) -> tuple[Provider, str]:
     """
     Get a provider with fallback support.
 

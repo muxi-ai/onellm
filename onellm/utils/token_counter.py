@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,7 +26,7 @@ counting for OpenAI models and fallback approximations for other models.
 """
 
 import re
-from typing import Dict, List, Optional, Union
+from typing import Optional
 
 # Note: tiktoken is an optional dependency
 try:
@@ -113,7 +112,7 @@ def get_encoder(model: str) -> Optional["tiktoken.Encoding"]:
             # If all attempts fail, return None
             return None
 
-def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
+def num_tokens_from_string(text: str, model: str | None = None) -> int:
     """
     Count the number of tokens in a string.
 
@@ -142,7 +141,7 @@ def num_tokens_from_string(text: str, model: Optional[str] = None) -> int:
     return len(SIMPLE_TOKEN_PATTERN.findall(text))
 
 def num_tokens_from_messages(
-    messages: List[Dict[str, Union[str, List]]], model: Optional[str] = None
+    messages: list[dict[str, str | list]], model: str | None = None
 ) -> int:
     """
     Count the number of tokens in a list of chat messages.

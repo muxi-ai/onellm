@@ -60,6 +60,7 @@ from ..types import Message
 from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
 
+
 class MistralProvider(Provider):
     """Mistral AI provider implementation."""
 

@@ -30,6 +30,7 @@ from ..config import get_provider_config
 from ..errors import AuthenticationError
 from .openai import OpenAIProvider
 
+
 class OpenAICompatibleProvider(OpenAIProvider):
     """
     Base class for OpenAI-compatible providers.

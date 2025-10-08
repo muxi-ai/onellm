@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -29,39 +28,40 @@ It handles Azure-specific authentication and deployment configurations.
 import json
 import os
 import time
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union, IO
+from collections.abc import AsyncGenerator
+from typing import IO, Any
 
 import aiohttp
 
 from ..config import get_provider_config
-from ..models import (
-    ChatCompletionResponse,
-    ChatCompletionChunk,
-    ChoiceDelta,
-    StreamingChoice,
-    CompletionResponse,
-    CompletionChoice,
-    EmbeddingResponse,
-    EmbeddingData,
-    FileObject,
-    Choice,
-)
 from ..errors import (
     APIError,
     AuthenticationError,
-    RateLimitError,
+    BadGatewayError,
     InvalidRequestError,
+    PermissionError,
+    RateLimitError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
     TimeoutError,
-    BadGatewayError,
-    PermissionError,
-    ResourceNotFoundError,
+)
+from ..models import (
+    ChatCompletionChunk,
+    ChatCompletionResponse,
+    Choice,
+    ChoiceDelta,
+    CompletionChoice,
+    CompletionResponse,
+    EmbeddingData,
+    EmbeddingResponse,
+    FileObject,
+    StreamingChoice,
 )
 from ..types import Message
-from ..types.common import TranscriptionResult, ImageGenerationResult
-from ..utils.retry import retry_async, RetryConfig
-
+from ..types.common import ImageGenerationResult, TranscriptionResult
+from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
+
 
 class AzureProvider(Provider):
     """Azure OpenAI provider implementation."""
@@ -111,7 +111,7 @@ class AzureProvider(Provider):
             )
 
         # Load Azure configuration
-        with open(azure_config_path, 'r') as f:
+        with open(azure_config_path, encoding="utf-8") as f:
             self.azure_config = json.load(f)
 
         # Store relevant configuration
@@ -138,7 +138,7 @@ class AzureProvider(Provider):
                 provider="azure",
             )
 
-    def _get_deployment_config(self, model: str) -> Dict[str, Any]:
+    def _get_deployment_config(self, model: str) -> dict[str, Any]:
         """
         Get deployment configuration for a specific model.
 
@@ -160,7 +160,7 @@ class AzureProvider(Provider):
             "api_version": self.api_version
         }
 
-    def _get_headers(self, deployment_config: Dict[str, Any]) -> Dict[str, str]:
+    def _get_headers(self, deployment_config: dict[str, Any]) -> dict[str, str]:
         """
         Get the headers for API requests.
 
@@ -178,7 +178,7 @@ class AzureProvider(Provider):
 
         return headers
 
-    def _get_url(self, deployment_config: Dict[str, Any], path: str) -> str:
+    def _get_url(self, deployment_config: dict[str, Any], path: str) -> str:
         """
         Get the full URL for an API request.
 
@@ -204,11 +204,11 @@ class AzureProvider(Provider):
         method: str,
         path: str,
         model: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
-        timeout: Optional[float] = None,
-        files: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
+        timeout: float | None = None,
+        files: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the Azure OpenAI API.
 
@@ -299,7 +299,7 @@ class AzureProvider(Provider):
 
     async def _handle_response(
         self, response: aiohttp.ClientResponse
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -323,7 +323,7 @@ class AzureProvider(Provider):
 
     async def _handle_streaming_response(
         self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -360,7 +360,7 @@ class AzureProvider(Provider):
                     continue
 
     def _handle_error_response(
-        self, status_code: int, response_data: Dict[str, Any]
+        self, status_code: int, response_data: dict[str, Any]
     ) -> None:
         """
         Handle an error response.
@@ -411,8 +411,8 @@ class AzureProvider(Provider):
             )
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with Azure OpenAI.
 
@@ -510,8 +510,8 @@ class AzureProvider(Provider):
             return response
 
     def _process_messages_for_vision(
-        self, messages: List[Message], model: str
-    ) -> List[Message]:
+        self, messages: list[Message], model: str
+    ) -> list[Message]:
         """
         Process messages to ensure they're compatible with vision models if needed.
 
@@ -604,7 +604,7 @@ class AzureProvider(Provider):
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -657,7 +657,7 @@ class AzureProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: Union[str, List[str]], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
@@ -736,7 +736,7 @@ class AzureProvider(Provider):
         )
 
     async def create_transcription(
-        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
+        self, file: str | bytes | IO[bytes], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Transcribe audio to text using Azure OpenAI's Whisper model.
@@ -788,7 +788,7 @@ class AzureProvider(Provider):
         )
 
     async def create_translation(
-        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
+        self, file: str | bytes | IO[bytes], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Translate audio to English text using Azure OpenAI's Whisper model.
@@ -841,7 +841,7 @@ class AzureProvider(Provider):
         )
 
     def _process_audio_file(
-        self, file: Union[str, bytes, IO[bytes]], filename: Optional[str] = None
+        self, file: str | bytes | IO[bytes], filename: str | None = None
     ) -> tuple:
         """
         Process an audio file for API requests.
@@ -963,8 +963,8 @@ class AzureProvider(Provider):
         method: str,
         path: str,
         model: str,
-        data: Optional[Dict[str, Any]] = None,
-        timeout: Optional[float] = None,
+        data: dict[str, Any] | None = None,
+        timeout: float | None = None,
     ) -> bytes:
         """
         Make a request to the Azure OpenAI API and return raw binary data.

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -27,19 +26,15 @@ completions from various providers in a manner compatible with OpenAI's API.
 
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from .providers.base import get_provider_with_fallbacks, parse_model_name
-from .models import ChatCompletionResponse, ChatCompletionChunk
-from .utils.fallback import FallbackConfig
+from .models import ChatCompletionChunk, ChatCompletionResponse
+from .providers.base import get_provider_with_fallbacks
 from .utils.async_helpers import run_async
-from .validators import (
-    validate_model_name,
-    validate_messages,
-    validate_stream,
-    validate_chat_params,
-    validate_provider_model,
-)
+from .utils.fallback import FallbackConfig
+from .validators import validate_messages, validate_model_name, validate_stream
+
 
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
@@ -50,9 +45,9 @@ class ChatCompletion:
     def _process_capabilities(
         cls,
         provider: Any,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool,
-        kwargs: Dict[str, Any]
+        kwargs: dict[str, Any]
     ) -> tuple:
         """
         Process messages and kwargs based on provider capabilities.
@@ -226,13 +221,13 @@ class ChatCompletion:
     def create(
         cls,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[Dict[str, Any]] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict[str, Any] | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion.
 
@@ -268,20 +263,11 @@ class ChatCompletion:
         validate_model_name(model)
         validate_messages(messages)
         validate_stream(stream)
-        
-        # Validate all parameters
-        validate_chat_params(**kwargs)
-        
-        # Parse model and validate for provider
-        provider_name, model_without_prefix = parse_model_name(model)
-        validate_provider_model(model_without_prefix, provider_name)
 
         # Validate fallback models if provided
         if fallback_models:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
-                fb_provider, fb_model = parse_model_name(fallback_model)
-                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None
@@ -321,13 +307,13 @@ class ChatCompletion:
     async def acreate(
         cls,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         stream: bool = False,
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[Dict[str, Any]] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict[str, Any] | None = None,
         retries: int = 0,
         **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion asynchronously.
 
@@ -363,20 +349,11 @@ class ChatCompletion:
         validate_model_name(model)
         validate_messages(messages)
         validate_stream(stream)
-        
-        # Validate all parameters
-        validate_chat_params(**kwargs)
-        
-        # Parse model and validate for provider
-        provider_name, model_without_prefix = parse_model_name(model)
-        validate_provider_model(model_without_prefix, provider_name)
 
         # Validate fallback models if provided
         if fallback_models:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
-                fb_provider, fb_model = parse_model_name(fallback_model)
-                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None

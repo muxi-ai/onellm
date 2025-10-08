@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -26,11 +25,12 @@ It includes classes for audio transcription and translation to English,
 with support for fallback models if the primary model fails.
 """
 
-from typing import Any, Dict, IO, List, Optional, Union
+from typing import IO, Any
 
 from .providers.base import get_provider_with_fallbacks
-from .utils.fallback import FallbackConfig
 from .utils.async_helpers import run_async
+from .utils.fallback import FallbackConfig
+
 
 class AudioTranscription:
     """
@@ -43,12 +43,12 @@ class AudioTranscription:
     @classmethod
     async def create(
         cls,
-        file: Union[str, bytes, IO[bytes]],
+        file: str | bytes | IO[bytes],
         model: str = "openai/whisper-1",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transcribe audio to text.
 
@@ -90,12 +90,12 @@ class AudioTranscription:
     @classmethod
     def create_sync(
         cls,
-        file: Union[str, bytes, IO[bytes]],
+        file: str | bytes | IO[bytes],
         model: str = "openai/whisper-1",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Synchronous version of create().
 
@@ -135,12 +135,12 @@ class AudioTranslation:
     @classmethod
     async def create(
         cls,
-        file: Union[str, bytes, IO[bytes]],
+        file: str | bytes | IO[bytes],
         model: str = "openai/whisper-1",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Translate audio to English text.
 
@@ -181,12 +181,12 @@ class AudioTranslation:
     @classmethod
     def create_sync(
         cls,
-        file: Union[str, bytes, IO[bytes]],
+        file: str | bytes | IO[bytes],
         model: str = "openai/whisper-1",
-        fallback_models: Optional[List[str]] = None,
-        fallback_config: Optional[dict] = None,
+        fallback_models: list[str] | None = None,
+        fallback_config: dict | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Synchronous version of create().
 

@@ -28,6 +28,7 @@ performance on coding tasks.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class DeepSeekProvider(OpenAICompatibleProvider):
     """DeepSeek provider implementation."""
 

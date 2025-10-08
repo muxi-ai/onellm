@@ -28,6 +28,7 @@ Amazon Bedrock, Cohere, Perplexity, and Alibaba.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class VercelProvider(OpenAICompatibleProvider):
     """Vercel AI Gateway provider implementation."""
 

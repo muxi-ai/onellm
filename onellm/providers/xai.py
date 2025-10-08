@@ -27,6 +27,7 @@ and OpenAI-compatible API endpoints.
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class XAIProvider(OpenAICompatibleProvider):
     """X.AI (Grok) provider implementation."""
 

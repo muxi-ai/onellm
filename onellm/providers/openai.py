@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -28,39 +27,40 @@ endpoints including chat completions, completions, embeddings, and file operatio
 import json
 import os
 import time
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union, IO
+from collections.abc import AsyncGenerator
+from typing import IO, Any
 
 import aiohttp
 
 from ..config import get_provider_config
-from ..models import (
-    ChatCompletionResponse,
-    ChatCompletionChunk,
-    ChoiceDelta,
-    StreamingChoice,
-    CompletionResponse,
-    CompletionChoice,
-    EmbeddingResponse,
-    EmbeddingData,
-    FileObject,
-    Choice,
-)
 from ..errors import (
     APIError,
     AuthenticationError,
-    RateLimitError,
+    BadGatewayError,
     InvalidRequestError,
+    PermissionError,
+    RateLimitError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
     TimeoutError,
-    BadGatewayError,
-    PermissionError,
-    ResourceNotFoundError,
+)
+from ..models import (
+    ChatCompletionChunk,
+    ChatCompletionResponse,
+    Choice,
+    ChoiceDelta,
+    CompletionChoice,
+    CompletionResponse,
+    EmbeddingData,
+    EmbeddingResponse,
+    FileObject,
+    StreamingChoice,
 )
 from ..types import Message
-from ..types.common import TranscriptionResult, ImageGenerationResult
-from ..utils.retry import retry_async, RetryConfig
-
+from ..types.common import ImageGenerationResult, TranscriptionResult
+from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
+
 
 class OpenAIProvider(Provider):
     """OpenAI provider implementation."""
@@ -130,7 +130,7 @@ class OpenAIProvider(Provider):
             max_retries=self.max_retries, initial_backoff=1.0, max_backoff=60.0
         )
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         """
         Get the headers for API requests.
 
@@ -153,11 +153,11 @@ class OpenAIProvider(Provider):
         self,
         method: str,
         path: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
         stream: bool = False,
-        timeout: Optional[float] = None,
-        files: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
+        timeout: float | None = None,
+        files: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         """
         Make a request to the OpenAI API.
 
@@ -241,8 +241,8 @@ class OpenAIProvider(Provider):
             return await execute_request()
 
     def _normalize_usage(
-        self, usage: Optional[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+        self, usage: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
         """Augment provider usage payload with cache-aware fields."""
 
         if not usage:
@@ -250,7 +250,7 @@ class OpenAIProvider(Provider):
 
         normalized = dict(usage)
 
-        def _extract_cached(detail_key: str) -> Optional[int]:
+        def _extract_cached(detail_key: str) -> int | None:
             details = normalized.get(detail_key)
             if isinstance(details, dict):
                 cached_value = details.get("cached_tokens")
@@ -283,7 +283,7 @@ class OpenAIProvider(Provider):
 
     async def _handle_response(
         self, response: aiohttp.ClientResponse
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -307,7 +307,7 @@ class OpenAIProvider(Provider):
 
     async def _handle_streaming_response(
         self, response: aiohttp.ClientResponse
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
@@ -344,7 +344,7 @@ class OpenAIProvider(Provider):
                     continue
 
     def _handle_error_response(
-        self, status_code: int, response_data: Dict[str, Any]
+        self, status_code: int, response_data: dict[str, Any]
     ) -> None:
         """
         Handle an error response.
@@ -398,8 +398,8 @@ class OpenAIProvider(Provider):
             )
 
     async def create_chat_completion(
-        self, messages: List[Message], model: str, stream: bool = False, **kwargs
-    ) -> Union[ChatCompletionResponse, AsyncGenerator[ChatCompletionChunk, None]]:
+        self, messages: list[Message], model: str, stream: bool = False, **kwargs
+    ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
         """
         Create a chat completion with OpenAI.
 
@@ -506,8 +506,8 @@ class OpenAIProvider(Provider):
             return response
 
     def _process_messages_for_vision(
-        self, messages: List[Message], model: str
-    ) -> List[Message]:
+        self, messages: list[Message], model: str
+    ) -> list[Message]:
         """
         Process messages to ensure they're compatible with vision models if needed.
 
@@ -607,7 +607,7 @@ class OpenAIProvider(Provider):
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
-    ) -> Union[CompletionResponse, AsyncGenerator[Any, None]]:
+    ) -> CompletionResponse | AsyncGenerator[Any, None]:
         """
         Create a text completion.
 
@@ -668,7 +668,7 @@ class OpenAIProvider(Provider):
             )
 
     async def create_embedding(
-        self, input: Union[str, List[str]], model: str, **kwargs
+        self, input: str | list[str], model: str, **kwargs
     ) -> EmbeddingResponse:
         """
         Create embeddings for the provided input.
@@ -772,6 +772,36 @@ class OpenAIProvider(Provider):
             status_details=response_data.get("status_details"),
         )
 
+    async def _execute_download_request(
+        self, url: str, headers: dict[str, str], timeout: aiohttp.ClientTimeout
+    ) -> bytes:
+        """
+        Execute the HTTP request for file download.
+        
+        This method is separated to allow for easier testing/mocking.
+
+        Args:
+            url: URL to download from
+            headers: HTTP headers
+            timeout: Request timeout
+
+        Returns:
+            Bytes content of the file
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url=url,
+                headers=headers,
+                timeout=timeout,
+            ) as response:
+                # Check for error status codes
+                if response.status != 200:
+                    error_data = await response.json()
+                    self._handle_error_response(response.status, error_data)
+
+                # Return the raw file content
+                return await response.read()
+
     async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
         Download a file from OpenAI.
@@ -790,26 +820,13 @@ class OpenAIProvider(Provider):
         # Get authentication headers
         headers = self._get_headers()
 
-        async def execute_request():
-            """Inner function to execute the download request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url=url,
-                    headers=headers,
-                    timeout=timeout,
-                ) as response:
-                    # Check for error status codes
-                    if response.status != 200:
-                        error_data = await response.json()
-                        self._handle_error_response(response.status, error_data)
-
-                    # Return the raw file content
-                    return await response.read()
-
         # Use retry mechanism for reliability
-        return await retry_async(execute_request, config=self.retry_config)
+        return await retry_async(
+            lambda: self._execute_download_request(url, headers, timeout),
+            config=self.retry_config,
+        )
 
-    async def list_files(self, **kwargs) -> Dict[str, Any]:
+    async def list_files(self, **kwargs) -> dict[str, Any]:
         """
         List files available to the user.
 
@@ -832,7 +849,7 @@ class OpenAIProvider(Provider):
             data=data
         )
 
-    async def delete_file(self, file_id: str, **kwargs) -> Dict[str, Any]:
+    async def delete_file(self, file_id: str, **kwargs) -> dict[str, Any]:
         """
         Delete a file.
 
@@ -850,7 +867,7 @@ class OpenAIProvider(Provider):
         )
 
     async def create_transcription(
-        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
+        self, file: str | bytes | IO[bytes], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Transcribe audio to text using OpenAI's Whisper model.
@@ -908,7 +925,7 @@ class OpenAIProvider(Provider):
         )
 
     async def create_translation(
-        self, file: Union[str, bytes, IO[bytes]], model: str = "whisper-1", **kwargs
+        self, file: str | bytes | IO[bytes], model: str = "whisper-1", **kwargs
     ) -> TranscriptionResult:
         """
         Translate audio to English text using OpenAI's Whisper model.
@@ -966,7 +983,7 @@ class OpenAIProvider(Provider):
         )
 
     def _process_audio_file(
-        self, file: Union[str, bytes, IO[bytes]], filename: Optional[str] = None
+        self, file: str | bytes | IO[bytes], filename: str | None = None
     ) -> tuple:
         """
         Process an audio file for API requests.
@@ -1041,8 +1058,8 @@ class OpenAIProvider(Provider):
         self,
         method: str,
         path: str,
-        data: Optional[Dict[str, Any]] = None,
-        timeout: Optional[float] = None,
+        data: dict[str, Any] | None = None,
+        timeout: float | None = None,
     ) -> bytes:
         """
         Make a request to the OpenAI API and return raw binary data.

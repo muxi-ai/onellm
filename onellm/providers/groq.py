@@ -27,6 +27,7 @@ technology. They offer OpenAI-compatible APIs with specialized focus on speed an
 from .base import register_provider
 from .openai_compatible import OpenAICompatibleProvider
 
+
 class GroqProvider(OpenAICompatibleProvider):
     """Groq provider implementation."""
 
