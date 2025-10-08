@@ -409,14 +409,14 @@ class TestOpenAIFilePathFix:
             temp_path = f.name
 
         try:
-            # Test file upload
-            file_obj = await client.files.create(file=temp_path, purpose="assistants")
+            # Test file upload using async API
+            file_obj = await client.files.acreate(file=temp_path, purpose="assistants")
 
             assert file_obj.id
             assert file_obj.filename == os.path.basename(temp_path)
 
             # Clean up - delete the uploaded file
-            await client.files.delete(file_obj.id)
+            await client.files.adelete(file_obj.id)
 
         finally:
             # Clean up temp file
