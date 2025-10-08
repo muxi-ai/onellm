@@ -111,6 +111,15 @@ class FileValidator:
         if allowed_extensions is None:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
         
+        # Check for directory traversal attempts BEFORE resolving
+        # This catches patterns like "../../../etc/passwd"
+        # Normalize separators for cross-platform compatibility
+        normalized_path = file_path.replace("\\", "/")
+        if ".." in normalized_path:
+            raise InvalidRequestError(
+                f"Directory traversal detected in path: {file_path}"
+            )
+        
         try:
             # Convert to Path and resolve to absolute path
             # This follows symlinks and normalizes the path
@@ -134,14 +143,6 @@ class FileValidator:
                 raise InvalidRequestError(
                     f"Path is not a regular file: {file_path}"
                 )
-        
-        # Check for directory traversal attempts
-        # After resolve(), the path should not contain ".."
-        # This prevents attacks like "../../../../etc/passwd"
-        if ".." in path.parts:
-            raise InvalidRequestError(
-                f"Directory traversal detected in path: {file_path}"
-            )
         
         # Validate file extension if restrictions are set
         if allowed_extensions:
