@@ -541,14 +541,33 @@ class BedrockProvider(Provider):
                     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
                     future = loop.run_in_executor(executor, stream_worker)
                     
+                    # Track if worker completed successfully
+                    worker_completed = False
+                    
                     try:
-                        # Process events from the queue
+                        # Process events from the queue with timeout to prevent indefinite hangs
                         while True:
-                            # Use run_in_executor to avoid blocking on queue.get()
-                            msg_type, data = await loop.run_in_executor(None, sync_queue.get)
+                            # Use timeout on queue.get() to prevent hanging if worker dies
+                            try:
+                                msg_type, data = await loop.run_in_executor(
+                                    None, sync_queue.get, True, 30.0  # 30 second timeout
+                                )
+                            except queue.Empty:
+                                # Check if worker thread is still alive
+                                if future.done():
+                                    # Worker finished - check for exception
+                                    try:
+                                        future.result()
+                                        # Worker finished but no "done" signal - abnormal termination
+                                        raise RuntimeError("Streaming worker terminated without completion signal")
+                                    except Exception as e:
+                                        raise RuntimeError(f"Streaming worker failed: {str(e)}") from e
+                                # Worker still running but no data - timeout
+                                raise TimeoutError("Streaming timeout: no data received within 30 seconds")
                             
                             # Check for completion signal
                             if msg_type == "done":
+                                worker_completed = True
                                 break
                             
                             # Check for error
@@ -627,9 +646,26 @@ class BedrockProvider(Provider):
                                     # Metadata about usage, etc.
                                     continue
                     finally:
-                        # Ensure executor shutdown and thread completion
-                        await future
-                        executor.shutdown(wait=False)
+                        # Ensure proper cleanup: wait for worker thread and shutdown executor
+                        try:
+                            # Wait for worker to complete (with timeout to prevent hanging)
+                            if not worker_completed:
+                                # Worker didn't complete normally - cancel if possible
+                                try:
+                                    await asyncio.wait_for(future, timeout=5.0)
+                                except asyncio.TimeoutError:
+                                    # Worker is stuck - force shutdown
+                                    pass
+                            else:
+                                # Worker completed normally - just await
+                                await future
+                        except Exception:
+                            # Suppress exceptions during cleanup
+                            pass
+                        finally:
+                            # Always shutdown executor and wait for thread to finish
+                            # This prevents resource leaks
+                            executor.shutdown(wait=True, cancel_futures=True)
 
                 return chunk_generator()
             else:

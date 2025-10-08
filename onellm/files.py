@@ -335,14 +335,24 @@ class File:
                             # Store restoration error separately
                             position_error = e
                     
-                    # Prioritize exceptions: original error takes precedence
+                    # Handle exceptions: check if file is now in inconsistent state
                     if original_error is not None:
-                        # Re-raise the original exception from size check
-                        raise original_error
+                        if position_error is not None:
+                            # Both errors occurred - file is in inconsistent state
+                            # Raise original error but mention position issue
+                            raise InvalidRequestError(
+                                f"Error during file size check: {str(original_error)}. "
+                                f"Additionally, failed to restore file position: {str(position_error)}. "
+                                f"File object is in an inconsistent state."
+                            ) from original_error
+                        else:
+                            # Only original error - position was restored successfully
+                            raise original_error
                     elif position_error is not None:
-                        # Only raise position error if no original error
+                        # Only position error - size check succeeded but can't restore position
                         raise InvalidRequestError(
-                            f"Failed to restore file position after size check: {str(position_error)}"
+                            f"Failed to restore file position after size check: {str(position_error)}. "
+                            f"File object is in an inconsistent state."
                         )
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)
@@ -540,14 +550,24 @@ class File:
                             # Store restoration error separately
                             position_error = e
                     
-                    # Prioritize exceptions: original error takes precedence
+                    # Handle exceptions: check if file is now in inconsistent state
                     if original_error is not None:
-                        # Re-raise the original exception from size check
-                        raise original_error
+                        if position_error is not None:
+                            # Both errors occurred - file is in inconsistent state
+                            # Raise original error but mention position issue
+                            raise InvalidRequestError(
+                                f"Error during file size check: {str(original_error)}. "
+                                f"Additionally, failed to restore file position: {str(position_error)}. "
+                                f"File object is in an inconsistent state."
+                            ) from original_error
+                        else:
+                            # Only original error - position was restored successfully
+                            raise original_error
                     elif position_error is not None:
-                        # Only raise position error if no original error
+                        # Only position error - size check succeeded but can't restore position
                         raise InvalidRequestError(
-                            f"Failed to restore file position after size check: {str(position_error)}"
+                            f"Failed to restore file position after size check: {str(position_error)}. "
+                            f"File object is in an inconsistent state."
                         )
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)

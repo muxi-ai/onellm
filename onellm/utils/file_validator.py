@@ -127,20 +127,24 @@ class FileValidator:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
 
         try:
-            # Convert to Path object and resolve immediately
-            # This follows symlinks and normalizes the path, eliminating TOCTOU issues
-            # and properly handling directory traversal attempts
-            path = Path(file_path).resolve()
-            
-            # Check if resolved path exists
-            # Since we resolved first, this check is on the actual target
-            if not path.exists():
+            # Convert to Path object and resolve with strict=True
+            # This atomically resolves and checks existence, minimizing TOCTOU window
+            try:
+                path = Path(file_path).resolve(strict=True)
+            except FileNotFoundError:
                 raise InvalidRequestError("File not found")
             
-            # Verify it's a regular file (not a directory, device, etc.)
-            # This check is also on the resolved target, not on potential symlinks
-            if not path.is_file():
-                if path.is_dir():
+            # Use stat() to check file type atomically
+            # This minimizes TOCTOU window compared to separate exists() and is_file() calls
+            try:
+                stat_result = path.stat()
+            except (FileNotFoundError, OSError) as e:
+                raise InvalidRequestError(f"Cannot access file: {e}")
+            
+            # Check if it's a regular file using stat result
+            import stat as stat_module
+            if not stat_module.S_ISREG(stat_result.st_mode):
+                if stat_module.S_ISDIR(stat_result.st_mode):
                     raise InvalidRequestError("Path is a directory, not a file")
                 else:
                     raise InvalidRequestError("Path is not a regular file")
@@ -187,13 +191,8 @@ class FileValidator:
                     f"Allowed types: {allowed_list}"
                 )
 
-        # Check file size
-        try:
-            file_size = path.stat().st_size
-        except OSError as e:
-            raise InvalidRequestError(
-                f"Cannot access file: {e}"
-            )
+        # Use file size from earlier stat() call to avoid additional filesystem access
+        file_size = stat_result.st_size
 
         # Empty file check
         if file_size == 0:
