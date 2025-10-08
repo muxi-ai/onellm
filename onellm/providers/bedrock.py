@@ -538,10 +538,10 @@ class BedrockProvider(Provider):
                     loop = asyncio.get_event_loop()
                     future = loop.run_in_executor(None, stream_worker)
                     
-                    # Helper function for queue.get with timeout (for run_in_executor)
+                    # Helper function for non-blocking queue.get (for run_in_executor)
                     def get_with_timeout():
-                        """Get item from queue with timeout"""
-                        return sync_queue.get(True, 30.0)
+                        """Get item from queue with short timeout to avoid thread pool exhaustion"""
+                        return sync_queue.get(block=True, timeout=1.0)
                     
                     try:
                         # Process events from the queue with timeout to prevent indefinite hangs

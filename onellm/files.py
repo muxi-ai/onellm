@@ -354,11 +354,8 @@ class File:
             # For seekable files: prevents size changes after validation (TOCTOU protection)
             # For non-seekable streams: enforces size limits during reading
             # The wrapper is transparent and delegates all operations
-            file = SizeLimitedFileWrapper(file, max_size, filename)
-
-            # Pass the file-like object (wrapped if non-seekable) to provider
-            # Filename already set in kwargs during validation
-            file_to_upload = file
+            # Keep original file reference and pass wrapper to provider
+            file_to_upload = SizeLimitedFileWrapper(file, max_size, filename)
 
         else:
             raise InvalidRequestError(
@@ -551,11 +548,8 @@ class File:
             # For seekable files: prevents size changes after validation (TOCTOU protection)
             # For non-seekable streams: enforces size limits during reading
             # The wrapper is transparent and delegates all operations
-            file = SizeLimitedFileWrapper(file, max_size, filename)
-
-            # Pass the file-like object (wrapped if non-seekable) to provider
-            # Filename already set in kwargs during validation
-            file_to_upload = file
+            # Keep original file reference and pass wrapper to provider
+            file_to_upload = SizeLimitedFileWrapper(file, max_size, filename)
 
         else:
             raise InvalidRequestError(
