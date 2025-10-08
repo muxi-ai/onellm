@@ -36,7 +36,7 @@ DEFAULT_MAX_FILE_SIZE = 100 * 1024 * 1024
 # These are common file types used with LLM APIs
 DEFAULT_ALLOWED_EXTENSIONS: set[str] = {
     # Audio formats (for transcription, translation)
-    ".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".ogg", ".flac",
+    ".mp3", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".ogg", ".flac",
     # Image formats (for vision models)
     ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".tif",
     # Document formats
@@ -47,8 +47,8 @@ DEFAULT_ALLOWED_EXTENSIONS: set[str] = {
     ".xml", ".yaml", ".yml", ".toml", ".ini",
     # Archive formats
     ".zip", ".tar", ".gz", ".bz2", ".7z",
-    # Video formats (for future support)
-    ".avi", ".mov", ".mkv", ".wmv", ".flv",
+    # Video formats (for future support and audio containers)
+    ".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv",
 }
 
 
@@ -125,18 +125,26 @@ class FileValidator:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
 
         # Early check for directory traversal attempts in input
+        # Check for ".." as path component (comprehensive patterns)
         # Normalize both / and \\ separators for cross-platform detection
         normalized_input = file_path.replace("\\", "/")
-        if "/.." in normalized_input or normalized_input.startswith(".."):
+        # Check for various traversal patterns:
+        # - Starts with ".." (relative parent)
+        # - Contains "/.." (parent reference in path)
+        # - Contains "../" (parent reference with trailing)
+        # - Is exactly ".." (just parent)
+        if (normalized_input.startswith("..") or 
+            "/.." in normalized_input or 
+            "../" in normalized_input or
+            normalized_input == ".."):
             raise InvalidRequestError("Directory traversal detected")
 
         try:
-            # Convert to Path and resolve to absolute path
-            # This follows symlinks and normalizes the path
-            # Using strict=False to avoid deprecated parameter issues in Python 3.10+
-            path = Path(file_path).resolve(strict=False)
+            # Convert to Path object first
+            path = Path(file_path)
             
-            # Verify the file exists after resolving
+            # Check if file exists before resolution to avoid race condition
+            # This is more secure than resolve(strict=False) + exists() separately
             if not path.exists():
                 raise InvalidRequestError("File not found")
             
@@ -146,11 +154,15 @@ class FileValidator:
                     raise InvalidRequestError("Path is a directory, not a file")
                 else:
                     raise InvalidRequestError("Path is not a regular file")
+            
+            # Now resolve to absolute path (follows symlinks)
+            # We know the file exists, so this is safe
+            path = path.resolve()
 
             # If base_directory specified, ensure resolved path is within it
             # This provides protection against symlink attacks when base_directory is set
             if base_directory is not None:
-                base = base_directory.resolve(strict=False)
+                base = base_directory.resolve()
                 try:
                     # Check if resolved path is relative to base directory
                     # This catches symlink attacks that try to escape the base directory

@@ -111,7 +111,7 @@ class AzureProvider(Provider):
             )
 
         # Load Azure configuration
-        with open(azure_config_path) as f:
+        with open(azure_config_path, encoding="utf-8") as f:
             self.azure_config = json.load(f)
 
         # Store relevant configuration

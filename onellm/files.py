@@ -81,9 +81,8 @@ class SizeLimitedFileWrapper:
     This is used for non-seekable streams where we can't check the size upfront.
     The wrapper tracks bytes read and raises an error if the limit is exceeded.
     
-    The wrapper uses __getattr__ to delegate all attributes and methods to the
-    underlying file object, making it transparent to providers that expect
-    standard file-like objects.
+    All read methods (read, readline, readlines, readinto, readinto1, iteration)
+    are explicitly wrapped to ensure size accounting cannot be bypassed.
     
     Note: This only protects against reading too much data. A race condition
     exists where the file could be modified between size check and read for
@@ -96,11 +95,9 @@ class SizeLimitedFileWrapper:
         self._bytes_read = 0
         self._name = name
 
-    def read(self, size: int = -1) -> bytes:
-        """Read from the underlying file while tracking size."""
-        data = self._file.read(size)
-        self._bytes_read += len(data)
-
+    def _check_size(self, data_len: int) -> None:
+        """Check if adding data_len bytes would exceed the limit."""
+        self._bytes_read += data_len
         if self._bytes_read > self._max_size:
             max_mb = self._max_size / (1024 * 1024)
             actual_mb = self._bytes_read / (1024 * 1024)
@@ -108,7 +105,60 @@ class SizeLimitedFileWrapper:
                 f"{self._name} too large: exceeds {max_mb:.2f}MB (read {actual_mb:.2f}MB so far)"
             )
 
+    def read(self, size: int = -1) -> bytes:
+        """Read from the underlying file while tracking size."""
+        data = self._file.read(size)
+        self._check_size(len(data))
         return data
+
+    def readline(self, size: int = -1) -> bytes:
+        """Read one line from the underlying file while tracking size."""
+        data = self._file.readline(size)
+        self._check_size(len(data))
+        return data
+
+    def readlines(self, hint: int = -1) -> list[bytes]:
+        """Read all lines from the underlying file while tracking size."""
+        lines = self._file.readlines(hint)
+        total_size = sum(len(line) for line in lines)
+        self._check_size(total_size)
+        return lines
+
+    def readinto(self, b: bytearray) -> int:
+        """Read into a buffer while tracking size."""
+        if hasattr(self._file, 'readinto'):
+            n = self._file.readinto(b)
+            if n is not None:
+                self._check_size(n)
+            return n
+        else:
+            # Fallback: use read() if readinto not available
+            data = self._file.read(len(b))
+            n = len(data)
+            b[:n] = data
+            self._check_size(n)
+            return n
+
+    def readinto1(self, b: bytearray) -> int:
+        """Read into a buffer (single read call) while tracking size."""
+        if hasattr(self._file, 'readinto1'):
+            n = self._file.readinto1(b)
+            if n is not None:
+                self._check_size(n)
+            return n
+        else:
+            # Fallback to readinto
+            return self.readinto(b)
+
+    def __iter__(self):
+        """Iterate over lines while tracking size."""
+        return self
+
+    def __next__(self) -> bytes:
+        """Get next line while tracking size."""
+        line = next(self._file)
+        self._check_size(len(line))
+        return line
 
     def __getattr__(self, name: str):
         """
@@ -116,6 +166,9 @@ class SizeLimitedFileWrapper:
         
         This makes the wrapper transparent to code expecting standard file-like
         objects, including provider implementations.
+        
+        Note: All common read methods are explicitly wrapped above to ensure
+        size limits cannot be bypassed.
         """
         return getattr(self._file, name)
 
@@ -248,7 +301,6 @@ class File:
             # For size validation, try to get size without reading entire file
             # max_size is always set (defaults to 100MB if not specified)
             file_size = None
-            is_seekable = False
 
             # Try to get size from seekable file-like object
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
@@ -257,7 +309,6 @@ class File:
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
-                        is_seekable = True
                     finally:
                         # Always restore position, even if an error occurs
                         try:
@@ -426,7 +477,6 @@ class File:
             # For size validation, try to get size without reading entire file
             # max_size is always set (defaults to 100MB if not specified)
             file_size = None
-            is_seekable = False
 
             # Try to get size from seekable file-like object
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
@@ -435,7 +485,6 @@ class File:
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
-                        is_seekable = True
                     finally:
                         # Always restore position, even if an error occurs
                         try:

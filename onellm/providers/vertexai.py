@@ -28,7 +28,7 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 try:
     import aiohttp
@@ -38,6 +38,9 @@ try:
     VERTEX_AI_AVAILABLE = True
 except ImportError:
     VERTEX_AI_AVAILABLE = False
+
+if TYPE_CHECKING:
+    import aiohttp
 
 from ..config import get_provider_config
 from ..errors import (
@@ -135,7 +138,7 @@ class VertexAIProvider(Provider):
         # Load service account data
         self.service_account_path = self.config["service_account_json"]
         if os.path.exists(self.service_account_path):
-            with open(self.service_account_path) as f:
+            with open(self.service_account_path, encoding="utf-8") as f:
                 self.service_account_data = json.load(f)
                 # Extract project ID from service account if not provided
                 if not self.config.get("project_id"):
@@ -309,7 +312,7 @@ class VertexAIProvider(Provider):
                 )
 
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
+        self, response: "aiohttp.ClientResponse"
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.

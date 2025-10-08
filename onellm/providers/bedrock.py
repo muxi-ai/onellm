@@ -150,7 +150,7 @@ class BedrockProvider(Provider):
         bedrock_config = {}
         bedrock_json_path = os.path.join(os.path.dirname(__file__), "..", "..", "bedrock.json")
         if os.path.exists(bedrock_json_path):
-            with open(bedrock_json_path) as f:
+            with open(bedrock_json_path, encoding="utf-8") as f:
                 bedrock_config = json.load(f)
 
         # Get configuration with potential overrides

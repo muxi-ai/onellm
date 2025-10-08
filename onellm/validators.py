@@ -40,7 +40,7 @@ T = TypeVar("T")
 
 def validate_type(
     value: Any, expected_type: type[T], name: str, allow_none: bool = False
-) -> T:
+) -> T | None:
     """
     Validate that a value has the expected type.
 
@@ -51,7 +51,7 @@ def validate_type(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated value
+        The validated value, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value has an incorrect type
@@ -76,7 +76,7 @@ def validate_dict(
     required_keys: list[str] | None = None,
     optional_keys: list[str] | None = None,
     allow_none: bool = False,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Validate that a value is a dictionary with the expected keys.
 
@@ -88,7 +88,7 @@ def validate_dict(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated dictionary
+        The validated dictionary, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value is not a valid dictionary
@@ -131,7 +131,7 @@ def validate_list(
     min_length: int | None = None,
     max_length: int | None = None,
     allow_none: bool = False,
-) -> list[Any]:
+) -> list[Any] | None:
     """
     Validate that a value is a list with items of the expected type.
 
@@ -144,7 +144,7 @@ def validate_list(
         allow_none: Whether None is allowed
 
     Returns:
-        The validated list
+        The validated list, or None if allow_none=True and value is None
 
     Raises:
         InvalidRequestError: If the value is not a valid list
