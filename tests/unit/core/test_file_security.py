@@ -62,12 +62,41 @@ class TestFileValidator:
     """Test FileValidator security checks."""
 
     def test_directory_traversal_prevention(self):
-        """Test that directory traversal is blocked."""
-        with pytest.raises(InvalidRequestError, match="Directory traversal detected"):
-            FileValidator.validate_file_path("../../../etc/passwd")
-
-        with pytest.raises(InvalidRequestError, match="Directory traversal detected"):
-            FileValidator.validate_file_path("..\\..\\windows\\system32\\config\\sam")
+        """Test that directory traversal is blocked with base_directory."""
+        # Create a base directory with a test file
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            subdir = base / "uploads"
+            subdir.mkdir()
+            
+            # Create a file inside the allowed directory
+            test_file = subdir / "test.txt"
+            test_file.write_text("content")
+            
+            # Create a file outside the allowed directory  
+            outside_file = base / "secret.txt"
+            outside_file.write_text("secret")
+            
+            # Valid file within base_directory should work
+            validated = FileValidator.validate_file_path(str(test_file), base_directory=subdir)
+            assert validated.exists()
+            
+            # Attempt to traverse outside base_directory should fail
+            with pytest.raises(InvalidRequestError, match="File path outside allowed directory"):
+                FileValidator.validate_file_path(str(outside_file), base_directory=subdir)
+            
+            # Attempt using ../ to escape should also fail
+            try:
+                escape_path = subdir / "../secret.txt"
+                with pytest.raises(InvalidRequestError, match="File path outside allowed directory"):
+                    FileValidator.validate_file_path(str(escape_path), base_directory=subdir)
+            except InvalidRequestError:
+                pass  # Expected
+            
+        # Without base_directory, non-existent files just fail with "File not found"
+        with pytest.raises(InvalidRequestError, match="File not found"):
+            FileValidator.validate_file_path("../../../nonexistent.txt")
 
     def test_legitimate_filenames_allowed(self):
         """Test that legitimate filenames with '..' as substring are allowed."""

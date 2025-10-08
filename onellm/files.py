@@ -319,19 +319,31 @@ class File:
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
                 try:
                     current_pos = file.tell()
+                    original_error = None
+                    position_error = None
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
+                    except Exception as e:
+                        # Capture any exception from size check
+                        original_error = e
                     finally:
-                        # Always restore position, even if an error occurs
-                        # If restoration fails, raise error as file pointer is inconsistent
+                        # Always try to restore position, even if an error occurs
                         try:
                             file.seek(current_pos)
                         except OSError as e:
-                            # File pointer cannot be restored - file is in inconsistent state
-                            raise InvalidRequestError(
-                                f"Failed to restore file position after size check: {str(e)}"
-                            )
+                            # Store restoration error separately
+                            position_error = e
+                    
+                    # Prioritize exceptions: original error takes precedence
+                    if original_error is not None:
+                        # Re-raise the original exception from size check
+                        raise original_error
+                    elif position_error is not None:
+                        # Only raise position error if no original error
+                        raise InvalidRequestError(
+                            f"Failed to restore file position after size check: {str(position_error)}"
+                        )
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)
                     # This is not an error, just means we can't pre-check size
@@ -512,19 +524,31 @@ class File:
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
                 try:
                     current_pos = file.tell()
+                    original_error = None
+                    position_error = None
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
+                    except Exception as e:
+                        # Capture any exception from size check
+                        original_error = e
                     finally:
-                        # Always restore position, even if an error occurs
-                        # If restoration fails, raise error as file pointer is inconsistent
+                        # Always try to restore position, even if an error occurs
                         try:
                             file.seek(current_pos)
                         except OSError as e:
-                            # File pointer cannot be restored - file is in inconsistent state
-                            raise InvalidRequestError(
-                                f"Failed to restore file position after size check: {str(e)}"
-                            )
+                            # Store restoration error separately
+                            position_error = e
+                    
+                    # Prioritize exceptions: original error takes precedence
+                    if original_error is not None:
+                        # Re-raise the original exception from size check
+                        raise original_error
+                    elif position_error is not None:
+                        # Only raise position error if no original error
+                        raise InvalidRequestError(
+                            f"Failed to restore file position after size check: {str(position_error)}"
+                        )
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)
                     # This is not an error, just means we can't pre-check size

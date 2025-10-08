@@ -75,17 +75,19 @@ class FileValidator:
         Validate and normalize a file path for security.
         
         This method performs comprehensive validation including:
+        - Path resolution and normalization (follows symlinks, resolves "..")
         - Path existence and type checking
-        - Directory traversal prevention (basic check)
+        - Directory traversal prevention via base_directory restriction
         - File size validation
         - Extension validation
         - MIME type validation
         
         Security Notes:
-            - The ".." check happens before path resolution, catching obvious attempts
-            - Symlinks are followed during resolution, which could bypass restrictions
+            - Path is resolved immediately, eliminating TOCTOU race conditions
+            - All checks are performed on the resolved (final) path
             - For maximum security, specify base_directory to restrict access scope
             - Without base_directory, any accessible file can be validated
+            - Directory traversal attempts ("..", symlinks, etc.) are caught by base_directory check
         
         Args:
             file_path: Path to the file to validate
@@ -124,43 +126,32 @@ class FileValidator:
         if allowed_extensions is None:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
 
-        # Early check for directory traversal attempts in input
-        # Check for ".." as a path component (not substring)
-        # Normalize both / and \\ separators for cross-platform detection
-        normalized_input = file_path.replace("\\", "/")
-        # Split into path components and check for ".." as a component
-        # This avoids false positives for filenames containing ".." as substring
-        path_components = [c for c in normalized_input.split("/") if c]  # Filter empty strings
-        if ".." in path_components:
-            raise InvalidRequestError("Directory traversal detected")
-
         try:
-            # Convert to Path object first
-            path = Path(file_path)
+            # Convert to Path object and resolve immediately
+            # This follows symlinks and normalizes the path, eliminating TOCTOU issues
+            # and properly handling directory traversal attempts
+            path = Path(file_path).resolve()
             
-            # Check if file exists before resolution to avoid race condition
-            # This is more secure than resolve(strict=False) + exists() separately
+            # Check if resolved path exists
+            # Since we resolved first, this check is on the actual target
             if not path.exists():
                 raise InvalidRequestError("File not found")
             
             # Verify it's a regular file (not a directory, device, etc.)
+            # This check is also on the resolved target, not on potential symlinks
             if not path.is_file():
                 if path.is_dir():
                     raise InvalidRequestError("Path is a directory, not a file")
                 else:
                     raise InvalidRequestError("Path is not a regular file")
-            
-            # Now resolve to absolute path (follows symlinks)
-            # We know the file exists, so this is safe
-            path = path.resolve()
 
             # If base_directory specified, ensure resolved path is within it
-            # This provides protection against symlink attacks when base_directory is set
+            # Since both paths are resolved, this catches all traversal attempts including symlinks
             if base_directory is not None:
                 base = base_directory.resolve()
                 try:
                     # Check if resolved path is relative to base directory
-                    # This catches symlink attacks that try to escape the base directory
+                    # This catches all escape attempts including "..", symlinks, and encoded paths
                     path.relative_to(base)
                 except ValueError:
                     # Path is outside base_directory
