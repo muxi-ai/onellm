@@ -76,9 +76,10 @@ class File:
         # Get provider instance
         provider_instance = get_provider(provider)
         
-        # Process and validate file based on type
+        # Validate file based on type, but preserve original object for provider
+        # This allows providers to optimize (e.g., streaming) while ensuring security
         if isinstance(file, (str, Path)):
-            # Validate file path for security
+            # Validate file path for security (checks size, extension, MIME, traversal)
             validated_path = FileValidator.validate_file_path(
                 str(file),
                 max_size=max_size,
@@ -86,10 +87,11 @@ class File:
                 validate_mime=validate_mime,
             )
             
-            # Safely read file contents
-            file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
-            # Use caller-provided filename if given, otherwise use actual filename
-            filename = kwargs.pop("filename", validated_path.name)
+            # Pass the validated path string to provider (allows provider to stream)
+            file_to_upload = str(validated_path)
+            # Set filename in kwargs if not provided
+            if "filename" not in kwargs:
+                kwargs["filename"] = validated_path.name
             
         elif isinstance(file, bytes):
             # Validate bytes size
@@ -98,18 +100,22 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            file_data = file
-            filename = kwargs.pop("filename", "file.bin")
             
-            # Validate filename extension and MIME type for security
+            # Get and validate filename
+            filename = kwargs.get("filename", "file.bin")
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
             
+            # Pass bytes as-is to provider
+            file_to_upload = file
+            if "filename" not in kwargs:
+                kwargs["filename"] = filename
+            
         elif hasattr(file, "read"):
-            # File-like object - read and validate
+            # File-like object - validate by reading (required for size check)
             file_data = file.read()
             if not isinstance(file_data, bytes):
                 raise InvalidRequestError(
@@ -121,17 +127,19 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            # Check for file.name first, only pop from kwargs if needed
-            filename = getattr(file, "name", None)
-            if not filename:
-                filename = kwargs.pop("filename", "file.bin")
             
-            # Validate filename extension and MIME type for security
+            # Get and validate filename
+            filename = getattr(file, "name", None) or kwargs.get("filename", "file.bin")
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
+            
+            # Pass the bytes to provider (file-like object already consumed)
+            file_to_upload = file_data
+            if "filename" not in kwargs:
+                kwargs["filename"] = filename
             
         else:
             raise InvalidRequestError(
@@ -140,12 +148,11 @@ class File:
             )
 
         # Call the provider's upload_file method synchronously
-        # We need to use our safe async runner to call the async method from a synchronous context
+        # Provider receives original file object (or bytes if already read) for optimal handling
         return run_async(
             provider_instance.upload_file(
-                file=file_data,
+                file=file_to_upload,
                 purpose=purpose,
-                filename=filename,
                 **kwargs
             )
         )
@@ -186,9 +193,10 @@ class File:
         # Get provider instance
         provider_instance = get_provider(provider)
         
-        # Process and validate file based on type (same logic as upload())
+        # Validate file based on type, but preserve original object for provider
+        # This allows providers to optimize (e.g., streaming) while ensuring security
         if isinstance(file, (str, Path)):
-            # Validate file path for security
+            # Validate file path for security (checks size, extension, MIME, traversal)
             validated_path = FileValidator.validate_file_path(
                 str(file),
                 max_size=max_size,
@@ -196,10 +204,11 @@ class File:
                 validate_mime=validate_mime,
             )
             
-            # Safely read file contents
-            file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
-            # Use caller-provided filename if given, otherwise use actual filename
-            filename = kwargs.pop("filename", validated_path.name)
+            # Pass the validated path string to provider (allows provider to stream)
+            file_to_upload = str(validated_path)
+            # Set filename in kwargs if not provided
+            if "filename" not in kwargs:
+                kwargs["filename"] = validated_path.name
             
         elif isinstance(file, bytes):
             # Validate bytes size
@@ -208,18 +217,22 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            file_data = file
-            filename = kwargs.pop("filename", "file.bin")
             
-            # Validate filename extension and MIME type for security
+            # Get and validate filename
+            filename = kwargs.get("filename", "file.bin")
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
             
+            # Pass bytes as-is to provider
+            file_to_upload = file
+            if "filename" not in kwargs:
+                kwargs["filename"] = filename
+            
         elif hasattr(file, "read"):
-            # File-like object - read and validate
+            # File-like object - validate by reading (required for size check)
             file_data = file.read()
             if not isinstance(file_data, bytes):
                 raise InvalidRequestError(
@@ -231,17 +244,19 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            # Check for file.name first, only pop from kwargs if needed
-            filename = getattr(file, "name", None)
-            if not filename:
-                filename = kwargs.pop("filename", "file.bin")
             
-            # Validate filename extension and MIME type for security
+            # Get and validate filename
+            filename = getattr(file, "name", None) or kwargs.get("filename", "file.bin")
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
+            
+            # Pass the bytes to provider (file-like object already consumed)
+            file_to_upload = file_data
+            if "filename" not in kwargs:
+                kwargs["filename"] = filename
             
         else:
             raise InvalidRequestError(
@@ -250,11 +265,10 @@ class File:
             )
 
         # Call the provider's upload_file method
-        # This is the async version, so we directly await the result
+        # Provider receives original file object (or bytes if already read) for optimal handling
         return await provider_instance.upload_file(
-            file=file_data,
+            file=file_to_upload,
             purpose=purpose,
-            filename=filename,
             **kwargs
         )
 
