@@ -1309,30 +1309,8 @@ def validate_chat_params(**kwargs) -> None:
     validate_presence_penalty(kwargs.get("presence_penalty"))
     validate_frequency_penalty(kwargs.get("frequency_penalty"))
     
-    # Validate stop sequences
-    stop = kwargs.get("stop")
-    if stop is not None:
-        if isinstance(stop, str):
-            if len(stop) == 0:
-                raise InvalidRequestError("stop sequence cannot be empty string")
-        elif isinstance(stop, list):
-            if len(stop) == 0:
-                raise InvalidRequestError("stop sequences list cannot be empty")
-            if len(stop) > 4:
-                raise InvalidRequestError(
-                    f"Too many stop sequences: {len(stop)} (max: 4)"
-                )
-            for i, seq in enumerate(stop):
-                if not isinstance(seq, str):
-                    raise InvalidRequestError(
-                        f"stop[{i}] must be a string, got {type(seq).__name__}"
-                    )
-                if len(seq) == 0:
-                    raise InvalidRequestError(f"stop[{i}] cannot be empty string")
-        else:
-            raise InvalidRequestError(
-                f"stop must be string or list of strings, got {type(stop).__name__}"
-            )
+    # Validate stop sequences using existing validator
+    validate_stop(kwargs.get("stop"))
 
 
 def validate_provider_model(model: str, provider_name: str) -> None:
