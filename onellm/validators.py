@@ -1284,3 +1284,318 @@ def validate_tools(
             )
 
     return tools
+
+
+# -------------------- Parameter Validators --------------------
+
+def validate_temperature(temperature: Optional[float]) -> None:
+    """
+    Validate temperature parameter.
+    
+    Temperature controls randomness in the output. Must be between 0 and 2.
+    
+    Args:
+        temperature: Temperature value to validate
+        
+    Raises:
+        InvalidRequestError: If temperature is invalid
+    """
+    if temperature is None:
+        return
+    
+    if not isinstance(temperature, (int, float)):
+        raise InvalidRequestError(
+            f"temperature must be a number, got {type(temperature).__name__}"
+        )
+    
+    if not 0 <= temperature <= 2:
+        raise InvalidRequestError(
+            f"temperature must be between 0 and 2, got {temperature}"
+        )
+
+
+def validate_max_tokens(max_tokens: Optional[int]) -> None:
+    """
+    Validate max_tokens parameter.
+    
+    Args:
+        max_tokens: Maximum number of tokens to generate
+        
+    Raises:
+        InvalidRequestError: If max_tokens is invalid
+    """
+    if max_tokens is None:
+        return
+    
+    if not isinstance(max_tokens, int):
+        raise InvalidRequestError(
+            f"max_tokens must be an integer, got {type(max_tokens).__name__}"
+        )
+    
+    if max_tokens <= 0:
+        raise InvalidRequestError(
+            f"max_tokens must be positive, got {max_tokens}"
+        )
+    
+    # Reasonable upper bound to catch obvious errors
+    if max_tokens > 1000000:
+        raise InvalidRequestError(
+            f"max_tokens too large: {max_tokens} (max: 1000000)"
+        )
+
+
+def validate_top_p(top_p: Optional[float]) -> None:
+    """
+    Validate top_p parameter (nucleus sampling).
+    
+    Args:
+        top_p: Top-p value to validate
+        
+    Raises:
+        InvalidRequestError: If top_p is invalid
+    """
+    if top_p is None:
+        return
+    
+    if not isinstance(top_p, (int, float)):
+        raise InvalidRequestError(
+            f"top_p must be a number, got {type(top_p).__name__}"
+        )
+    
+    if not 0 < top_p <= 1:
+        raise InvalidRequestError(
+            f"top_p must be in range (0, 1], got {top_p}"
+        )
+
+
+def validate_n(n: Optional[int]) -> None:
+    """
+    Validate n parameter (number of completions).
+    
+    Args:
+        n: Number of completions to generate
+        
+    Raises:
+        InvalidRequestError: If n is invalid
+    """
+    if n is None:
+        return
+    
+    if not isinstance(n, int):
+        raise InvalidRequestError(
+            f"n must be an integer, got {type(n).__name__}"
+        )
+    
+    if n <= 0:
+        raise InvalidRequestError(
+            f"n must be positive, got {n}"
+        )
+    
+    if n > 128:
+        raise InvalidRequestError(
+            f"n too large: {n} (max: 128)"
+        )
+
+
+def validate_presence_penalty(presence_penalty: Optional[float]) -> None:
+    """
+    Validate presence_penalty parameter.
+    
+    Args:
+        presence_penalty: Presence penalty value
+        
+    Raises:
+        InvalidRequestError: If presence_penalty is invalid
+    """
+    if presence_penalty is None:
+        return
+    
+    if not isinstance(presence_penalty, (int, float)):
+        raise InvalidRequestError(
+            f"presence_penalty must be a number, got {type(presence_penalty).__name__}"
+        )
+    
+    if not -2.0 <= presence_penalty <= 2.0:
+        raise InvalidRequestError(
+            f"presence_penalty must be between -2.0 and 2.0, got {presence_penalty}"
+        )
+
+
+def validate_frequency_penalty(frequency_penalty: Optional[float]) -> None:
+    """
+    Validate frequency_penalty parameter.
+    
+    Args:
+        frequency_penalty: Frequency penalty value
+        
+    Raises:
+        InvalidRequestError: If frequency_penalty is invalid
+    """
+    if frequency_penalty is None:
+        return
+    
+    if not isinstance(frequency_penalty, (int, float)):
+        raise InvalidRequestError(
+            f"frequency_penalty must be a number, got {type(frequency_penalty).__name__}"
+        )
+    
+    if not -2.0 <= frequency_penalty <= 2.0:
+        raise InvalidRequestError(
+            f"frequency_penalty must be between -2.0 and 2.0, got {frequency_penalty}"
+        )
+
+
+def validate_chat_params(**kwargs) -> None:
+    """
+    Validate all chat completion parameters.
+    
+    This is a convenience function that validates all common parameters
+    used in chat completion requests.
+    
+    Args:
+        **kwargs: Parameters to validate
+        
+    Raises:
+        InvalidRequestError: If any parameter is invalid
+    """
+    validate_temperature(kwargs.get("temperature"))
+    validate_max_tokens(kwargs.get("max_tokens"))
+    validate_max_tokens(kwargs.get("max_completion_tokens"))  # OpenAI new param
+    validate_top_p(kwargs.get("top_p"))
+    validate_n(kwargs.get("n"))
+    validate_presence_penalty(kwargs.get("presence_penalty"))
+    validate_frequency_penalty(kwargs.get("frequency_penalty"))
+    
+    # Validate stop sequences
+    stop = kwargs.get("stop")
+    if stop is not None:
+        if isinstance(stop, str):
+            if len(stop) == 0:
+                raise InvalidRequestError("stop sequence cannot be empty string")
+        elif isinstance(stop, list):
+            if len(stop) == 0:
+                raise InvalidRequestError("stop sequences list cannot be empty")
+            if len(stop) > 4:
+                raise InvalidRequestError(
+                    f"Too many stop sequences: {len(stop)} (max: 4)"
+                )
+            for i, seq in enumerate(stop):
+                if not isinstance(seq, str):
+                    raise InvalidRequestError(
+                        f"stop[{i}] must be a string, got {type(seq).__name__}"
+                    )
+                if len(seq) == 0:
+                    raise InvalidRequestError(f"stop[{i}] cannot be empty string")
+        else:
+            raise InvalidRequestError(
+                f"stop must be string or list of strings, got {type(stop).__name__}"
+            )
+
+
+def validate_provider_model(model: str, provider_name: str) -> None:
+    """
+    Validate model name for a specific provider.
+    
+    Performs provider-specific validation to catch common errors early.
+    
+    Args:
+        model: Model name (without provider prefix)
+        provider_name: Provider name
+        
+    Raises:
+        InvalidRequestError: If model is invalid for the provider
+    """
+    if not model or not isinstance(model, str):
+        raise InvalidRequestError(
+            f"Model must be a non-empty string, got: {type(model).__name__}"
+        )
+    
+    model = model.strip()
+    if not model:
+        raise InvalidRequestError("Model name cannot be empty or whitespace")
+    
+    # Provider-specific validation
+    if provider_name == "openai":
+        # OpenAI model patterns
+        valid_patterns = [
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "gpt-4-turbo",
+            "gpt-4o",
+            "o1-preview",
+            "o1-mini",
+            "o3-mini",
+            "whisper-1",
+            "tts-1",
+            "dall-e-2",
+            "dall-e-3",
+            "text-embedding",
+        ]
+        
+        if not any(pattern in model for pattern in valid_patterns):
+            raise InvalidRequestError(
+                f"Unrecognized OpenAI model: {model}. "
+                f"Common models: gpt-4, gpt-4o, gpt-3.5-turbo"
+            )
+    
+    elif provider_name == "anthropic":
+        # Anthropic Claude models
+        if not any(x in model for x in ["claude-3", "claude-2", "claude-instant"]):
+            raise InvalidRequestError(
+                f"Unrecognized Anthropic model: {model}. "
+                f"Expected Claude models like claude-3-opus, claude-3-sonnet"
+            )
+    
+    elif provider_name == "mistral":
+        # Mistral models
+        if not any(x in model for x in ["mistral", "mixtral", "codestral"]):
+            raise InvalidRequestError(
+                f"Unrecognized Mistral model: {model}. "
+                f"Expected models like mistral-large, mixtral-8x7b"
+            )
+    
+    # For other providers, just ensure the model name is reasonable
+    if len(model) > 200:
+        raise InvalidRequestError(
+            f"Model name too long: {len(model)} characters (max: 200)"
+        )
+
+
+def validate_completion_params(**kwargs) -> None:
+    """
+    Validate text completion parameters.
+    
+    Args:
+        **kwargs: Parameters to validate
+        
+    Raises:
+        InvalidRequestError: If any parameter is invalid
+    """
+    # Reuse chat validation for common parameters
+    validate_chat_params(**kwargs)
+    
+    # Validate suffix (completion-specific)
+    suffix = kwargs.get("suffix")
+    if suffix is not None:
+        if not isinstance(suffix, str):
+            raise InvalidRequestError(
+                f"suffix must be a string, got {type(suffix).__name__}"
+            )
+    
+    # Validate best_of
+    best_of = kwargs.get("best_of")
+    if best_of is not None:
+        if not isinstance(best_of, int):
+            raise InvalidRequestError(
+                f"best_of must be an integer, got {type(best_of).__name__}"
+            )
+        if best_of < 1:
+            raise InvalidRequestError(
+                f"best_of must be at least 1, got {best_of}"
+            )
+        
+        n = kwargs.get("n", 1)
+        if best_of < n:
+            raise InvalidRequestError(
+                f"best_of ({best_of}) must be >= n ({n})"
+            )
