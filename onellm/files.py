@@ -25,6 +25,7 @@ This module provides a unified interface for working with files across different
 including uploading, retrieving, and listing files.
 """
 
+import os
 from pathlib import Path
 from typing import BinaryIO, Optional, Set, Union
 
@@ -33,6 +34,45 @@ from .models import FileObject
 from .errors import InvalidRequestError
 from .utils.async_helpers import run_async
 from .utils.file_validator import FileValidator
+
+
+def _sanitize_filename(filename: Optional[str], default: str = "file.bin") -> str:
+    """
+    Sanitize a filename by removing directory components and null bytes.
+    
+    This prevents directory traversal attacks and ensures the filename is safe.
+    
+    Args:
+        filename: Raw filename that may contain directory components or null bytes
+        default: Default filename to use if sanitized result is empty
+        
+    Returns:
+        Sanitized filename safe for use
+        
+    Examples:
+        >>> _sanitize_filename("../../etc/passwd")
+        'passwd'
+        >>> _sanitize_filename("dir/subdir/file.txt")
+        'file.txt'
+        >>> _sanitize_filename("file\\x00.exe")
+        'file.exe'
+        >>> _sanitize_filename("")
+        'file.bin'
+    """
+    if not filename:
+        return default
+    
+    # Remove null bytes
+    filename = filename.replace('\x00', '')
+    
+    # Strip directory components (works for / and \ separators)
+    filename = os.path.basename(filename)
+    
+    # If basename is empty after sanitization, use default
+    if not filename or filename in ('.', '..'):
+        return default
+    
+    return filename
 
 
 class SizeLimitedFileWrapper:
@@ -135,16 +175,19 @@ class File:
                 name="file data"
             )
             
-            # Get filename from kwargs - required if allowed_extensions is set
-            filename = kwargs.get("filename")
-            if filename is None:
+            # Get and sanitize filename from kwargs - required if allowed_extensions is set
+            raw_filename = kwargs.get("filename")
+            if raw_filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
                         "filename parameter is required when uploading bytes with allowed_extensions set"
                     )
                 filename = "file.bin"
+            else:
+                # Sanitize filename to remove directory components and null bytes
+                filename = _sanitize_filename(raw_filename, "file.bin")
             
-            # Validate filename extension and MIME type
+            # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -161,15 +204,18 @@ class File:
             
             # Get filename - prefer user-provided kwargs, then file.name, then default
             # This ensures we validate the ACTUAL filename that will be sent to provider
-            filename = kwargs.get("filename") or getattr(file, "name", None)
-            if filename is None:
+            raw_filename = kwargs.get("filename") or getattr(file, "name", None)
+            if raw_filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
                         "filename parameter is required when uploading file-like object without .name attribute with allowed_extensions set"
                     )
                 filename = "file.bin"
+            else:
+                # Sanitize filename to remove directory components and null bytes
+                filename = _sanitize_filename(raw_filename, "file.bin")
             
-            # Validate filename extension and MIME type
+            # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -291,16 +337,19 @@ class File:
                 name="file data"
             )
             
-            # Get filename from kwargs - required if allowed_extensions is set
-            filename = kwargs.get("filename")
-            if filename is None:
+            # Get and sanitize filename from kwargs - required if allowed_extensions is set
+            raw_filename = kwargs.get("filename")
+            if raw_filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
                         "filename parameter is required when uploading bytes with allowed_extensions set"
                     )
                 filename = "file.bin"
+            else:
+                # Sanitize filename to remove directory components and null bytes
+                filename = _sanitize_filename(raw_filename, "file.bin")
             
-            # Validate filename extension and MIME type
+            # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
@@ -317,15 +366,18 @@ class File:
             
             # Get filename - prefer user-provided kwargs, then file.name, then default
             # This ensures we validate the ACTUAL filename that will be sent to provider
-            filename = kwargs.get("filename") or getattr(file, "name", None)
-            if filename is None:
+            raw_filename = kwargs.get("filename") or getattr(file, "name", None)
+            if raw_filename is None:
                 if allowed_extensions:
                     raise InvalidRequestError(
                         "filename parameter is required when uploading file-like object without .name attribute with allowed_extensions set"
                     )
                 filename = "file.bin"
+            else:
+                # Sanitize filename to remove directory components and null bytes
+                filename = _sanitize_filename(raw_filename, "file.bin")
             
-            # Validate filename extension and MIME type
+            # Validate sanitized filename extension and MIME type
             FileValidator.validate_filename(
                 filename,
                 allowed_extensions=allowed_extensions,
