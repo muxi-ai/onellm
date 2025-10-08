@@ -25,12 +25,12 @@ This module provides an Embedding class that can be used to create embeddings
 from various providers in a manner compatible with OpenAI's API.
 """
 
-import asyncio
 from typing import List, Optional, Union
 
 from .providers.base import get_provider_with_fallbacks
 from .models import EmbeddingResponse
 from .utils.fallback import FallbackConfig
+from .utils.async_helpers import run_async
 from .errors import InvalidRequestError
 
 def validate_embedding_input(input_data: Union[str, List[str]]) -> None:
@@ -109,8 +109,8 @@ class Embedding:
             fallback_config=fb_config,
         )
 
-        # Call the provider's method synchronously by running the async method in an event loop
-        return asyncio.run(
+        # Call the provider's method synchronously using our safe async runner
+        return run_async(
             provider.create_embedding(input=input, model=model_name, **kwargs)
         )
 

@@ -25,15 +25,21 @@ This module provides a ChatCompletion class that can be used to create chat
 completions from various providers in a manner compatible with OpenAI's API.
 """
 
-import asyncio
 import logging
 import warnings
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-from .providers.base import get_provider_with_fallbacks
+from .providers.base import get_provider_with_fallbacks, parse_model_name
 from .models import ChatCompletionResponse, ChatCompletionChunk
 from .utils.fallback import FallbackConfig
-from .validators import validate_model_name, validate_messages, validate_stream
+from .utils.async_helpers import run_async
+from .validators import (
+    validate_model_name,
+    validate_messages,
+    validate_stream,
+    validate_chat_params,
+    validate_provider_model,
+)
 
 class ChatCompletion:
     """Class for creating chat completions with various providers."""
@@ -262,11 +268,20 @@ class ChatCompletion:
         validate_model_name(model)
         validate_messages(messages)
         validate_stream(stream)
+        
+        # Validate all parameters
+        validate_chat_params(**kwargs)
+        
+        # Parse model and validate for provider
+        provider_name, model_without_prefix = parse_model_name(model)
+        validate_provider_model(model_without_prefix, provider_name)
 
         # Validate fallback models if provided
         if fallback_models:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
+                fb_provider, fb_model = parse_model_name(fallback_model)
+                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None
@@ -294,24 +309,13 @@ class ChatCompletion:
             provider, messages, stream, kwargs
         )
 
-        # Call the provider's method synchronously
-        if stream:
-            # For streaming, we need to use async properly
-            # Create a new event loop to run the async code
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(
-                provider.create_chat_completion(
-                    messages=messages, model=model_name, stream=stream, **processed_kwargs
-                )
+        # Call the provider's method synchronously using our safe async runner
+        # This handles edge cases like Jupyter notebooks, existing event loops, etc.
+        return run_async(
+            provider.create_chat_completion(
+                messages=messages, model=model_name, stream=stream, **processed_kwargs
             )
-        else:
-            # For non-streaming, we can just run and get the result
-            return asyncio.run(
-                provider.create_chat_completion(
-                    messages=messages, model=model_name, stream=stream, **processed_kwargs
-                )
-            )
+        )
 
     @classmethod
     async def acreate(
@@ -359,11 +363,20 @@ class ChatCompletion:
         validate_model_name(model)
         validate_messages(messages)
         validate_stream(stream)
+        
+        # Validate all parameters
+        validate_chat_params(**kwargs)
+        
+        # Parse model and validate for provider
+        provider_name, model_without_prefix = parse_model_name(model)
+        validate_provider_model(model_without_prefix, provider_name)
 
         # Validate fallback models if provided
         if fallback_models:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
+                fb_provider, fb_model = parse_model_name(fallback_model)
+                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None

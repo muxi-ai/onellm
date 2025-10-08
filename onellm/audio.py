@@ -26,11 +26,11 @@ It includes classes for audio transcription and translation to English,
 with support for fallback models if the primary model fails.
 """
 
-import asyncio
 from typing import Any, Dict, IO, List, Optional, Union
 
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
+from .utils.async_helpers import run_async
 
 class AudioTranscription:
     """
@@ -113,8 +113,8 @@ class AudioTranscription:
         Returns:
             Transcription result
         """
-        # Use asyncio.run to execute the async create method in a new event loop
-        return asyncio.run(
+        # Use our safe async runner to execute the async create method
+        return run_async(
             cls.create(
                 file=file,
                 model=model,
@@ -204,8 +204,8 @@ class AudioTranslation:
         Returns:
             Translation result with text in English
         """
-        # Use asyncio.run to execute the async create method in a new event loop
-        return asyncio.run(
+        # Use our safe async runner to execute the async create method
+        return run_async(
             cls.create(
                 file=file,
                 model=model,
