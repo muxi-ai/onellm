@@ -26,11 +26,11 @@ It supports various providers and models with fallback options, and offers both
 synchronous and asynchronous interfaces for speech generation.
 """
 
-import asyncio
 from typing import List, Optional
 
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
+from .utils.async_helpers import run_async
 
 class Speech:
     """
@@ -128,8 +128,8 @@ class Speech:
         Returns:
             Audio data as bytes
         """
-        # Use asyncio.run to execute the async create method in a synchronous context
-        return asyncio.run(
+        # Use our safe async runner to execute the async create method
+        return run_async(
             cls.create(
                 input=input,
                 model=model,

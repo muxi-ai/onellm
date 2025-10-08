@@ -40,6 +40,12 @@ from .streaming import stream_generator, StreamingError
 # Import text cleaning utilities for processing AI model responses
 from .text_cleaner import clean_unicode_artifacts
 
+# Import async helper utilities for safe event loop management
+from .async_helpers import run_async, maybe_await
+
+# Import file validation utilities for security
+from .file_validator import FileValidator
+
 # Define the public API for this module
 __all__ = [
     "retry_async",            # Async function decorator that implements retry logic
@@ -47,4 +53,7 @@ __all__ = [
     "stream_generator",       # Generator function for processing streaming responses
     "StreamingError",         # Exception class for streaming-related errors
     "clean_unicode_artifacts",  # Function for cleaning Unicode artifacts from text
+    "run_async",              # Safe runner for async code from sync contexts
+    "maybe_await",            # Helper to conditionally await awaitable objects
+    "FileValidator",          # Security-focused file validation utilities
 ]

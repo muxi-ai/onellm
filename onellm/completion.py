@@ -25,12 +25,19 @@ This module provides a Completion class that can be used to create text
 completions from various providers in a manner compatible with OpenAI's API.
 """
 
-import asyncio
 from typing import Any, AsyncGenerator, List, Optional, Union
 
-from .providers.base import get_provider_with_fallbacks
+from .providers.base import get_provider_with_fallbacks, parse_model_name
 from .models import CompletionResponse
 from .utils.fallback import FallbackConfig
+from .utils.async_helpers import run_async
+from .validators import (
+    validate_model_name,
+    validate_prompt,
+    validate_stream,
+    validate_completion_params,
+    validate_provider_model,
+)
 
 class Completion:
     """Class for creating text completions with various providers."""
@@ -76,9 +83,24 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
-        # Validate prompt
-        if not prompt or not prompt.strip():
-            raise ValueError("Prompt cannot be empty")
+        # Validate inputs
+        validate_model_name(model)
+        validate_prompt(prompt)
+        validate_stream(stream)
+        
+        # Validate all parameters
+        validate_completion_params(**kwargs)
+        
+        # Parse model and validate for provider
+        provider_name, model_without_prefix = parse_model_name(model)
+        validate_provider_model(model_without_prefix, provider_name)
+        
+        # Validate fallback models if provided
+        if fallback_models:
+            for fallback_model in fallback_models:
+                validate_model_name(fallback_model)
+                fb_provider, fb_model = parse_model_name(fallback_model)
+                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None
@@ -104,25 +126,13 @@ class Completion:
             fallback_config=fb_config,
         )
 
-        # Call the provider's method synchronously
-        if stream:
-            # For streaming, we need to use async properly
-            # Create a new event loop to run the async code in a synchronous context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(
-                provider.create_completion(
-                    prompt=prompt, model=model_name, stream=stream, **kwargs
-                )
+        # Call the provider's method synchronously using our safe async runner
+        # This handles edge cases like Jupyter notebooks, existing event loops, etc.
+        return run_async(
+            provider.create_completion(
+                prompt=prompt, model=model_name, stream=stream, **kwargs
             )
-        else:
-            # For non-streaming, we can just run and get the result
-            # asyncio.run creates a new event loop, runs the coroutine, and closes the loop
-            return asyncio.run(
-                provider.create_completion(
-                    prompt=prompt, model=model_name, stream=stream, **kwargs
-                )
-            )
+        )
 
     @classmethod
     async def acreate(
@@ -166,9 +176,24 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
-        # Validate prompt
-        if not prompt or not prompt.strip():
-            raise ValueError("Prompt cannot be empty")
+        # Validate inputs
+        validate_model_name(model)
+        validate_prompt(prompt)
+        validate_stream(stream)
+        
+        # Validate all parameters
+        validate_completion_params(**kwargs)
+        
+        # Parse model and validate for provider
+        provider_name, model_without_prefix = parse_model_name(model)
+        validate_provider_model(model_without_prefix, provider_name)
+        
+        # Validate fallback models if provided
+        if fallback_models:
+            for fallback_model in fallback_models:
+                validate_model_name(fallback_model)
+                fb_provider, fb_model = parse_model_name(fallback_model)
+                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None

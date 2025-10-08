@@ -26,12 +26,13 @@ It supports various models and offers both synchronous and asynchronous interfac
 with fallback options.
 """
 
-import asyncio
 import os
+import time
 from typing import Dict, List, Optional
 
 from .providers.base import get_provider_with_fallbacks
 from .utils.fallback import FallbackConfig
+from .utils.async_helpers import run_async
 
 class Image:
     """API class for image generation."""
@@ -103,7 +104,7 @@ class Image:
             os.makedirs(output_dir, exist_ok=True)
 
             # Use the creation timestamp from the result or current time as fallback
-            timestamp = int(result.get("created", asyncio.get_event_loop().time()))
+            timestamp = int(result.get("created", time.time()))
 
             # Process each generated image
             for i, img_data in enumerate(result.get("data", [])):
@@ -163,8 +164,8 @@ class Image:
         Returns:
             Dict with generated images data
         """
-        # Use asyncio.run to execute the async create method in a synchronous context
-        return asyncio.run(
+        # Use our safe async runner to execute the async create method
+        return run_async(
             cls.create(
                 prompt=prompt,
                 model=model,

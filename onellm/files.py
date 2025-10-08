@@ -26,10 +26,13 @@ including uploading, retrieving, and listing files.
 """
 
 from pathlib import Path
-from typing import BinaryIO, Union
+from typing import BinaryIO, Optional, Set, Union
 
 from .providers.base import get_provider
 from .models import FileObject
+from .errors import InvalidRequestError
+from .utils.async_helpers import run_async
+from .utils.file_validator import FileValidator
 
 class File:
     """Interface for file operations across different providers."""
@@ -40,6 +43,9 @@ class File:
         file: Union[str, Path, BinaryIO, bytes],
         purpose: str = "assistants",
         provider: str = "openai",  # Required but defaults for compatibility
+        max_size: Optional[int] = None,
+        allowed_extensions: Optional[Set[str]] = None,
+        validate_mime: bool = True,
         **kwargs
     ) -> FileObject:
         """
@@ -49,24 +55,81 @@ class File:
             file: File to upload (path, bytes, or file-like object)
             purpose: Purpose of the file (defaults to "assistants")
             provider: Provider to use (e.g., "openai")
+            max_size: Maximum file size in bytes (default: 100MB)
+            allowed_extensions: Set of allowed file extensions (default: common types)
+            validate_mime: Whether to validate MIME type (default: True)
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
             FileObject representing the uploaded file
 
+        Raises:
+            InvalidRequestError: If file validation fails (size, type, security, etc.)
+
         Example:
             >>> file_obj = File.upload("path/to/file.pdf", purpose="fine-tune", provider="openai")
             >>> print(f"Uploaded file ID: {file_obj.id}")
+            
+            >>> # With custom size limit
+            >>> file_obj = File.upload("large.mp3", purpose="transcription", max_size=200*1024*1024)
         """
         # Get provider instance
         provider_instance = get_provider(provider)
+        
+        # Process and validate file based on type
+        if isinstance(file, (str, Path)):
+            # Validate file path for security
+            validated_path = FileValidator.validate_file_path(
+                str(file),
+                max_size=max_size,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime,
+            )
+            
+            # Safely read file contents
+            file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
+            filename = validated_path.name
+            
+        elif isinstance(file, bytes):
+            # Validate bytes size
+            FileValidator.validate_bytes_size(
+                file,
+                max_size=max_size,
+                name="file data"
+            )
+            file_data = file
+            filename = kwargs.pop("filename", "file.bin")
+            
+        elif hasattr(file, "read"):
+            # File-like object - read and validate
+            file_data = file.read()
+            if not isinstance(file_data, bytes):
+                raise InvalidRequestError(
+                    f"File object must read bytes, got {type(file_data).__name__}"
+                )
+            
+            FileValidator.validate_bytes_size(
+                file_data,
+                max_size=max_size,
+                name="file data"
+            )
+            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            
+        else:
+            raise InvalidRequestError(
+                f"file must be a path (str/Path), bytes, or file-like object, "
+                f"got {type(file).__name__}"
+            )
 
         # Call the provider's upload_file method synchronously
-        # We need to use asyncio.run to call the async method from a synchronous context
-        import asyncio
-
-        return asyncio.run(
-            provider_instance.upload_file(file=file, purpose=purpose, **kwargs)
+        # We need to use our safe async runner to call the async method from a synchronous context
+        return run_async(
+            provider_instance.upload_file(
+                file=file_data,
+                purpose=purpose,
+                filename=filename,
+                **kwargs
+            )
         )
 
     @classmethod
@@ -75,6 +138,9 @@ class File:
         file: Union[str, Path, BinaryIO, bytes],
         purpose: str = "assistants",
         provider: str = "openai",  # Required but defaults for compatibility
+        max_size: Optional[int] = None,
+        allowed_extensions: Optional[Set[str]] = None,
+        validate_mime: bool = True,
         **kwargs
     ) -> FileObject:
         """
@@ -84,10 +150,16 @@ class File:
             file: File to upload (path, bytes, or file-like object)
             purpose: Purpose of the file (defaults to "assistants")
             provider: Provider to use (e.g., "openai")
+            max_size: Maximum file size in bytes (default: 100MB)
+            allowed_extensions: Set of allowed file extensions (default: common types)
+            validate_mime: Whether to validate MIME type (default: True)
             **kwargs: Additional parameters to pass to the provider
 
         Returns:
             FileObject representing the uploaded file
+
+        Raises:
+            InvalidRequestError: If file validation fails (size, type, security, etc.)
 
         Example:
             >>> file_obj = await File.aupload("file.pdf", purpose="fine-tune", provider="openai")
@@ -95,10 +167,60 @@ class File:
         """
         # Get provider instance
         provider_instance = get_provider(provider)
+        
+        # Process and validate file based on type (same logic as upload())
+        if isinstance(file, (str, Path)):
+            # Validate file path for security
+            validated_path = FileValidator.validate_file_path(
+                str(file),
+                max_size=max_size,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime,
+            )
+            
+            # Safely read file contents
+            file_data = FileValidator.safe_read_file(validated_path, max_size=max_size)
+            filename = validated_path.name
+            
+        elif isinstance(file, bytes):
+            # Validate bytes size
+            FileValidator.validate_bytes_size(
+                file,
+                max_size=max_size,
+                name="file data"
+            )
+            file_data = file
+            filename = kwargs.pop("filename", "file.bin")
+            
+        elif hasattr(file, "read"):
+            # File-like object - read and validate
+            file_data = file.read()
+            if not isinstance(file_data, bytes):
+                raise InvalidRequestError(
+                    f"File object must read bytes, got {type(file_data).__name__}"
+                )
+            
+            FileValidator.validate_bytes_size(
+                file_data,
+                max_size=max_size,
+                name="file data"
+            )
+            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            
+        else:
+            raise InvalidRequestError(
+                f"file must be a path (str/Path), bytes, or file-like object, "
+                f"got {type(file).__name__}"
+            )
 
         # Call the provider's upload_file method
         # This is the async version, so we directly await the result
-        return await provider_instance.upload_file(file=file, purpose=purpose, **kwargs)
+        return await provider_instance.upload_file(
+            file=file_data,
+            purpose=purpose,
+            filename=filename,
+            **kwargs
+        )
 
     @classmethod
     def download(
@@ -129,10 +251,8 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's download_file method synchronously
-        # We need to use asyncio.run to call the async method from a synchronous context
-        import asyncio
-
-        file_bytes = asyncio.run(
+        # We need to use our safe async runner to call the async method from a synchronous context
+        file_bytes = run_async(
             provider_instance.download_file(file_id=file_id, **kwargs)
         )
 
@@ -221,10 +341,8 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's list_files method synchronously
-        # We need to use asyncio.run to call the async method from a synchronous context
-        import asyncio
-
-        return asyncio.run(provider_instance.list_files(**kwargs))
+        # We need to use our safe async runner to call the async method from a synchronous context
+        return run_async(provider_instance.list_files(**kwargs))
 
     @classmethod
     async def alist(
@@ -280,10 +398,8 @@ class File:
         provider_instance = get_provider(provider)
 
         # Call the provider's delete_file method synchronously
-        # We need to use asyncio.run to call the async method from a synchronous context
-        import asyncio
-
-        return asyncio.run(
+        # We need to use our safe async runner to call the async method from a synchronous context
+        return run_async(
             provider_instance.delete_file(file_id=file_id, **kwargs)
         )
 
