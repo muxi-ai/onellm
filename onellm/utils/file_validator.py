@@ -111,39 +111,40 @@ class FileValidator:
         if allowed_extensions is None:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
         
-        # Check for directory traversal attempts BEFORE resolving
-        # This catches patterns like "../../../etc/passwd"
+        # Basic input validation: check for obvious directory traversal attempts
+        # This provides an early check before resolution
         # Check for ".." as a path component, not as a substring (to avoid false positives)
-        # Normalize separators for cross-platform compatibility
         normalized_path = file_path.replace("\\", "/")
         path_parts = normalized_path.split("/")
         if ".." in path_parts:
             raise InvalidRequestError(
-                f"Directory traversal detected in path: {file_path}"
+                "Directory traversal detected"
             )
         
         try:
             # Convert to Path and resolve to absolute path
             # This follows symlinks and normalizes the path
-            path = Path(file_path).resolve(strict=True)
-        except FileNotFoundError:
-            raise InvalidRequestError(
-                f"File not found: {file_path}"
-            )
+            # Note: strict parameter removed as it's deprecated since Python 3.6
+            path = Path(file_path).resolve()
+            
+            # Verify the file exists after resolving
+            if not path.exists():
+                raise InvalidRequestError("File not found")
+                
         except (OSError, RuntimeError) as e:
             raise InvalidRequestError(
-                f"Invalid file path: {e}"
+                f"Invalid file path: {str(e)}"
             )
         
         # Verify it's a regular file (not a directory, device, etc.)
         if not path.is_file():
             if path.is_dir():
                 raise InvalidRequestError(
-                    f"Path is a directory, not a file: {file_path}"
+                    "Path is a directory, not a file"
                 )
             else:
                 raise InvalidRequestError(
-                    f"Path is not a regular file: {file_path}"
+                    "Path is not a regular file"
                 )
         
         # Validate file extension if restrictions are set
