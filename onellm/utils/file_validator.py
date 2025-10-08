@@ -71,22 +71,31 @@ class FileValidator:
         max_size: Optional[int] = None,
         allowed_extensions: Optional[Set[str]] = None,
         validate_mime: bool = True,
+        base_directory: Optional[Path] = None,
     ) -> Path:
         """
         Validate and normalize a file path for security.
         
         This method performs comprehensive validation including:
         - Path existence and type checking
-        - Directory traversal prevention
+        - Directory traversal prevention (basic check)
         - File size validation
         - Extension validation
         - MIME type validation
+        
+        Security Notes:
+            - The ".." check happens before path resolution, catching obvious attempts
+            - Symlinks are followed during resolution, which could bypass restrictions
+            - For maximum security, specify base_directory to restrict access scope
+            - Without base_directory, any accessible file can be validated
         
         Args:
             file_path: Path to the file to validate
             max_size: Maximum allowed file size in bytes (default: 100MB)
             allowed_extensions: Set of allowed file extensions (default: common types)
             validate_mime: Whether to validate MIME type matches extension
+            base_directory: Optional base directory to restrict file access to.
+                          If provided, resolved path must be within this directory.
             
         Returns:
             Validated and normalized Path object
@@ -98,6 +107,12 @@ class FileValidator:
             >>> path = FileValidator.validate_file_path("data/file.txt")
             >>> with open(path, 'rb') as f:
             ...     data = f.read()
+            
+            >>> # With base directory restriction
+            >>> path = FileValidator.validate_file_path(
+            ...     "uploads/user123/file.txt",
+            ...     base_directory=Path("/app/uploads")
+            ... )
         """
         # Validate input type
         if not file_path or not isinstance(file_path, str):
@@ -130,6 +145,19 @@ class FileValidator:
             # Verify the file exists after resolving
             if not path.exists():
                 raise InvalidRequestError("File not found")
+            
+            # If base_directory specified, ensure resolved path is within it
+            # This provides protection against symlink attacks
+            if base_directory is not None:
+                base = base_directory.resolve()
+                try:
+                    # Check if resolved path is relative to base directory
+                    path.relative_to(base)
+                except ValueError:
+                    # Path is outside base_directory
+                    raise InvalidRequestError(
+                        "File path outside allowed directory"
+                    )
                 
         except (OSError, RuntimeError) as e:
             raise InvalidRequestError(

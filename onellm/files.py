@@ -77,10 +77,18 @@ def _sanitize_filename(filename: Optional[str], default: str = "file.bin") -> st
 
 class SizeLimitedFileWrapper:
     """
-    Wrapper for file-like objects that enforces size limits during reading.
+    Transparent wrapper for file-like objects that enforces size limits during reading.
     
     This is used for non-seekable streams where we can't check the size upfront.
     The wrapper tracks bytes read and raises an error if the limit is exceeded.
+    
+    The wrapper uses __getattr__ to delegate all attributes and methods to the
+    underlying file object, making it transparent to providers that expect
+    standard file-like objects.
+    
+    Note: This only protects against reading too much data. A race condition
+    exists where the file could be modified between size check and read for
+    seekable files. For untrusted sources, validate both before and after.
     """
     
     def __init__(self, file_obj: BinaryIO, max_size: int, name: str = "file"):
@@ -104,7 +112,12 @@ class SizeLimitedFileWrapper:
         return data
     
     def __getattr__(self, name: str):
-        """Delegate all other attributes to the wrapped file object."""
+        """
+        Delegate all other attributes and methods to the wrapped file object.
+        
+        This makes the wrapper transparent to code expecting standard file-like
+        objects, including provider implementations.
+        """
         return getattr(self._file, name)
 
 
@@ -235,10 +248,17 @@ class File:
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
                     try:
                         current_pos = file.tell()
-                        file.seek(0, 2)  # Seek to end
-                        file_size = file.tell()
-                        file.seek(current_pos)  # Restore position
-                        is_seekable = True
+                        try:
+                            file.seek(0, 2)  # Seek to end
+                            file_size = file.tell()
+                            is_seekable = True
+                        finally:
+                            # Always restore position, even if an error occurs
+                            try:
+                                file.seek(current_pos)
+                            except (OSError, IOError):
+                                # If we can't restore position, file is likely broken
+                                pass
                     except (OSError, IOError):
                         # File is not seekable
                         pass
@@ -398,10 +418,17 @@ class File:
                 if hasattr(file, 'seek') and hasattr(file, 'tell'):
                     try:
                         current_pos = file.tell()
-                        file.seek(0, 2)  # Seek to end
-                        file_size = file.tell()
-                        file.seek(current_pos)  # Restore position
-                        is_seekable = True
+                        try:
+                            file.seek(0, 2)  # Seek to end
+                            file_size = file.tell()
+                            is_seekable = True
+                        finally:
+                            # Always restore position, even if an error occurs
+                            try:
+                                file.seek(current_pos)
+                            except (OSError, IOError):
+                                # If we can't restore position, file is likely broken
+                                pass
                     except (OSError, IOError):
                         # File is not seekable
                         pass

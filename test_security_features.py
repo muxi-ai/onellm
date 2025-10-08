@@ -142,14 +142,14 @@ def test_file_path_validation():
         # Should fail with small limit
         try:
             FileValidator.validate_file_path(temp_file, max_size=100)
-            assert False, "Should have failed size check"
+            raise AssertionError("Should have failed size check")
         except InvalidRequestError as e:
             assert "too large" in str(e), "Failed: size error"
         
         # Should fail with wrong extension
         try:
             FileValidator.validate_file_path(temp_file, allowed_extensions={".pdf"})
-            assert False, "Should have failed extension check"
+            raise AssertionError("Should have failed extension check")
         except InvalidRequestError as e:
             assert "not allowed" in str(e), "Failed: extension error"
             
