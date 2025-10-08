@@ -508,7 +508,6 @@ class BedrockProvider(Provider):
                 # Handle streaming response using thread-safe queue
                 async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                     """Generator function to process streaming chunks"""
-                    import concurrent.futures
                     import queue
                     
                     # Use thread-safe queue (not asyncio.Queue) for cross-thread communication
@@ -535,14 +534,10 @@ class BedrockProvider(Provider):
                             # Signal completion
                             sync_queue.put(("done", None))
                     
-                    # Start the streaming worker in a background thread using ThreadPoolExecutor
-                    # This ensures proper thread lifecycle management
+                    # Start the streaming worker in a background thread
+                    # Use default executor (None) for simpler lifecycle management
                     loop = asyncio.get_event_loop()
-                    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                    future = loop.run_in_executor(executor, stream_worker)
-                    
-                    # Track if worker completed successfully
-                    worker_completed = False
+                    future = loop.run_in_executor(None, stream_worker)
                     
                     try:
                         # Process events from the queue with timeout to prevent indefinite hangs
@@ -567,7 +562,6 @@ class BedrockProvider(Provider):
                             
                             # Check for completion signal
                             if msg_type == "done":
-                                worker_completed = True
                                 break
                             
                             # Check for error
@@ -646,26 +640,16 @@ class BedrockProvider(Provider):
                                     # Metadata about usage, etc.
                                     continue
                     finally:
-                        # Ensure proper cleanup: wait for worker thread and shutdown executor
+                        # Ensure proper cleanup: wait for worker thread to complete
                         try:
                             # Wait for worker to complete (with timeout to prevent hanging)
-                            if not worker_completed:
-                                # Worker didn't complete normally - cancel if possible
-                                try:
-                                    await asyncio.wait_for(future, timeout=5.0)
-                                except asyncio.TimeoutError:
-                                    # Worker is stuck - force shutdown
-                                    pass
-                            else:
-                                # Worker completed normally - just await
-                                await future
-                        except Exception:
-                            # Suppress exceptions during cleanup
+                            await asyncio.wait_for(future, timeout=5.0)
+                        except asyncio.TimeoutError:
+                            # Worker is stuck - thread will be cleaned up by executor
                             pass
-                        finally:
-                            # Always shutdown executor and wait for thread to finish
-                            # This prevents resource leaks
-                            executor.shutdown(wait=True, cancel_futures=True)
+                        except Exception:
+                            # Suppress other exceptions during cleanup
+                            pass
 
                 return chunk_generator()
             else:

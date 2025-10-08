@@ -317,43 +317,54 @@ class File:
             # Try to get size from seekable file-like object for early validation
             # Note: Size can still change after this check (TOCTOU), but we wrap below
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                # Save original position first - if this fails, file is already problematic
                 try:
                     current_pos = file.tell()
-                    original_error = None
-                    position_error = None
+                except (OSError, IOError) as e:
+                    raise InvalidRequestError(
+                        f"Cannot determine current file position: {str(e)}. "
+                        f"File object may be in an invalid state."
+                    ) from e
+                
+                size_check_error = None
+                position_restored = False
+                
+                try:
+                    # Attempt to get file size
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
-                    except Exception as e:
-                        # Capture any exception from size check
-                        original_error = e
+                    except (OSError, IOError) as e:
+                        size_check_error = e
                     finally:
-                        # Always try to restore position, even if an error occurs
+                        # Always attempt to restore position, regardless of size check result
                         try:
                             file.seek(current_pos)
-                        except OSError as e:
-                            # Store restoration error separately
-                            position_error = e
+                            position_restored = True
+                        except (OSError, IOError) as restore_error:
+                            # Position restoration failed
+                            if size_check_error is not None:
+                                # Both operations failed
+                                raise InvalidRequestError(
+                                    f"File size check failed: {str(size_check_error)}. "
+                                    f"Additionally, cannot restore file position: {str(restore_error)}. "
+                                    f"File object is now in an inconsistent state and cannot be used."
+                                ) from size_check_error
+                            else:
+                                # Size check succeeded but restoration failed
+                                raise InvalidRequestError(
+                                    f"Successfully read file size, but cannot restore original position: {str(restore_error)}. "
+                                    f"File object is now at end-of-file and cannot be used for upload."
+                                ) from restore_error
                     
-                    # Handle exceptions: check if file is now in inconsistent state
-                    if original_error is not None:
-                        if position_error is not None:
-                            # Both errors occurred - file is in inconsistent state
-                            # Raise original error but mention position issue
-                            raise InvalidRequestError(
-                                f"Error during file size check: {str(original_error)}. "
-                                f"Additionally, failed to restore file position: {str(position_error)}. "
-                                f"File object is in an inconsistent state."
-                            ) from original_error
-                        else:
-                            # Only original error - position was restored successfully
-                            raise original_error
-                    elif position_error is not None:
-                        # Only position error - size check succeeded but can't restore position
+                    # If we got here, position was restored successfully
+                    if size_check_error is not None:
+                        # Size check failed but position was restored - file is still usable
                         raise InvalidRequestError(
-                            f"Failed to restore file position after size check: {str(position_error)}. "
-                            f"File object is in an inconsistent state."
-                        )
+                            f"Cannot determine file size: {str(size_check_error)}. "
+                            f"File position has been restored, but size validation cannot proceed."
+                        ) from size_check_error
+                        
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)
                     # This is not an error, just means we can't pre-check size
@@ -532,43 +543,54 @@ class File:
             # Try to get size from seekable file-like object for early validation
             # Note: Size can still change after this check (TOCTOU), but we wrap below
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                # Save original position first - if this fails, file is already problematic
                 try:
                     current_pos = file.tell()
-                    original_error = None
-                    position_error = None
+                except (OSError, IOError) as e:
+                    raise InvalidRequestError(
+                        f"Cannot determine current file position: {str(e)}. "
+                        f"File object may be in an invalid state."
+                    ) from e
+                
+                size_check_error = None
+                position_restored = False
+                
+                try:
+                    # Attempt to get file size
                     try:
                         file.seek(0, 2)  # Seek to end
                         file_size = file.tell()
-                    except Exception as e:
-                        # Capture any exception from size check
-                        original_error = e
+                    except (OSError, IOError) as e:
+                        size_check_error = e
                     finally:
-                        # Always try to restore position, even if an error occurs
+                        # Always attempt to restore position, regardless of size check result
                         try:
                             file.seek(current_pos)
-                        except OSError as e:
-                            # Store restoration error separately
-                            position_error = e
+                            position_restored = True
+                        except (OSError, IOError) as restore_error:
+                            # Position restoration failed
+                            if size_check_error is not None:
+                                # Both operations failed
+                                raise InvalidRequestError(
+                                    f"File size check failed: {str(size_check_error)}. "
+                                    f"Additionally, cannot restore file position: {str(restore_error)}. "
+                                    f"File object is now in an inconsistent state and cannot be used."
+                                ) from size_check_error
+                            else:
+                                # Size check succeeded but restoration failed
+                                raise InvalidRequestError(
+                                    f"Successfully read file size, but cannot restore original position: {str(restore_error)}. "
+                                    f"File object is now at end-of-file and cannot be used for upload."
+                                ) from restore_error
                     
-                    # Handle exceptions: check if file is now in inconsistent state
-                    if original_error is not None:
-                        if position_error is not None:
-                            # Both errors occurred - file is in inconsistent state
-                            # Raise original error but mention position issue
-                            raise InvalidRequestError(
-                                f"Error during file size check: {str(original_error)}. "
-                                f"Additionally, failed to restore file position: {str(position_error)}. "
-                                f"File object is in an inconsistent state."
-                            ) from original_error
-                        else:
-                            # Only original error - position was restored successfully
-                            raise original_error
-                    elif position_error is not None:
-                        # Only position error - size check succeeded but can't restore position
+                    # If we got here, position was restored successfully
+                    if size_check_error is not None:
+                        # Size check failed but position was restored - file is still usable
                         raise InvalidRequestError(
-                            f"Failed to restore file position after size check: {str(position_error)}. "
-                            f"File object is in an inconsistent state."
-                        )
+                            f"Cannot determine file size: {str(size_check_error)}. "
+                            f"File position has been restored, but size validation cannot proceed."
+                        ) from size_check_error
+                        
                 except OSError:
                     # File is not seekable (e.g., stdin, pipe, socket)
                     # This is not an error, just means we can't pre-check size

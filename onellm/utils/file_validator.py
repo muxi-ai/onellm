@@ -36,6 +36,7 @@ DEFAULT_MAX_FILE_SIZE = 100 * 1024 * 1024
 # These are common file types used with LLM APIs
 DEFAULT_ALLOWED_EXTENSIONS: set[str] = {
     # Audio formats (for transcription, translation)
+    # Note: .m4a is audio-only MP4, .mp4 is in video section
     ".mp3", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".ogg", ".flac",
     # Image formats (for vision models)
     ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".tif",
@@ -47,7 +48,7 @@ DEFAULT_ALLOWED_EXTENSIONS: set[str] = {
     ".xml", ".yaml", ".yml", ".toml", ".ini",
     # Archive formats
     ".zip", ".tar", ".gz", ".bz2", ".7z",
-    # Video formats (for future support and audio containers)
+    # Video formats (can contain audio tracks)
     ".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv",
 }
 
