@@ -26,6 +26,28 @@ ScalVer offers the best of both worlds:
 
 For more information about ScalVer, visit [scalver.org](https://scalver.org).
 
+### Async Reliability
+
+- Replaced manual event loop creation with `utils.run_async`, letting synchronous APIs safely reuse running loops in notebooks and web frameworks.
+- Added Jupyter-aware fallbacks (`nest_asyncio`) and clearer guidance when sync methods are invoked from async contexts.
+- Published `utils.maybe_await` to normalize sync/async callables across helpers.
+
+### Input Validation Guardrails
+
+- Introduced `onellm.validators` to enforce safe ranges for temperature, token limits, penalties, stop sequences, and related parameters.
+- Added provider-aware model validation so invalid OpenAI, Anthropic, Mistral, and other model names fail fast with actionable messages.
+
+### Secure File Handling & Streaming
+
+- Hardened `File.upload`/`File.aupload` by sanitizing filenames, enforcing extension and MIME allowlists, and streaming-safe size limits for files, bytes, and file-like objects.
+- Propagated validated filenames through every provider while closing directory traversal, TOCTOU, and race-condition gaps surfaced in review.
+- Stabilized Amazon Bedrock streaming with aligned async usage, higher timeouts, and queue handling fixes.
+
+### Testing & Security Evidence
+
+- Added dedicated unit and integration coverage for async helper behavior, file validation, and provider upload regressions.
+- Captured proactive security scan results and remediation reports documenting the hardening work.
+
 ## 0.1.4 - Vercel AI Gateway & 2025 Model Updates
 
 **Status**: Development Status :: 5 - Production/Stable
