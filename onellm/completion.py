@@ -31,13 +31,7 @@ from .providers.base import get_provider_with_fallbacks, parse_model_name
 from .models import CompletionResponse
 from .utils.fallback import FallbackConfig
 from .utils.async_helpers import run_async
-from .validators import (
-    validate_model_name,
-    validate_prompt,
-    validate_stream,
-    validate_completion_params,
-    validate_provider_model,
-)
+from .validators import validate_model_name, validate_prompt, validate_stream
 
 class Completion:
     """Class for creating text completions with various providers."""
@@ -88,19 +82,10 @@ class Completion:
         validate_prompt(prompt)
         validate_stream(stream)
         
-        # Validate all parameters
-        validate_completion_params(**kwargs)
-        
-        # Parse model and validate for provider
-        provider_name, model_without_prefix = parse_model_name(model)
-        validate_provider_model(model_without_prefix, provider_name)
-        
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
-                fb_provider, fb_model = parse_model_name(fallback_model)
-                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None
@@ -181,19 +166,10 @@ class Completion:
         validate_prompt(prompt)
         validate_stream(stream)
         
-        # Validate all parameters
-        validate_completion_params(**kwargs)
-        
-        # Parse model and validate for provider
-        provider_name, model_without_prefix = parse_model_name(model)
-        validate_provider_model(model_without_prefix, provider_name)
-        
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
-                fb_provider, fb_model = parse_model_name(fallback_model)
-                validate_provider_model(fb_model, fb_provider)
 
         # Process fallback configuration
         fb_config = None
