@@ -113,9 +113,11 @@ class FileValidator:
         
         # Check for directory traversal attempts BEFORE resolving
         # This catches patterns like "../../../etc/passwd"
+        # Check for ".." as a path component, not as a substring (to avoid false positives)
         # Normalize separators for cross-platform compatibility
         normalized_path = file_path.replace("\\", "/")
-        if ".." in normalized_path:
+        path_parts = normalized_path.split("/")
+        if ".." in path_parts:
             raise InvalidRequestError(
                 f"Directory traversal detected in path: {file_path}"
             )
