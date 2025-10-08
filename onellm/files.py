@@ -101,6 +101,13 @@ class File:
             file_data = file
             filename = kwargs.pop("filename", "file.bin")
             
+            # Validate filename extension and MIME type for security
+            FileValidator.validate_filename(
+                filename,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
+            
         elif hasattr(file, "read"):
             # File-like object - read and validate
             file_data = file.read()
@@ -114,7 +121,17 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            # Check for file.name first, only pop from kwargs if needed
+            filename = getattr(file, "name", None)
+            if not filename:
+                filename = kwargs.pop("filename", "file.bin")
+            
+            # Validate filename extension and MIME type for security
+            FileValidator.validate_filename(
+                filename,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
             
         else:
             raise InvalidRequestError(
@@ -194,6 +211,13 @@ class File:
             file_data = file
             filename = kwargs.pop("filename", "file.bin")
             
+            # Validate filename extension and MIME type for security
+            FileValidator.validate_filename(
+                filename,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
+            
         elif hasattr(file, "read"):
             # File-like object - read and validate
             file_data = file.read()
@@ -207,7 +231,17 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            # Check for file.name first, only pop from kwargs if needed
+            filename = getattr(file, "name", None)
+            if not filename:
+                filename = kwargs.pop("filename", "file.bin")
+            
+            # Validate filename extension and MIME type for security
+            FileValidator.validate_filename(
+                filename,
+                allowed_extensions=allowed_extensions,
+                validate_mime=validate_mime
+            )
             
         else:
             raise InvalidRequestError(

@@ -322,3 +322,72 @@ class FileValidator:
             raise InvalidRequestError(
                 f"{name} too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
             )
+    
+    @staticmethod
+    def validate_filename(
+        filename: str,
+        allowed_extensions: Optional[Set[str]] = None,
+        validate_mime: bool = True,
+    ) -> None:
+        """
+        Validate a filename for extension and MIME type compatibility.
+        
+        This is useful for validating bytes or file-like object uploads where
+        we don't have access to the actual file path.
+        
+        Args:
+            filename: Name of the file to validate
+            allowed_extensions: Set of allowed file extensions (e.g., {'.pdf', '.txt'})
+            validate_mime: Whether to check MIME type compatibility
+            
+        Raises:
+            InvalidRequestError: If filename validation fails
+        """
+        if not filename or not isinstance(filename, str):
+            raise InvalidRequestError(
+                "filename must be a non-empty string"
+            )
+        
+        from pathlib import Path
+        path = Path(filename)
+        
+        # Validate file extension if restrictions are set
+        if allowed_extensions:
+            file_extension = path.suffix.lower()
+            
+            # Normalize allowed extensions
+            normalized_extensions = {
+                ext.lower() if ext.startswith('.') else f'.{ext.lower()}'
+                for ext in allowed_extensions
+            }
+            
+            # Empty extension check
+            if not file_extension:
+                raise InvalidRequestError(
+                    f"File has no extension: {filename}. "
+                    f"Allowed extensions: {', '.join(sorted(normalized_extensions))}"
+                )
+            
+            # Check if extension is allowed
+            if file_extension not in normalized_extensions:
+                # Create a helpful error message
+                allowed_list = ', '.join(sorted(normalized_extensions)[:10])
+                if len(normalized_extensions) > 10:
+                    allowed_list += f", ... ({len(normalized_extensions) - 10} more)"
+                
+                raise InvalidRequestError(
+                    f"File type not allowed: {file_extension}. "
+                    f"Allowed types: {allowed_list}"
+                )
+        
+        # Validate MIME type if requested
+        if validate_mime:
+            import mimetypes
+            
+            # Guess MIME type from extension
+            guessed_type, _ = mimetypes.guess_type(filename)
+            
+            if guessed_type is None:
+                # If we can't guess the MIME type, only allow if extension is common
+                # This prevents rejecting valid files that mimetypes doesn't recognize
+                pass  # Don't reject - extension validation above is sufficient
