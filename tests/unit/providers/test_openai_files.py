@@ -355,15 +355,38 @@ class TestOpenAIFileOperations:
         assert "File not found" in str(excinfo.value)
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Cannot easily mock aiohttp.ClientSession inside download_file")
-    async def test_download_file_error_handling(self):
+    @patch.object(OpenAIProvider, "_execute_download_request")
+    async def test_download_file_success(self, mock_execute_download):
+        """Test successful file download."""
+        # Mock successful file download
+        expected_content = b"This is the file content from the server"
+        mock_execute_download.return_value = expected_content
+
+        # Call the method
+        result = await self.provider.download_file(file_id="file-123")
+
+        # Verify result
+        assert result == expected_content
+
+        # Verify the mock was called
+        mock_execute_download.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch.object(OpenAIProvider, "_execute_download_request")
+    async def test_download_file_error_handling(self, mock_execute_download):
         """Test download_file error handling."""
-        # Since we can't control the aiohttp.ClientSession inside download_file
-        # This test is marked as expected to fail
+        # Configure mock to raise an error (simulating 404 response)
+        from onellm.errors import InvalidRequestError
+        
+        mock_execute_download.side_effect = InvalidRequestError(
+            "File not found", status_code=404, provider="openai"
+        )
+
+        # Call method and expect error
         with pytest.raises(InvalidRequestError) as exc_info:
             await self.provider.download_file(file_id="non-existent-file")
 
-        # Verify error message if the test somehow passes
+        # Verify error message
         assert "File not found" in str(exc_info.value)
 
 

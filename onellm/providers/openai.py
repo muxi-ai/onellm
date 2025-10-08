@@ -772,6 +772,36 @@ class OpenAIProvider(Provider):
             status_details=response_data.get("status_details"),
         )
 
+    async def _execute_download_request(
+        self, url: str, headers: dict[str, str], timeout: aiohttp.ClientTimeout
+    ) -> bytes:
+        """
+        Execute the HTTP request for file download.
+        
+        This method is separated to allow for easier testing/mocking.
+
+        Args:
+            url: URL to download from
+            headers: HTTP headers
+            timeout: Request timeout
+
+        Returns:
+            Bytes content of the file
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url=url,
+                headers=headers,
+                timeout=timeout,
+            ) as response:
+                # Check for error status codes
+                if response.status != 200:
+                    error_data = await response.json()
+                    self._handle_error_response(response.status, error_data)
+
+                # Return the raw file content
+                return await response.read()
+
     async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
         Download a file from OpenAI.
@@ -790,24 +820,11 @@ class OpenAIProvider(Provider):
         # Get authentication headers
         headers = self._get_headers()
 
-        async def execute_request():
-            """Inner function to execute the download request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url=url,
-                    headers=headers,
-                    timeout=timeout,
-                ) as response:
-                    # Check for error status codes
-                    if response.status != 200:
-                        error_data = await response.json()
-                        self._handle_error_response(response.status, error_data)
-
-                    # Return the raw file content
-                    return await response.read()
-
         # Use retry mechanism for reliability
-        return await retry_async(execute_request, config=self.retry_config)
+        return await retry_async(
+            lambda: self._execute_download_request(url, headers, timeout),
+            config=self.retry_config,
+        )
 
     async def list_files(self, **kwargs) -> dict[str, Any]:
         """
