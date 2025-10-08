@@ -125,18 +125,13 @@ class FileValidator:
             allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS
 
         # Early check for directory traversal attempts in input
-        # Check for ".." as path component (comprehensive patterns)
+        # Check for ".." as a path component (not substring)
         # Normalize both / and \\ separators for cross-platform detection
         normalized_input = file_path.replace("\\", "/")
-        # Check for various traversal patterns:
-        # - Starts with ".." (relative parent)
-        # - Contains "/.." (parent reference in path)
-        # - Contains "../" (parent reference with trailing)
-        # - Is exactly ".." (just parent)
-        if (normalized_input.startswith("..") or 
-            "/.." in normalized_input or 
-            "../" in normalized_input or
-            normalized_input == ".."):
+        # Split into path components and check for ".." as a component
+        # This avoids false positives for filenames containing ".." as substring
+        path_components = [c for c in normalized_input.split("/") if c]  # Filter empty strings
+        if ".." in path_components:
             raise InvalidRequestError("Directory traversal detected")
 
         try:

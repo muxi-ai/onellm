@@ -505,11 +505,14 @@ class BedrockProvider(Provider):
 
         try:
             if stream:
-                # Handle streaming response using asyncio.Queue for thread bridging
+                # Handle streaming response using thread-safe queue
                 async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                     """Generator function to process streaming chunks"""
-                    # Create a queue for thread-to-async communication
-                    queue: asyncio.Queue = asyncio.Queue()
+                    import concurrent.futures
+                    import queue
+                    
+                    # Use thread-safe queue (not asyncio.Queue) for cross-thread communication
+                    sync_queue: queue.Queue = queue.Queue()
                     
                     # Generate a unique stream ID for consistent chunk IDs
                     stream_id = str(uuid.uuid4())
@@ -523,104 +526,119 @@ class BedrockProvider(Provider):
                             
                             # Process the event stream
                             for event in response.get("stream", []):
-                                # Put events in queue for async processing
-                                queue.put_nowait(event)
+                                # Put events in thread-safe queue
+                                sync_queue.put(("event", event))
                         except Exception as e:
                             # Put exception in queue
-                            queue.put_nowait(("error", e))
+                            sync_queue.put(("error", e))
                         finally:
                             # Signal completion
-                            queue.put_nowait(None)
+                            sync_queue.put(("done", None))
                     
-                    # Start the streaming worker in a background thread
+                    # Start the streaming worker in a background thread using ThreadPoolExecutor
+                    # This ensures proper thread lifecycle management
                     loop = asyncio.get_event_loop()
-                    loop.run_in_executor(None, stream_worker)
+                    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                    future = loop.run_in_executor(executor, stream_worker)
                     
-                    # Process events from the queue
-                    while True:
-                        event = await queue.get()
-                        
-                        # Check for completion signal
-                        if event is None:
-                            break
-                        
-                        # Check for error
-                        if isinstance(event, tuple) and event[0] == "error":
-                            raise event[1]
-                        
-                        chunk_counter += 1
-                        
-                        if "contentBlockStart" in event:
-                            # Beginning of a content block
-                            continue
-                        elif "contentBlockDelta" in event:
-                            # Content delta with text
-                            delta = event["contentBlockDelta"].get("delta", {})
-                            if "text" in delta:
-                                # Create a ChoiceDelta object
-                                choice_delta = ChoiceDelta(
-                                    content=delta["text"],
-                                    role=None,
-                                    function_call=None,
-                                    tool_calls=None,
-                                    finish_reason=None,
-                                )
-                                # Create a StreamingChoice object
-                                choice = StreamingChoice(
-                                    delta=choice_delta,
-                                    finish_reason=None,
-                                    index=0,
-                                )
+                    try:
+                        # Process events from the queue
+                        while True:
+                            # Use run_in_executor to avoid blocking on queue.get()
+                            msg_type, data = await loop.run_in_executor(None, sync_queue.get)
+                            
+                            # Check for completion signal
+                            if msg_type == "done":
+                                break
+                            
+                            # Check for error
+                            if msg_type == "error":
+                                raise data
+                            
+                            # Process event
+                            if msg_type == "event":
+                                event = data
+                                chunk_counter += 1
+                                
+                                if "contentBlockStart" in event:
+                                    # Beginning of a content block
+                                    continue
+                                elif "contentBlockDelta" in event:
+                                    # Content delta with text
+                                    delta = event["contentBlockDelta"].get("delta", {})
+                                    if "text" in delta:
+                                        # Create a ChoiceDelta object
+                                        choice_delta = ChoiceDelta(
+                                            content=delta["text"],
+                                            role=None,
+                                            function_call=None,
+                                            tool_calls=None,
+                                            finish_reason=None,
+                                        )
+                                        # Create a StreamingChoice object
+                                        choice = StreamingChoice(
+                                            delta=choice_delta,
+                                            finish_reason=None,
+                                            index=0,
+                                        )
 
-                                # Create the chunk response object with deterministic ID
-                                chunk_resp = ChatCompletionChunk(
-                                    id=f"chatcmpl-{stream_id}-{chunk_counter}",
-                                    object="chat.completion.chunk",
-                                    created=int(time.time()),
-                                    model=model,
-                                    choices=[choice],
-                                    system_fingerprint=None,
-                                )
-                                yield chunk_resp
-                        elif "contentBlockStop" in event:
-                            # End of a content block
-                            continue
-                        elif "messageStop" in event:
-                            # End of the message
-                            stop_reason = event["messageStop"].get("stopReason", "stop")
+                                        # Create the chunk response object with deterministic ID
+                                        chunk_resp = ChatCompletionChunk(
+                                            id=f"chatcmpl-{stream_id}-{chunk_counter}",
+                                            object="chat.completion.chunk",
+                                            created=int(time.time()),
+                                            model=model,
+                                            choices=[choice],
+                                            system_fingerprint=None,
+                                        )
+                                        yield chunk_resp
+                                elif "contentBlockStop" in event:
+                                    # End of a content block
+                                    continue
+                                elif "messageStop" in event:
+                                    # End of the message
+                                    stop_reason = event["messageStop"].get("stopReason", "stop")
 
-                            chunk_counter += 1
-                            # Send final chunk with finish_reason
-                            choice_delta = ChoiceDelta(
-                                content=None,
-                                role=None,
-                                function_call=None,
-                                tool_calls=None,
-                                finish_reason=stop_reason,
-                            )
-                            choice = StreamingChoice(
-                                delta=choice_delta,
-                                finish_reason=stop_reason,
-                                index=0,
-                            )
+                                    chunk_counter += 1
+                                    # Send final chunk with finish_reason
+                                    choice_delta = ChoiceDelta(
+                                        content=None,
+                                        role=None,
+                                        function_call=None,
+                                        tool_calls=None,
+                                        finish_reason=stop_reason,
+                                    )
+                                    choice = StreamingChoice(
+                                        delta=choice_delta,
+                                        finish_reason=stop_reason,
+                                        index=0,
+                                    )
 
-                            chunk_resp = ChatCompletionChunk(
-                                id=f"chatcmpl-{stream_id}-{chunk_counter}",
-                                object="chat.completion.chunk",
-                                created=int(time.time()),
-                                model=model,
-                                choices=[choice],
-                                system_fingerprint=None,
-                            )
-                            yield chunk_resp
-                        elif "metadata" in event:
-                            # Metadata about usage, etc.
-                            continue
+                                    chunk_resp = ChatCompletionChunk(
+                                        id=f"chatcmpl-{stream_id}-{chunk_counter}",
+                                        object="chat.completion.chunk",
+                                        created=int(time.time()),
+                                        model=model,
+                                        choices=[choice],
+                                        system_fingerprint=None,
+                                    )
+                                    yield chunk_resp
+                                elif "metadata" in event:
+                                    # Metadata about usage, etc.
+                                    continue
+                    finally:
+                        # Ensure executor shutdown and thread completion
+                        await future
+                        executor.shutdown(wait=False)
 
                 return chunk_generator()
             else:
                 # Handle non-streaming response - offload to thread to avoid blocking
-                response = await asyncio.to_thread(self.client.converse, **request_params)
+                # Use run_in_executor for Python 3.8+ compatibility (asyncio.to_thread is 3.9+)
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None, lambda: self.client.converse(**request_params)
+                )
 
                 # Convert Bedrock response to OpenAI format
                 return self._convert_bedrock_to_openai_response(response, model)

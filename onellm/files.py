@@ -314,7 +314,8 @@ class File:
             # max_size is always set (defaults to 100MB if not specified)
             file_size = None
 
-            # Try to get size from seekable file-like object
+            # Try to get size from seekable file-like object for early validation
+            # Note: Size can still change after this check (TOCTOU), but we wrap below
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
                 try:
                     current_pos = file.tell()
@@ -323,16 +324,20 @@ class File:
                         file_size = file.tell()
                     finally:
                         # Always restore position, even if an error occurs
+                        # If restoration fails, raise error as file pointer is inconsistent
                         try:
                             file.seek(current_pos)
-                        except OSError:
-                            # If we can't restore position, file is likely broken
-                            pass
+                        except OSError as e:
+                            # File pointer cannot be restored - file is in inconsistent state
+                            raise InvalidRequestError(
+                                f"Failed to restore file position after size check: {str(e)}"
+                            )
                 except OSError:
-                    # File is not seekable
+                    # File is not seekable (e.g., stdin, pipe, socket)
+                    # This is not an error, just means we can't pre-check size
                     pass
 
-            # If we got the size, validate it
+            # If we got the size, validate it (early check, wrapper enforces below)
             if file_size is not None:
                 max_mb = max_size / (1024 * 1024)
                 actual_mb = file_size / (1024 * 1024)
@@ -342,7 +347,7 @@ class File:
                     )
 
             # ALWAYS wrap with size-limiting wrapper to prevent TOCTOU attacks
-            # For seekable files: prevents size changes after validation
+            # For seekable files: prevents size changes after validation (TOCTOU protection)
             # For non-seekable streams: enforces size limits during reading
             # The wrapper is transparent and delegates all operations
             file = SizeLimitedFileWrapper(file, max_size, filename)
@@ -502,7 +507,8 @@ class File:
             # max_size is always set (defaults to 100MB if not specified)
             file_size = None
 
-            # Try to get size from seekable file-like object
+            # Try to get size from seekable file-like object for early validation
+            # Note: Size can still change after this check (TOCTOU), but we wrap below
             if hasattr(file, 'seek') and hasattr(file, 'tell'):
                 try:
                     current_pos = file.tell()
@@ -511,16 +517,20 @@ class File:
                         file_size = file.tell()
                     finally:
                         # Always restore position, even if an error occurs
+                        # If restoration fails, raise error as file pointer is inconsistent
                         try:
                             file.seek(current_pos)
-                        except OSError:
-                            # If we can't restore position, file is likely broken
-                            pass
+                        except OSError as e:
+                            # File pointer cannot be restored - file is in inconsistent state
+                            raise InvalidRequestError(
+                                f"Failed to restore file position after size check: {str(e)}"
+                            )
                 except OSError:
-                    # File is not seekable
+                    # File is not seekable (e.g., stdin, pipe, socket)
+                    # This is not an error, just means we can't pre-check size
                     pass
 
-            # If we got the size, validate it
+            # If we got the size, validate it (early check, wrapper enforces below)
             if file_size is not None:
                 max_mb = max_size / (1024 * 1024)
                 actual_mb = file_size / (1024 * 1024)
@@ -530,7 +540,7 @@ class File:
                     )
 
             # ALWAYS wrap with size-limiting wrapper to prevent TOCTOU attacks
-            # For seekable files: prevents size changes after validation
+            # For seekable files: prevents size changes after validation (TOCTOU protection)
             # For non-seekable streams: enforces size limits during reading
             # The wrapper is transparent and delegates all operations
             file = SizeLimitedFileWrapper(file, max_size, filename)
