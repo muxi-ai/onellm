@@ -113,7 +113,10 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            # Check for file.name first, only pop from kwargs if needed
+            filename = getattr(file, "name", None)
+            if not filename:
+                filename = kwargs.pop("filename", "file.bin")
             
         else:
             raise InvalidRequestError(
@@ -205,7 +208,10 @@ class File:
                 max_size=max_size,
                 name="file data"
             )
-            filename = getattr(file, "name", kwargs.pop("filename", "file.bin"))
+            # Check for file.name first, only pop from kwargs if needed
+            filename = getattr(file, "name", None)
+            if not filename:
+                filename = kwargs.pop("filename", "file.bin")
             
         else:
             raise InvalidRequestError(
