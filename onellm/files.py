@@ -123,18 +123,7 @@ class File:
                 kwargs["filename"] = filename
             
         elif hasattr(file, "read"):
-            # File-like object - validate by reading (required for size check)
-            file_data = file.read()
-            if not isinstance(file_data, bytes):
-                raise InvalidRequestError(
-                    f"File object must read bytes, got {type(file_data).__name__}"
-                )
-            
-            FileValidator.validate_bytes_size(
-                file_data,
-                max_size=max_size,
-                name="file data"
-            )
+            # File-like object - try to validate without reading entire file
             
             # Get filename from file.name or kwargs - required if allowed_extensions is set
             filename = getattr(file, "name", None) or kwargs.get("filename")
@@ -152,8 +141,33 @@ class File:
                 validate_mime=validate_mime
             )
             
-            # Pass the bytes to provider (file-like object already consumed)
-            file_to_upload = file_data
+            # For size validation, try to get size without reading entire file
+            if max_size is not None:
+                file_size = None
+                
+                # Try to get size from seekable file-like object
+                if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                    try:
+                        current_pos = file.tell()
+                        file.seek(0, 2)  # Seek to end
+                        file_size = file.tell()
+                        file.seek(current_pos)  # Restore position
+                    except (OSError, IOError):
+                        # File is not seekable, will need to read
+                        pass
+                
+                # If we got the size, validate it
+                if file_size is not None:
+                    max_mb = max_size / (1024 * 1024)
+                    actual_mb = file_size / (1024 * 1024)
+                    if file_size > max_size:
+                        raise InvalidRequestError(
+                            f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
+                        )
+            
+            # Pass the original file-like object to provider for optimal handling
+            # Provider can stream the file or handle as needed
+            file_to_upload = file
             if "filename" not in kwargs:
                 kwargs["filename"] = filename
             
@@ -256,18 +270,7 @@ class File:
                 kwargs["filename"] = filename
             
         elif hasattr(file, "read"):
-            # File-like object - validate by reading (required for size check)
-            file_data = file.read()
-            if not isinstance(file_data, bytes):
-                raise InvalidRequestError(
-                    f"File object must read bytes, got {type(file_data).__name__}"
-                )
-            
-            FileValidator.validate_bytes_size(
-                file_data,
-                max_size=max_size,
-                name="file data"
-            )
+            # File-like object - try to validate without reading entire file
             
             # Get filename from file.name or kwargs - required if allowed_extensions is set
             filename = getattr(file, "name", None) or kwargs.get("filename")
@@ -285,8 +288,33 @@ class File:
                 validate_mime=validate_mime
             )
             
-            # Pass the bytes to provider (file-like object already consumed)
-            file_to_upload = file_data
+            # For size validation, try to get size without reading entire file
+            if max_size is not None:
+                file_size = None
+                
+                # Try to get size from seekable file-like object
+                if hasattr(file, 'seek') and hasattr(file, 'tell'):
+                    try:
+                        current_pos = file.tell()
+                        file.seek(0, 2)  # Seek to end
+                        file_size = file.tell()
+                        file.seek(current_pos)  # Restore position
+                    except (OSError, IOError):
+                        # File is not seekable, will need to read
+                        pass
+                
+                # If we got the size, validate it
+                if file_size is not None:
+                    max_mb = max_size / (1024 * 1024)
+                    actual_mb = file_size / (1024 * 1024)
+                    if file_size > max_size:
+                        raise InvalidRequestError(
+                            f"File too large: {actual_mb:.2f}MB exceeds {max_mb:.2f}MB"
+                        )
+            
+            # Pass the original file-like object to provider for optimal handling
+            # Provider can stream the file or handle as needed
+            file_to_upload = file
             if "filename" not in kwargs:
                 kwargs["filename"] = filename
             
