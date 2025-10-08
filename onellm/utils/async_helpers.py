@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Unified interface for LLM providers using OpenAI format
@@ -105,20 +104,20 @@ def _is_jupyter_environment() -> bool:
         True if in Jupyter/IPython, False otherwise
     """
     try:
-        # Check if IPython is available
-        get_ipython = sys.modules.get('IPython')
-        if get_ipython is None:
+        # Check if IPython module is available in sys.modules
+        ipython_module = sys.modules.get('IPython')
+        if ipython_module is None:
             return False
         
-        # Try to get the IPython instance
+        # Try to import and call get_ipython function
         from IPython import get_ipython
-        ipython = get_ipython()
+        ipython_instance = get_ipython()
         
-        if ipython is None:
+        if ipython_instance is None:
             return False
             
         # Check if it's a ZMQInteractiveShell (Jupyter) or TerminalInteractiveShell (IPython)
-        return ipython.__class__.__name__ in ['ZMQInteractiveShell', 'TerminalInteractiveShell']
+        return ipython_instance.__class__.__name__ in ['ZMQInteractiveShell', 'TerminalInteractiveShell']
     except (ImportError, AttributeError):
         return False
 
