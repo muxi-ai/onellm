@@ -465,10 +465,10 @@ print(f"Entries: {stats['entries']}, Hits: {stats['hits']}, Misses: {stats['miss
 
 ### Out of Memory
 
-Cache uses ~1KB per entry. For 1000 entries:
+Cache uses ~2.5KB per entry. For 1000 entries:
 - Hash cache: ~1MB
-- Semantic index: ~400KB per 1000 vectors
-- **Total**: ~1.5MB per 1000 entries
+- Semantic index: ~1.5MB per 1000 vectors
+- **Total**: ~2.5MB per 1000 entries
 
 **Solutions:**
 1. Reduce `max_entries`: `init_cache(max_entries=500)`

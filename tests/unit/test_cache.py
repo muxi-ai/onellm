@@ -407,3 +407,30 @@ class TestSimpleCache:
         result = cache.get(model, messages)
         assert result == response
         assert cache.hits == 2
+
+    def test_semantic_eviction_sync(self):
+        """Test that semantic data stays in sync with hash cache during eviction."""
+        config = CacheConfig(max_entries=3, hash_only=True)  # Small cache for testing
+        cache = SimpleCache(config)
+
+        # Add 4 entries to trigger eviction
+        for i in range(4):
+            model = "openai/gpt-4"
+            messages = [{"role": "user", "content": f"Message {i}"}]
+            response = {"choices": [{"message": {"content": f"Response {i}"}}]}
+            cache.set(model, messages, response)
+
+        # Should have exactly max_entries (3) in cache after eviction
+        assert len(cache.hash_cache) == 3
+
+        # First message should have been evicted
+        messages_0 = [{"role": "user", "content": "Message 0"}]
+        result = cache.get(model, messages_0)
+        assert result is None  # Evicted
+
+        # Messages 1-3 should still be cached
+        for i in range(1, 4):
+            messages_i = [{"role": "user", "content": f"Message {i}"}]
+            result = cache.get(model, messages_i)
+            assert result is not None
+            assert result["choices"][0]["message"]["content"] == f"Response {i}"

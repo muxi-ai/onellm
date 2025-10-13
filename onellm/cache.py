@@ -101,7 +101,8 @@ class SimpleCache:
         # Semantic search components (lazy-loaded)
         self.embedder = None
         self.semantic_index = None
-        self.semantic_data = []  # Stores (hash_key, response) tuples
+        self.semantic_data = []  # Stores (hash_key, embedding) tuples
+        self._semantic_responses = []  # Stores responses parallel to semantic_data
         self.np = None
 
         # Only initialize semantic components if not hash-only mode
@@ -210,7 +211,7 @@ class SimpleCache:
         if len(scores) > 0 and scores[0][0] >= self.config.similarity_threshold:
             # Found similar entry above threshold
             idx = indices[0][0]
-            hash_key, response = self.semantic_data[idx]
+            response = self._semantic_responses[idx]
 
             logger.debug(
                 f"Semantic cache hit (similarity: {scores[0][0]:.3f}, "
@@ -293,7 +294,18 @@ class SimpleCache:
         # LRU eviction if needed
         if len(self.hash_cache) > self.config.max_entries:
             # Remove oldest entry (first item in OrderedDict)
-            self.hash_cache.popitem(last=False)
+            evicted_key, _ = self.hash_cache.popitem(last=False)
+
+            # Also remove from semantic index if present
+            if not self.config.hash_only and self.semantic_data:
+                # Find and remove the evicted entry from semantic data
+                for i, (stored_key, _) in enumerate(self.semantic_data):
+                    if stored_key == evicted_key:
+                        self.semantic_data.pop(i)
+                        self._semantic_responses.pop(i)
+                        # Rebuild index to reflect removal
+                        self._rebuild_semantic_index()
+                        break
 
         # Add to semantic index (for similarity search)
         if not self.config.hash_only and self.embedder is not None:
@@ -330,13 +342,15 @@ class SimpleCache:
                     # Add to FAISS index
                     self.semantic_index.add(embedding)
 
-                    # Store mapping to response
-                    self.semantic_data.append((hash_key, response))
+                    # Store embedding and response (keep parallel lists for efficient lookup)
+                    self.semantic_data.append((hash_key, embedding[0]))  # Store 1D embedding
+                    self._semantic_responses.append(response)
 
                     # Evict from semantic index if needed
                     if len(self.semantic_data) > self.config.max_entries:
-                        # Rebuild index without oldest entry
+                        # Remove oldest entry and rebuild index
                         self.semantic_data.pop(0)
+                        self._semantic_responses.pop(0)
                         self._rebuild_semantic_index()
 
                 except Exception as e:
@@ -344,21 +358,24 @@ class SimpleCache:
 
     def _rebuild_semantic_index(self):
         """Rebuild semantic index after eviction."""
-        if self.embedder is None:
+        if self.embedder is None or not self.semantic_data:
             return
 
         import faiss
+        import numpy as np
 
-        # Create new index
+        # Create new index with correct dimension
         self.semantic_index = faiss.IndexFlatIP(384)
 
-        # Re-add all remaining entries
-        for hash_key, response in self.semantic_data:
-            # Get text from hash_cache
-            if hash_key in self.hash_cache:
-                # Extract messages from cached response
-                # Note: This is a simplified approach; in production might want to store embeddings
-                pass
+        # Re-add all remaining embeddings in order
+        if self.semantic_data:
+            # Stack all embeddings into a 2D array
+            embeddings = np.array([emb for _, emb in self.semantic_data], dtype="float32")
+
+            # Add all embeddings to the new index
+            self.semantic_index.add(embeddings)
+
+            logger.debug(f"Rebuilt semantic index with {len(self.semantic_data)} entries")
 
     def clear(self):
         """Clear all cached entries."""
@@ -371,6 +388,7 @@ class SimpleCache:
 
             self.semantic_index = faiss.IndexFlatIP(384)
             self.semantic_data.clear()
+            self._semantic_responses.clear()
 
         logger.info("Cache cleared")
 
