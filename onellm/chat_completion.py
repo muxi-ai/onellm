@@ -372,11 +372,15 @@ class ChatCompletion:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
 
-        # Check cache first
+        # Preserve original messages for cache operations (before _process_capabilities mutates them)
+        import copy
+        original_messages = copy.deepcopy(messages)
+
+        # Check cache first (use original unmutated messages)
         from . import _cache
 
         if _cache is not None:
-            cached_response = _cache.get(model, messages, **kwargs)
+            cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
                     # Return simulated streaming from cached response
@@ -406,7 +410,7 @@ class ChatCompletion:
         )
 
         # Process capabilities - adjust messages and kwargs based on provider support
-        messages, stream, processed_kwargs = cls._process_capabilities(
+        processed_messages, stream, processed_kwargs = cls._process_capabilities(
             provider, messages, stream, kwargs
         )
 
@@ -414,20 +418,20 @@ class ChatCompletion:
         # This handles edge cases like Jupyter notebooks, existing event loops, etc.
         response = run_async(
             provider.create_chat_completion(
-                messages=messages, model=model_name, stream=stream, **processed_kwargs
+                messages=processed_messages, model=model_name, stream=stream, **processed_kwargs
             )
         )
 
-        # Cache the response
+        # Cache the response (use original unmutated messages)
         if _cache is not None:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._accumulate_and_cache_stream(
-                    response, _cache, model, messages, **kwargs
+                    response, _cache, model, original_messages, **kwargs
                 )
             else:
                 # For non-streaming, cache directly
-                _cache.set(model, messages, response, **kwargs)
+                _cache.set(model, original_messages, response, **kwargs)
 
         return response
 
@@ -483,11 +487,15 @@ class ChatCompletion:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
 
-        # Check cache first
+        # Preserve original messages for cache operations (before _process_capabilities mutates them)
+        import copy
+        original_messages = copy.deepcopy(messages)
+
+        # Check cache first (use original unmutated messages)
         from . import _cache
 
         if _cache is not None:
-            cached_response = _cache.get(model, messages, **kwargs)
+            cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
                     # Return simulated streaming from cached response
@@ -517,24 +525,24 @@ class ChatCompletion:
         )
 
         # Process capabilities - adjust messages and kwargs based on provider support
-        messages, stream, processed_kwargs = cls._process_capabilities(
+        processed_messages, stream, processed_kwargs = cls._process_capabilities(
             provider, messages, stream, kwargs
         )
 
         # Call the provider's method asynchronously
         response = await provider.create_chat_completion(
-            messages=messages, model=model_name, stream=stream, **processed_kwargs
+            messages=processed_messages, model=model_name, stream=stream, **processed_kwargs
         )
 
-        # Cache the response
+        # Cache the response (use original unmutated messages)
         if _cache is not None:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._aaccumulate_and_cache_stream(
-                    response, _cache, model, messages, **kwargs
+                    response, _cache, model, original_messages, **kwargs
                 )
             else:
                 # For non-streaming, cache directly
-                _cache.set(model, messages, response, **kwargs)
+                _cache.set(model, original_messages, response, **kwargs)
 
         return response
