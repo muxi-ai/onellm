@@ -140,6 +140,27 @@ class TestSimpleCache:
         assert cache.hits == 0
         assert cache.misses == 0
 
+    def test_cache_clear_with_semantic_data(self):
+        """Test that clearing cache also clears semantic data structures."""
+        config = CacheConfig(hash_only=True)  # Use hash_only to avoid loading model
+        cache = SimpleCache(config)
+
+        # Manually populate semantic structures to test clearing
+        # (simulating what would happen with semantic mode enabled)
+        cache.semantic_data = [("key1", [0.1] * 384), ("key2", [0.2] * 384)]
+        cache._semantic_responses = [{"response": 1}, {"response": 2}]
+
+        # Verify data exists
+        assert len(cache.semantic_data) == 2
+        assert len(cache._semantic_responses) == 2
+
+        # Clear cache
+        cache.clear()
+
+        # Verify all semantic data is cleared
+        assert len(cache.semantic_data) == 0
+        assert len(cache._semantic_responses) == 0
+
     def test_cache_stats(self):
         """Test cache statistics."""
         config = CacheConfig(hash_only=True)

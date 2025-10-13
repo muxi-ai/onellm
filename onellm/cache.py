@@ -383,12 +383,15 @@ class SimpleCache:
         self.hits = 0
         self.misses = 0
 
+        # Always clear semantic data structures (even if semantic_index is None)
+        self.semantic_data.clear()
+        self._semantic_responses.clear()
+
+        # Recreate semantic index if it was initialized
         if self.semantic_index is not None:
             import faiss
 
             self.semantic_index = faiss.IndexFlatIP(384)
-            self.semantic_data.clear()
-            self._semantic_responses.clear()
 
         logger.info("Cache cleared")
 
