@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Unified interface for LLM providers using OpenAI format
 # https://github.com/muxi-ai/onellm
@@ -31,7 +30,6 @@ import logging
 import time
 import warnings
 from collections import OrderedDict
-from typing import Any
 
 logger = logging.getLogger("onellm.cache")
 
@@ -128,6 +126,7 @@ class SimpleCache:
                 f"Install with: pip install sentence-transformers faiss-cpu. "
                 f"Falling back to hash-only mode (exact matches only).",
                 UserWarning,
+                stacklevel=2,
             )
             self.config.hash_only = True
 
@@ -353,8 +352,12 @@ class SimpleCache:
                         self._semantic_responses.pop(0)
                         self._rebuild_semantic_index()
 
-                except Exception as e:
+                except (ValueError, RuntimeError, ImportError, AttributeError) as e:
+                    # Expected errors: invalid embeddings, FAISS issues, missing dependencies
                     logger.warning(f"Failed to add to semantic cache: {e}")
+                except Exception as e:
+                    # Unexpected errors should be logged as errors
+                    logger.error(f"Unexpected error adding to semantic cache: {e}", exc_info=True)
 
     def _rebuild_semantic_index(self):
         """Rebuild semantic index after eviction."""
