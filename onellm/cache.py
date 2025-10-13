@@ -320,9 +320,9 @@ class SimpleCache:
                         logger.warning(f"Expected string for embedding, got {type(text)}")
                         return
 
-                    logger.debug(f"Encoding text (len={len(text)}): {text[:50]}...")
+                    logger.debug(f"Encoding text for cache (length: {len(text)} chars)")
                     embedding = self.embedder.encode([text], convert_to_numpy=True)
-                    logger.debug(f"Encoded embedding shape: {embedding.shape}, type: {type(embedding)}")
+                    logger.debug(f"Generated embedding (shape: {embedding.shape}, dtype: {embedding.dtype})")
 
                     # Extract first embedding (encode with list returns batch)
                     if len(embedding.shape) == 2:
