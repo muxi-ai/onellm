@@ -218,6 +218,109 @@ class ChatCompletion:
         return messages, stream, processed_kwargs
 
     @classmethod
+    def _accumulate_and_cache_stream(cls, stream_generator, cache, model, messages, **kwargs):
+        """
+        Wrap a streaming response to accumulate chunks and cache the complete response.
+
+        This generator yields chunks as they arrive while building the complete response
+        in the background. Once streaming completes, it caches the full response.
+
+        Args:
+            stream_generator: Generator yielding ChatCompletionChunk objects
+            cache: Cache instance to store the complete response
+            model: Model identifier
+            messages: Original messages
+            **kwargs: Additional parameters
+
+        Yields:
+            ChatCompletionChunk objects from the original stream
+        """
+        accumulated_content = ""
+        last_chunk = None
+
+        # Iterate through the stream, yielding each chunk
+        for chunk in stream_generator:
+            last_chunk = chunk
+
+            # Extract content from delta
+            if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
+                delta = chunk.choices[0].get('delta', {})
+                content = delta.get('content', '')
+                if content:
+                    accumulated_content += content
+
+            yield chunk
+
+        # After streaming completes, cache the complete response
+        if last_chunk and accumulated_content:
+            # Create a complete ChatCompletionResponse from accumulated content
+            complete_response = ChatCompletionResponse(
+                id=last_chunk.id if hasattr(last_chunk, 'id') else "cached",
+                object="chat.completion",
+                model=last_chunk.model if hasattr(last_chunk, 'model') else model,
+                created=last_chunk.created if hasattr(last_chunk, 'created') else 0,
+                choices=[
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": accumulated_content},
+                        "finish_reason": "stop",
+                    }
+                ],
+            )
+            cache.set(model, messages, complete_response, **kwargs)
+
+    @classmethod
+    async def _aaccumulate_and_cache_stream(cls, stream_generator, cache, model, messages, **kwargs):
+        """
+        Async version of _accumulate_and_cache_stream.
+
+        Wrap an async streaming response to accumulate chunks and cache the complete response.
+
+        Args:
+            stream_generator: Async generator yielding ChatCompletionChunk objects
+            cache: Cache instance to store the complete response
+            model: Model identifier
+            messages: Original messages
+            **kwargs: Additional parameters
+
+        Yields:
+            ChatCompletionChunk objects from the original stream
+        """
+        accumulated_content = ""
+        last_chunk = None
+
+        # Iterate through the async stream, yielding each chunk
+        async for chunk in stream_generator:
+            last_chunk = chunk
+
+            # Extract content from delta
+            if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
+                delta = chunk.choices[0].get('delta', {})
+                content = delta.get('content', '')
+                if content:
+                    accumulated_content += content
+
+            yield chunk
+
+        # After streaming completes, cache the complete response
+        if last_chunk and accumulated_content:
+            # Create a complete ChatCompletionResponse from accumulated content
+            complete_response = ChatCompletionResponse(
+                id=last_chunk.id if hasattr(last_chunk, 'id') else "cached",
+                object="chat.completion",
+                model=last_chunk.model if hasattr(last_chunk, 'model') else model,
+                created=last_chunk.created if hasattr(last_chunk, 'created') else 0,
+                choices=[
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": accumulated_content},
+                        "finish_reason": "stop",
+                    }
+                ],
+            )
+            cache.set(model, messages, complete_response, **kwargs)
+
+    @classmethod
     def create(
         cls,
         model: str,
@@ -269,6 +372,18 @@ class ChatCompletion:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
 
+        # Check cache first
+        from . import _cache
+
+        if _cache is not None:
+            cached_response = _cache.get(model, messages, **kwargs)
+            if cached_response is not None:
+                if stream:
+                    # Return simulated streaming from cached response
+                    return _cache.simulate_streaming(cached_response)
+                else:
+                    return cached_response
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
@@ -297,11 +412,24 @@ class ChatCompletion:
 
         # Call the provider's method synchronously using our safe async runner
         # This handles edge cases like Jupyter notebooks, existing event loops, etc.
-        return run_async(
+        response = run_async(
             provider.create_chat_completion(
                 messages=messages, model=model_name, stream=stream, **processed_kwargs
             )
         )
+
+        # Cache the response
+        if _cache is not None:
+            if stream:
+                # For streaming, accumulate chunks and cache the complete response
+                response = cls._accumulate_and_cache_stream(
+                    response, _cache, model, messages, **kwargs
+                )
+            else:
+                # For non-streaming, cache directly
+                _cache.set(model, messages, response, **kwargs)
+
+        return response
 
     @classmethod
     async def acreate(
@@ -355,6 +483,18 @@ class ChatCompletion:
             for i, fallback_model in enumerate(fallback_models):
                 validate_model_name(fallback_model)
 
+        # Check cache first
+        from . import _cache
+
+        if _cache is not None:
+            cached_response = _cache.get(model, messages, **kwargs)
+            if cached_response is not None:
+                if stream:
+                    # Return simulated streaming from cached response
+                    return _cache.simulate_streaming(cached_response)
+                else:
+                    return cached_response
+
         # Process fallback configuration
         fb_config = None
         if fallback_config:
@@ -382,6 +522,19 @@ class ChatCompletion:
         )
 
         # Call the provider's method asynchronously
-        return await provider.create_chat_completion(
+        response = await provider.create_chat_completion(
             messages=messages, model=model_name, stream=stream, **processed_kwargs
         )
+
+        # Cache the response
+        if _cache is not None:
+            if stream:
+                # For streaming, accumulate chunks and cache the complete response
+                response = cls._aaccumulate_and_cache_stream(
+                    response, _cache, model, messages, **kwargs
+                )
+            else:
+                # For non-streaming, cache directly
+                _cache.set(model, messages, response, **kwargs)
+
+        return response

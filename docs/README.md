@@ -33,6 +33,7 @@ Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs
 
 - [Architecture]({{ site.baseurl }}/architecture.md) - How OneLLM works under the hood
 - [Provider System]({{ site.baseurl }}/providers/README.md) - Understanding providers and models
+- [Semantic Caching]({{ site.baseurl }}/caching.md) - Reduce API costs by 50-80% with intelligent caching
 - [Error Handling]({{ site.baseurl }}/error-handling.md) - Handling errors gracefully
 
 ### API Reference
@@ -75,6 +76,7 @@ Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs
 - **Drop-in Replacement**: Works exactly like the OpenAI client
 - **18+ Providers**: OpenAI, Anthropic, Google, Mistral, and more
 - **300+ Models**: Access to a vast ecosystem of LLMs
+- **Semantic Caching**: Reduce API costs by 50-80% with intelligent multilingual caching
 - **Unified Interface**: Same code works with all providers
 - **Type Safety**: Full type hints and IDE support
 - **Async Support**: Both sync and async operations

@@ -108,6 +108,12 @@ __all__ = [
     "parse_model_name",   # Parse provider from model name
     "get_provider_config",  # Get configuration for a provider
 
+    # Cache management
+    "init_cache",      # Initialize semantic cache
+    "disable_cache",   # Disable caching
+    "clear_cache",     # Clear cache entries
+    "cache_stats",     # Get cache statistics
+
     # Error handling
     "MuxiLLMError",       # Base error class
     "APIError",           # API-related errors
@@ -115,6 +121,110 @@ __all__ = [
     "RateLimitError",     # Rate limit exceeded
     "InvalidRequestError",  # Invalid request parameters
 ]
+
+# Cache management - global cache instance
+_cache = None
+
+
+def init_cache(
+    max_entries: int = 1000,
+    p: float = 0.95,
+    hash_only: bool = False,
+    stream_chunk_strategy: str = "words",
+    stream_chunk_length: int = 8,
+    ttl: int = 86400,
+):
+    """
+    Initialize the global semantic cache.
+
+    The cache reduces API costs and improves response times by intelligently caching
+    LLM responses using a hybrid approach: instant hash-based exact matching combined
+    with semantic similarity search for near-duplicate queries.
+
+    For streaming requests, cached responses are returned as simulated streams, chunked
+    naturally to maintain the streaming UX while saving API costs.
+
+    Args:
+        max_entries: Maximum number of cache entries before LRU eviction (default: 1000)
+        p: Similarity threshold for semantic matching (default: 0.95)
+        hash_only: Disable semantic matching, use only hash-based exact matches (default: False)
+        stream_chunk_strategy: How to chunk cached streaming responses (default: "words")
+            - "words": Split by words (most natural for general text)
+            - "sentences": Split by sentences (periods, newlines, etc.)
+            - "paragraphs": Split by paragraphs (double newlines)
+            - "characters": Split by character count (precise control)
+        stream_chunk_length: Number of strategy units per chunk (default: 8)
+            - For "words": 8 words per chunk (~40 chars)
+            - For "sentences": 8 sentences per chunk
+            - For "paragraphs": 8 paragraphs per chunk
+            - For "characters": 8 characters per chunk
+        ttl: Time-to-live in seconds for cache entries (default: 86400, 1 day)
+            - Entries older than TTL are automatically expired on access
+            - Accessing an entry refreshes its TTL
+
+    Example:
+        >>> import onellm
+        >>> onellm.init_cache()  # Enable with defaults
+        >>> onellm.init_cache(p=0.9)  # More aggressive matching
+        >>> onellm.init_cache(stream_chunk_strategy="sentences", stream_chunk_length=2)
+        >>> onellm.init_cache(ttl=3600)  # 1 hour TTL
+        >>> response = ChatCompletion.create(...)  # Responses now cached
+    """
+    global _cache
+
+    from .cache import CacheConfig, SimpleCache
+
+    config = CacheConfig(
+        max_entries=max_entries,
+        similarity_threshold=p,
+        hash_only=hash_only,
+        stream_chunk_strategy=stream_chunk_strategy,
+        stream_chunk_length=stream_chunk_length,
+        ttl=ttl,
+    )
+    _cache = SimpleCache(config)
+
+
+def disable_cache():
+    """
+    Disable caching.
+
+    Example:
+        >>> import onellm
+        >>> onellm.disable_cache()
+    """
+    global _cache
+    _cache = None
+
+
+def clear_cache():
+    """
+    Clear all cached entries.
+
+    Example:
+        >>> import onellm
+        >>> onellm.clear_cache()
+    """
+    if _cache:
+        _cache.clear()
+
+
+def cache_stats() -> dict:
+    """
+    Get cache statistics.
+
+    Returns:
+        Dictionary with hits, misses, and entries count
+
+    Example:
+        >>> import onellm
+        >>> stats = onellm.cache_stats()
+        >>> print(f"Hit rate: {stats['hits'] / (stats['hits'] + stats['misses']):.1%}")
+    """
+    if _cache:
+        return _cache.stats()
+    return {"hits": 0, "misses": 0, "entries": 0}
+
 
 # Provider-specific API keys can be accessed as globals after they're set:
 # e.g., from onellm import openai_api_key, anthropic_api_key
