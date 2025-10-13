@@ -419,6 +419,42 @@ response = timed_chat_completion(
 
 ## Troubleshooting
 
+### Suppressing Cache Warnings
+
+The cache logger uses Python's standard logging and can be configured to suppress warnings:
+
+**Suppress cache warnings only:**
+```python
+import logging
+logging.getLogger("onellm.cache").setLevel(logging.ERROR)
+```
+
+**Suppress all onellm logging:**
+```python
+import logging
+logging.getLogger("onellm").setLevel(logging.ERROR)
+```
+
+**Disable onellm logging completely:**
+```python
+import logging
+logging.getLogger("onellm").addHandler(logging.NullHandler())
+logging.getLogger("onellm").propagate = False
+```
+
+**Filter specific messages:**
+```python
+import logging
+
+class CacheWarningFilter(logging.Filter):
+    def filter(self, record):
+        return "Failed to add to semantic cache" not in record.getMessage()
+
+logging.getLogger("onellm.cache").addFilter(CacheWarningFilter())
+```
+
+**Note:** Configure logging before calling `onellm.init_cache()` for best results.
+
 ### Cache Not Working
 
 **Check if cache is initialized:**
