@@ -1,12 +1,36 @@
 ---
 layout: default
 title: Advanced Features
-nav_order: 7
+nav_order: 8
 ---
 
 # Advanced Features
 
-This guide covers advanced features and configurations in OneLLM, including fallback mechanisms, retry strategies, and working with multiple providers.
+This guide covers advanced features and configurations in OneLLM, including fallback mechanisms, retry strategies, semantic caching, and working with multiple providers.
+
+## Semantic Caching
+
+OneLLM includes intelligent semantic caching to reduce API costs and improve response times. For complete documentation, see [Semantic Caching]({{ site.baseurl }}/caching.md).
+
+**Quick example:**
+```python
+import onellm
+
+# Enable cache
+onellm.init_cache()
+
+# Responses are now cached automatically
+response = ChatCompletion.create(...)  # API call + cached
+response = ChatCompletion.create(...)  # Instant from cache
+```
+
+**Key benefits:**
+- 50-80% cost reduction during development
+- Instant response for cached queries
+- Multilingual support (50+ languages)
+- Zero ongoing costs (local embeddings)
+
+[→ Full caching documentation]({{ site.baseurl }}/caching.md)
 
 ## Fallback Mechanism
 

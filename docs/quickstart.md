@@ -252,6 +252,7 @@ response = client.chat.completions.create(
 
 ## Next Steps
 
+- [Semantic Caching]({{ site.baseurl }}/caching.md) - Reduce API costs by 50-80%
 - [Provider List]({{ site.baseurl }}/providers/README.md) - Explore all 21 providers
 - [API Reference]({{ site.baseurl }}/api/client.md) - Detailed API documentation
 - [Examples]({{ site.baseurl }}/examples/basic.md) - More code examples

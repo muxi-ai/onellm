@@ -12,18 +12,21 @@ from onellm.chat_completion import ChatCompletion
 from onellm.completion import Completion
 from onellm.providers.fallback import FallbackProviderProxy
 
+# Mock _cache globally to avoid cache initialization in tests
+mock.patch('onellm._cache', None).start()
+
 class TestRetries:
     """Test the retry functionality."""
 
     @mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
-    @mock.patch("onellm.chat_completion.asyncio.run")
-    def test_chat_completion_retries_without_fallbacks(self, mock_asyncio_run, mock_get_provider):
+    @mock.patch("onellm.chat_completion.run_async")
+    def test_chat_completion_retries_without_fallbacks(self, mock_run_async, mock_get_provider):
         """Test retry parameter adds the same model multiple times to fallbacks."""
         # Setup mocks
         mock_provider = mock.MagicMock()
         mock_provider.create_chat_completion.return_value = mock.MagicMock()
         mock_get_provider.return_value = (mock_provider, "gpt-4")
-        mock_asyncio_run.return_value = mock.MagicMock()
+        mock_run_async.return_value = mock.MagicMock()
 
         # Call with retries=3
         ChatCompletion.create(
@@ -39,14 +42,14 @@ class TestRetries:
         assert kwargs["fallback_models"] == ["openai/gpt-4"] * 3
 
     @mock.patch("onellm.chat_completion.get_provider_with_fallbacks")
-    @mock.patch("onellm.chat_completion.asyncio.run")
-    def test_chat_completion_retries_with_fallbacks(self, mock_asyncio_run, mock_get_provider):
+    @mock.patch("onellm.chat_completion.run_async")
+    def test_chat_completion_retries_with_fallbacks(self, mock_run_async, mock_get_provider):
         """Test retry parameter adds models before existing fallbacks."""
         # Setup mocks
         mock_provider = mock.MagicMock()
         mock_provider.create_chat_completion.return_value = mock.MagicMock()
         mock_get_provider.return_value = (mock_provider, "gpt-4")
-        mock_asyncio_run.return_value = mock.MagicMock()
+        mock_run_async.return_value = mock.MagicMock()
 
         # Call with retries=2 and fallback_models
         ChatCompletion.create(
@@ -66,14 +69,14 @@ class TestRetries:
         assert kwargs["fallback_models"] == expected_fallbacks
 
     @mock.patch("onellm.completion.get_provider_with_fallbacks")
-    @mock.patch("onellm.completion.asyncio.run")
-    def test_completion_retries_without_fallbacks(self, mock_asyncio_run, mock_get_provider):
+    @mock.patch("onellm.completion.run_async")
+    def test_completion_retries_without_fallbacks(self, mock_run_async, mock_get_provider):
         """Test retry parameter for Completion adds the same model multiple times."""
         # Setup mocks
         mock_provider = mock.MagicMock()
         mock_provider.create_completion.return_value = mock.MagicMock()
         mock_get_provider.return_value = (mock_provider, "gpt-3.5-turbo-instruct")
-        mock_asyncio_run.return_value = mock.MagicMock()
+        mock_run_async.return_value = mock.MagicMock()
 
         # Call with retries=3
         Completion.create(
@@ -89,14 +92,14 @@ class TestRetries:
         assert kwargs["fallback_models"] == ["openai/gpt-3.5-turbo-instruct"] * 3
 
     @mock.patch("onellm.completion.get_provider_with_fallbacks")
-    @mock.patch("onellm.completion.asyncio.run")
-    def test_completion_retries_with_fallbacks(self, mock_asyncio_run, mock_get_provider):
+    @mock.patch("onellm.completion.run_async")
+    def test_completion_retries_with_fallbacks(self, mock_run_async, mock_get_provider):
         """Test retry parameter for Completion adds models before existing fallbacks."""
         # Setup mocks
         mock_provider = mock.MagicMock()
         mock_provider.create_completion.return_value = mock.MagicMock()
         mock_get_provider.return_value = (mock_provider, "gpt-3.5-turbo-instruct")
-        mock_asyncio_run.return_value = mock.MagicMock()
+        mock_run_async.return_value = mock.MagicMock()
 
         # Call with retries=2 and fallback_models
         Completion.create(
