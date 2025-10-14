@@ -414,5 +414,3 @@ response = client.chat.completions.create(
 
 - [Provider Setup]({% link providers/setup.md %}) - Detailed setup instructions
 - [Provider Capabilities]({% link providers/capabilities.md %}) - Feature comparison matrix
-- [Examples]({% link examples/providers.md %}) - Provider-specific examples
-- [Best Practices]({% link guides/best-practices.md %}) - Choosing providers
