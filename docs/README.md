@@ -25,45 +25,45 @@ Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs
 
 ### Getting Started
 
-- [Installation]({{ site.baseurl }}/installation.md) - How to install OneLLM
-- [Quick Start]({{ site.baseurl }}/quickstart.md) - Get up and running in 5 minutes
-- [Configuration]({{ site.baseurl }}/configuration.md) - Setting up API keys and options
+- [Installation]({{ site.baseurl }}/installation) - How to install OneLLM
+- [Quick Start]({{ site.baseurl }}/quickstart) - Get up and running in 5 minutes
+- [Configuration]({{ site.baseurl }}/configuration) - Setting up API keys and options
 
 ### Core Concepts
 
-- [Architecture]({{ site.baseurl }}/architecture.md) - How OneLLM works under the hood
-- [Provider System]({{ site.baseurl }}/providers/README.md) - Understanding providers and models
-- [Semantic Caching]({{ site.baseurl }}/caching.md) - Reduce API costs by 50-80% with intelligent caching
-- [Error Handling]({{ site.baseurl }}/error-handling.md) - Handling errors gracefully
+- [Architecture]({{ site.baseurl }}/architecture) - How OneLLM works under the hood
+- [Provider System]({{ site.baseurl }}/providers/README) - Understanding providers and models
+- [Semantic Caching]({{ site.baseurl }}/caching) - Reduce API costs by 50-80% with intelligent caching
+- [Error Handling]({{ site.baseurl }}/error-handling) - Handling errors gracefully
 
 ### API Reference
 
-- [Client API]({{ site.baseurl }}/api/client.md) - OpenAI-compatible client interface
-- [Chat Completions]({{ site.baseurl }}/api/chat-completions.md) - Chat completion methods
-- [Completions]({{ site.baseurl }}/api/completions.md) - Text completion methods
-- [Embeddings]({{ site.baseurl }}/api/embeddings.md) - Embedding generation
-- [Files]({{ site.baseurl }}/api/files.md) - File operations
-- [Audio]({{ site.baseurl }}/api/audio.md) - Speech-to-text and text-to-speech
-- [Images]({{ site.baseurl }}/api/images.md) - Image generation
+- [Client API]({{ site.baseurl }}/api/client) - OpenAI-compatible client interface
+- [Chat Completions]({{ site.baseurl }}/api/chat-completions) - Chat completion methods
+- [Completions]({{ site.baseurl }}/api/completions) - Text completion methods
+- [Embeddings]({{ site.baseurl }}/api/embeddings) - Embedding generation
+- [Files]({{ site.baseurl }}/api/files) - File operations
+- [Audio]({{ site.baseurl }}/api/audio) - Speech-to-text and text-to-speech
+- [Images]({{ site.baseurl }}/api/images) - Image generation
 
 ### Providers
 
-- [Provider List]({{ site.baseurl }}/providers/README.md) - All 18 supported providers
-- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities.md) - Feature comparison
-- [Provider Setup]({{ site.baseurl }}/providers/setup.md) - Setting up each provider
+- [Provider List]({{ site.baseurl }}/providers/README) - All 18 supported providers
+- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities) - Feature comparison
+- [Provider Setup]({{ site.baseurl }}/providers/setup) - Setting up each provider
 
 ### Guides
 
-- [Migration Guide]({{ site.baseurl }}/guides/migration.md) - Migrating from OpenAI
-- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Tips and recommendations
-- [Advanced Usage]({{ site.baseurl }}/guides/advanced.md) - Advanced features
-- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting.md) - Common issues
+- [Migration Guide]({{ site.baseurl }}/guides/migration) - Migrating from OpenAI
+- [Best Practices]({{ site.baseurl }}/guides/best-practices) - Tips and recommendations
+- [Advanced Usage]({{ site.baseurl }}/guides/advanced) - Advanced features
+- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting) - Common issues
 
 ### Examples
 
-- [Basic Examples]({{ site.baseurl }}/examples/basic.md) - Simple usage examples
-- [Provider Examples]({{ site.baseurl }}/examples/providers.md) - Provider-specific examples
-- [Advanced Examples]({{ site.baseurl }}/examples/advanced.md) - Complex use cases
+- [Basic Examples]({{ site.baseurl }}/examples/basic) - Simple usage examples
+- [Provider Examples]({{ site.baseurl }}/examples/providers) - Provider-specific examples
+- [Advanced Examples]({{ site.baseurl }}/examples/advanced) - Complex use cases
 
 ## 🚀 Quick Links
 
@@ -84,15 +84,15 @@ Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs
 
 ## 📖 How to Use This Documentation
 
-1. **New Users**: Start with [Installation]({{ site.baseurl }}/installation.md) and [Quick Start]({{ site.baseurl }}/quickstart.md)
-2. **Migrating**: Check the [Migration Guide]({{ site.baseurl }}/guides/migration.md)
-3. **API Reference**: Use the [API docs]({{ site.baseurl }}/api/client.md) for detailed method information
-4. **Provider Setup**: See [Provider Setup]({{ site.baseurl }}/providers/setup.md) for configuration
-5. **Examples**: Browse [Examples]({{ site.baseurl }}/examples/basic.md) for practical usage
+1. **New Users**: Start with [Installation]({{ site.baseurl }}/installation) and [Quick Start]({{ site.baseurl }}/quickstart)
+2. **Migrating**: Check the [Migration Guide]({{ site.baseurl }}/guides/migration)
+3. **API Reference**: Use the [API docs]({{ site.baseurl }}/api/client) for detailed method information
+4. **Provider Setup**: See [Provider Setup]({{ site.baseurl }}/providers/setup) for configuration
+5. **Examples**: Browse [Examples]({{ site.baseurl }}/examples/basic) for practical usage
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide]({{ site.baseurl }}/CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide]({{ site.baseurl }}/CONTRIBUTING) for details.
 
 ## 📝 License
 

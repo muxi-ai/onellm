@@ -285,7 +285,7 @@ response = client.chat.completions.create(...)
 
 ## Next Steps
 
-- [Chat Completions]({{ site.baseurl }}/chat-completions.md) - Detailed chat API
-- [Embeddings]({{ site.baseurl }}/embeddings.md) - Generate embeddings
-- [Error Handling]({{ site.baseurl }}/error-handling.md) - Handle errors properly
-- [Examples]({{ site.baseurl }}/examples/basic.md) - See more examples
+- [Chat Completions]({{ site.baseurl }}/chat-completions) - Detailed chat API
+- [Embeddings]({{ site.baseurl }}/embeddings) - Generate embeddings
+- [Error Handling]({{ site.baseurl }}/error-handling) - Handle errors properly
+- [Examples]({{ site.baseurl }}/examples/basic) - See more examples

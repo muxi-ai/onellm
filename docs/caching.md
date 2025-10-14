@@ -559,9 +559,9 @@ onellm.disable_cache()
 
 ## Further Reading
 
-- [Architecture](./architecture.md) - Overall OneLLM architecture
-- [Advanced Features](./advanced-features.md) - Fallbacks, retries, and more
-- [Configuration](./configuration.md) - API keys and provider setup
+- [Architecture](./architecture) - Overall OneLLM architecture
+- [Advanced Features](./advanced-features) - Fallbacks, retries, and more
+- [Configuration](./configuration) - API keys and provider setup
 - [Example: cache_example.py](../examples/cache_example.py) - Complete working example
 
 ## Support

@@ -388,6 +388,6 @@ for provider in providers:
 
 ## Next Steps
 
-- [Provider Setup]({{ site.baseurl }}/providers/setup.md) - Detailed provider configuration
-- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Configuration best practices
-- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting.md) - Common configuration issues
+- [Provider Setup]({{ site.baseurl }}/providers/setup) - Detailed provider configuration
+- [Best Practices]({{ site.baseurl }}/guides/best-practices) - Configuration best practices
+- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting) - Common configuration issues
