@@ -10,7 +10,7 @@ This guide covers advanced features and configurations in OneLLM, including fall
 
 ## Semantic Caching
 
-OneLLM includes intelligent semantic caching to reduce API costs and improve response times. For complete documentation, see [Semantic Caching]({{ site.baseurl }}/caching.md).
+OneLLM includes intelligent semantic caching to reduce API costs and improve response times. For complete documentation, see [Semantic Caching]({{ site.baseurl }}/caching).
 
 **Quick example:**
 ```python
@@ -30,7 +30,7 @@ response = ChatCompletion.create(...)  # Instant from cache
 - Multilingual support (50+ languages)
 - Zero ongoing costs (local embeddings)
 
-[→ Full caching documentation]({{ site.baseurl }}/caching.md)
+[→ Full caching documentation]({{ site.baseurl }}/caching)
 
 ## Fallback Mechanism
 
@@ -471,6 +471,6 @@ except OneLLMError as e:
 
 ## Next Steps
 
-- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities.md) - Compare provider features
-- [Error Handling]({{ site.baseurl }}/error-handling.md) - Handle errors gracefully
-- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Production recommendations
+- [Provider Capabilities]({{ site.baseurl }}/providers/capabilities) - Compare provider features
+- [Error Handling]({{ site.baseurl }}/error-handling) - Handle errors gracefully
+- [Best Practices]({{ site.baseurl }}/guides/best-practices) - Production recommendations

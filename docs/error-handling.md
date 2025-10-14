@@ -415,6 +415,6 @@ def test_rate_limit_handling():
 
 ## Next Steps
 
-- [Best Practices]({{ site.baseurl }}/guides/best-practices.md) - Error handling best practices
-- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting.md) - Common error solutions
-- [API Reference]({{ site.baseurl }}/api/client.md) - Complete API documentation
+- [Best Practices]({{ site.baseurl }}/guides/best-practices) - Error handling best practices
+- [Troubleshooting]({{ site.baseurl }}/guides/troubleshooting) - Common error solutions
+- [API Reference]({{ site.baseurl }}/api/client) - Complete API documentation

@@ -246,6 +246,6 @@ pip uninstall onellm
 
 ## Next Steps
 
-- [Quick Start Guide]({{ site.baseurl }}/quickstart.md) - Get started with OneLLM
-- [Configuration]({{ site.baseurl }}/configuration.md) - Configure providers and settings
-- [Provider Setup]({{ site.baseurl }}/providers/setup.md) - Set up specific providers
+- [Quick Start Guide]({{ site.baseurl }}/quickstart) - Get started with OneLLM
+- [Configuration]({{ site.baseurl }}/configuration) - Configure providers and settings
+- [Provider Setup]({{ site.baseurl }}/providers/setup) - Set up specific providers

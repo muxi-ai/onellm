@@ -512,6 +512,6 @@ The architecture is designed to be extensible:
 
 ## Next Steps
 
-- [Provider System]({{ site.baseurl }}/providers/README.md) - Detailed provider documentation
-- [API Reference]({{ site.baseurl }}/api/client.md) - API documentation
-- [Contributing]({{ site.baseurl }}/CONTRIBUTING.md) - How to extend OneLLM
+- [Provider System]({{ site.baseurl }}/providers/README) - Detailed provider documentation
+- [API Reference]({{ site.baseurl }}/api/client) - API documentation
+- [Contributing]({{ site.baseurl }}/CONTRIBUTING) - How to extend OneLLM
