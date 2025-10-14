@@ -69,12 +69,9 @@ callouts:
 # Enable mermaid diagrams
 mermaid:
   # Version of mermaid library
-  version: "9.1.6"
+  version: "11"
   # Load mermaid stylesheet
   load_stylesheet: false
-  # Remove the mermaid class from code blocks
-  # with the mermaid language
-  remove_code_block: true
 
 # Exclude from processing
 exclude:
