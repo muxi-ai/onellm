@@ -48,10 +48,10 @@
 
 The library follows the OpenAI client API design pattern, making it familiar to developers already using OpenAI and enabling easy migration for existing applications. **Simply change your import statements and instantly gain access to hundreds of models** across dozens of providers while maintaining your existing code structure.
 
-With support for 21 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
+With support for 22 implemented providers (and more planned), OneLLM gives you access to approximately 300+ unique language models through a single, consistent interface - from the latest proprietary models to open-source alternatives, all accessible through familiar OpenAI-compatible patterns.
 
 > [!NOTE]
-> **Ready for Use**: OneLLM now supports 21 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
+> **Ready for Use**: OneLLM now supports 22 providers with 300+ models! From cloud APIs to local models, you can access them all through a single, unified interface. [Contributions are welcome](./CONTRIBUTING.md) to help add even more providers!
 
 ---
 
@@ -124,9 +124,9 @@ For more detailed examples, check out the [examples directory](./examples).
 
 ## 🌐 Supported Providers
 
-OneLLM currently supports **21 providers** with more on the way:
+OneLLM currently supports **22 providers** with more on the way:
 
-### Cloud API Providers (19)
+### Cloud API Providers (20)
 - **Anthropic** - Claude family of models
 - **Anyscale** - Configurable AI platform
 - **AWS Bedrock** - Access to multiple model families
@@ -146,6 +146,7 @@ OneLLM currently supports **21 providers** with more on the way:
 - **Vercel AI Gateway** - Gateway to 100+ models from multiple providers
 - **Vertex AI** - Google Cloud's enterprise Gemini
 - **X.AI** - Grok models
+- **MiniMax** - M2 model series with advanced reasoning
 
 ### Local Providers (2)
 - **Ollama** - Run models locally with easy management

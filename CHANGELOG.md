@@ -1,5 +1,70 @@
 # CHANGELOG
 
+## 0.20251121.0 - MiniMax Provider Support
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New Provider
+
+- **MiniMax**: Added support for MiniMax's M2 model series through their Anthropic-compatible API
+  - **Provider name**: `minimax`
+  - **API endpoint**: `https://api.minimax.io/anthropic` (international) or `https://api.minimaxi.com/anthropic` (China)
+  - **Environment variable**: `MINMAX_API_KEY`
+  - **Supported models**: 
+    - `minimax/MiniMax-M2` - Agentic capabilities with advanced reasoning
+    - `minimax/MiniMax-M2-Stable` - Optimized for high concurrency and commercial use
+  - **Key features**:
+    - Interleaved thinking for complex reasoning tasks
+    - Tool/function calling support
+    - Streaming responses
+    - Anthropic-compatible API format
+  - **Documentation**: Added comprehensive example at `examples/providers/minimax_example.py`
+
+### Architecture Improvements
+
+- **Anthropic-Compatible Provider Base**: Created `AnthropicCompatibleProvider` base class
+  - Enables easy integration of providers that implement Anthropic's API format
+  - Similar architecture to `OpenAICompatibleProvider` for consistency
+  - MiniMax is the first provider to use this new base class
+  - Zero changes required to existing Anthropic provider (fully backward compatible)
+
+### Configuration
+
+```python
+# Using MiniMax
+from onellm import OpenAI
+
+client = OpenAI()
+
+# Basic chat completion
+response = client.chat.completions.create(
+    model="minimax/MiniMax-M2",
+    messages=[{"role": "user", "content": "Hello!"}],
+    max_tokens=1000
+)
+
+# With interleaved thinking for reasoning tasks
+response = client.chat.completions.create(
+    model="minimax/MiniMax-M2",
+    messages=[{"role": "user", "content": "Solve this problem: ..."}],
+    max_tokens=500,
+    thinking={"enabled": True, "budget_tokens": 20000}
+)
+```
+
+### Testing
+
+- Added 15 comprehensive unit tests for MiniMax provider
+- All tests passing with 100% coverage for new code
+- Verified Anthropic provider remains unaffected (17/17 tests passing)
+
+### Documentation Updates
+
+- Updated `examples/providers/README.md` to include MiniMax as provider #3
+- Added `examples/providers/minimax_example.py` with usage examples
+- Updated main README.md with MiniMax in provider list
+- Total supported providers now: **22**
+
 ## 0.20251013.0 - Semantic Caching
 
 **Status**: Development Status :: 5 - Production/Stable

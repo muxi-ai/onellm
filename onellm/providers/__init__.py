@@ -45,6 +45,9 @@ from .google import GoogleProvider
 
 # OpenAI-compatible providers
 from .groq import GroqProvider
+
+# Anthropic-compatible providers
+from .minimax import MinimaxProvider
 from .llama_cpp import LlamaCppProvider
 from .mistral import MistralProvider
 from .moonshot import MoonshotProvider
@@ -68,6 +71,9 @@ from .xai import XAIProvider
 register_provider("openai", OpenAIProvider)
 register_provider("mistral", MistralProvider)
 register_provider("anthropic", AnthropicProvider)
+
+# Anthropic-compatible providers
+register_provider("minimax", MinimaxProvider)
 
 # OpenAI-compatible providers
 register_provider("groq", GroqProvider)

@@ -1,6 +1,6 @@
 # OneLLM Provider Examples
 
-This directory contains comprehensive examples for all 21 providers supported by OneLLM. Each example demonstrates the unique features and capabilities of that provider.
+This directory contains comprehensive examples for all 22 providers supported by OneLLM. Each example demonstrates the unique features and capabilities of that provider.
 
 ## 📚 Provider Examples
 
@@ -16,107 +16,112 @@ This directory contains comprehensive examples for all 21 providers supported by
    - Multi-turn conversations, code generation
    - Required: `ANTHROPIC_API_KEY`
 
-3. **[Google AI Studio](google_example.py)** - Gemini models with multimodal support
+3. **[MiniMax](minimax_example.py)** - M2 models with interleaved thinking
+   - Advanced reasoning, agentic capabilities
+   - Anthropic-compatible API
+   - Required: `MINMAX_API_KEY`
+
+4. **[Google AI Studio](google_example.py)** - Gemini models with multimodal support
    - Vision capabilities, long context
    - JSON mode, safety settings
    - Required: `GOOGLE_API_KEY`
 
-4. **[Mistral](mistral_example.py)** - European AI with multilingual support
+5. **[Mistral](mistral_example.py)** - European AI with multilingual support
    - Multiple model sizes, function calling
    - Code generation, multilingual capabilities
    - Required: `MISTRAL_API_KEY`
 
-5. **[Cohere](cohere_example.py)** - Enterprise NLP with RAG capabilities
+6. **[Cohere](cohere_example.py)** - Enterprise NLP with RAG capabilities
    - Command models, structured generation
    - Summarization, code explanation
    - Required: `COHERE_API_KEY`
 
 ### Fast Inference Providers
 
-6. **[Groq](groq_example.py)** - Ultra-fast LPU inference
+7. **[Groq](groq_example.py)** - Ultra-fast LPU inference
    - Llama 3, Mixtral models
    - Performance benchmarks, streaming
    - Required: `GROQ_API_KEY`
 
-7. **[Together AI](together_example.py)** - Fast open model inference
+8. **[Together AI](together_example.py)** - Fast open model inference
    - Llama, Mixtral, CodeLlama models
    - Quantized models, long context
    - Required: `TOGETHER_API_KEY`
 
-8. **[Fireworks](fireworks_example.py)** - Optimized model serving
+9. **[Fireworks](fireworks_example.py)** - Optimized model serving
    - Speed tests, batch processing
    - Multilingual support
    - Required: `FIREWORKS_API_KEY`
 
-9. **[Anyscale](anyscale_example.py)** - Scalable inference with Ray
-   - Open-source models, JSON with schema
-   - Simple pricing model
-   - Required: `ANYSCALE_API_KEY`
+10. **[Anyscale](anyscale_example.py)** - Scalable inference with Ray
+    - Open-source models, JSON with schema
+    - Simple pricing model
+    - Required: `ANYSCALE_API_KEY`
 
 ### Specialized Providers
 
-10. **[X.AI (Grok)](xai_example.py)** - Grok models with 128K context
+11. **[X.AI (Grok)](xai_example.py)** - Grok models with 128K context
     - Long context handling, reasoning
     - Creative writing, analysis
     - Required: `XAI_API_KEY`
 
-11. **[Perplexity](perplexity_example.py)** - Search-augmented AI
+12. **[Perplexity](perplexity_example.py)** - Search-augmented AI
     - Real-time web access, fact checking
     - Research assistant capabilities
     - Required: `PERPLEXITY_API_KEY`
 
-12. **[DeepSeek](deepseek_example.py)** - Chinese AI with multilingual support
+13. **[DeepSeek](deepseek_example.py)** - Chinese AI with multilingual support
     - Strong Chinese language capabilities
     - Mathematical reasoning, code generation
     - Required: `DEEPSEEK_API_KEY`
 
-13. **[OpenRouter](openrouter_example.py)** - Gateway to 100+ models
+14. **[OpenRouter](openrouter_example.py)** - Gateway to 100+ models
     - Free tier models, premium models
     - Model routing, variety showcase
     - Required: `OPENROUTER_API_KEY`
 
-14. **[Moonshot](moonshot_example.py)** - Kimi models with long-context capabilities
+15. **[Moonshot](moonshot_example.py)** - Kimi models with long-context capabilities
     - Up to 200K token context
     - Multilingual Chinese/English support
     - Required: `MOONSHOT_API_KEY`
 
-15. **[GLM (Zhipu AI)](glm_example.py)** - Chinese AI with GLM-4 models
+16. **[GLM (Zhipu AI)](glm_example.py)** - Chinese AI with GLM-4 models
     - Strong Chinese language capabilities
     - Vision and function calling support
     - Required: `GLM_API_KEY` or `ZAI_API_KEY`
 
 ### Multi-Provider Gateways
 
-16. **[Vercel AI Gateway](vercel_example.py)** - Gateway to 100+ models
+17. **[Vercel AI Gateway](vercel_example.py)** - Gateway to 100+ models
     - Access to OpenAI, Anthropic, Google, Meta models
     - Unified billing and streaming
     - Required: `VERCEL_AI_API_KEY`
 
 ### Enterprise Cloud
 
-17. **[Azure OpenAI](azure_example.py)** - Microsoft-hosted OpenAI
+18. **[Azure OpenAI](azure_example.py)** - Microsoft-hosted OpenAI
     - Enterprise deployments, content filtering
     - Custom endpoints, DALL-E 3
     - Required: Azure configuration file
 
-18. **[AWS Bedrock](bedrock_example.py)** - Multi-provider on AWS
+19. **[AWS Bedrock](bedrock_example.py)** - Multi-provider on AWS
     - Claude, Llama, Titan models
     - Streaming, embeddings
     - Required: AWS credentials in `bedrock.json`
 
-19. **[Vertex AI](vertexai_example.py)** - Google Cloud enterprise AI
+20. **[Vertex AI](vertexai_example.py)** - Google Cloud enterprise AI
     - Gemini models, multimodal support
     - Enterprise features, batch processing
     - Required: Service account JSON
 
 ### Local Providers
 
-20. **[Ollama](ollama_example.py)** - Local model management
+21. **[Ollama](ollama_example.py)** - Local model management
     - Dynamic endpoint routing
     - Model management, custom endpoints
     - Required: Ollama running locally
 
-21. **[llama.cpp](llama_cpp_example.py)** - Direct GGUF execution
+22. **[llama.cpp](llama_cpp_example.py)** - Direct GGUF execution
     - Model loading, GPU acceleration
     - Token counting, performance tuning
     - Required: GGUF model files

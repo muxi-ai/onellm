@@ -44,6 +44,12 @@ DEFAULT_CONFIG = {
             "timeout": 60,
             "max_retries": 3,
         },
+        "minimax": {
+            "api_key": None,
+            "api_base": "https://api.minimax.io/anthropic",
+            "timeout": 30,
+            "max_retries": 3,
+        },
         "mistral": {
             "api_key": None,
             "api_base": "https://api.mistral.ai/v1",
@@ -172,6 +178,7 @@ ENV_PREFIX = "ONELLM_"  # Prefix for OneLLM specific environment variables
 PROVIDER_API_KEY_ENV_MAP = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
+    "minimax": "MINMAX_API_KEY",
     "mistral": "MISTRAL_API_KEY",
     "groq": "GROQ_API_KEY",
     "glm": ("GLM_API_KEY", "ZAI_API_KEY"),
