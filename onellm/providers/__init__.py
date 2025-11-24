@@ -32,8 +32,13 @@ from .anyscale import AnyscaleProvider
 from .azure import AzureProvider
 from .base import get_provider, list_providers, parse_model_name, register_provider
 
-# Cloud provider integrations
-from .bedrock import BedrockProvider
+# Cloud provider integrations (lazy loaded - optional dependencies)
+try:
+    from .bedrock import BedrockProvider
+    _has_bedrock = True
+except ImportError:
+    BedrockProvider = None
+    _has_bedrock = False
 
 # Native API providers
 from .cohere import CohereProvider
@@ -61,7 +66,15 @@ from .openrouter import OpenRouterProvider
 from .perplexity import PerplexityProvider
 from .together import TogetherProvider
 from .vercel import VercelProvider
-from .vertexai import VertexAIProvider
+
+# VertexAI requires google-cloud-aiplatform (optional dependency)
+try:
+    from .vertexai import VertexAIProvider
+    _has_vertexai = True
+except ImportError:
+    VertexAIProvider = None
+    _has_vertexai = False
+
 from .xai import XAIProvider
 
 # Register all provider implementations with the provider registry
@@ -92,14 +105,16 @@ register_provider("anyscale", AnyscaleProvider)
 
 # Native API providers
 register_provider("cohere", CohereProvider)
-register_provider("vertexai", VertexAIProvider)
+if _has_vertexai:
+    register_provider("vertexai", VertexAIProvider)
 
 # Local providers
 register_provider("ollama", OllamaProvider)
 register_provider("llama_cpp", LlamaCppProvider)
 
 # Cloud provider integrations
-register_provider("bedrock", BedrockProvider)
+if _has_bedrock:
+    register_provider("bedrock", BedrockProvider)
 
 # Convenience export - these symbols will be available when importing from onellm.providers
 # This allows users to access core provider functionality directly

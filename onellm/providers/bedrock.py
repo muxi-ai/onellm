@@ -36,14 +36,12 @@ import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
-try:
-    import boto3
-    from botocore.config import Config
-    from botocore.exceptions import BotoCoreError, ClientError
-except ImportError:
-    raise ImportError(
-        "AWS SDK (boto3) is required for Bedrock provider. " "Install it with: pip install boto3"
-    )
+# Lazy load boto3 - only imported when BedrockProvider is actually instantiated
+# This allows OneLLM to load without boto3 if Bedrock isn't being used
+boto3 = None
+Config = None
+BotoCoreError = None
+ClientError = None
 
 from ..config import get_provider_config
 from ..errors import (
