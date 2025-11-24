@@ -20,7 +20,7 @@ dependencies = [
     "openai>=1.0.0",
     "tiktoken>=0.3.0",
     "huggingface-hub>=0.19.0",
-    "sentence-transformers>=2.0.0",
+    "sentence-transformers>=3.0.0",  # v3+ supports newer tokenizers
     "faiss-cpu>=1.7.0",
 ]
 classifiers = [
