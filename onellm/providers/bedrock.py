@@ -148,6 +148,23 @@ class BedrockProvider(Provider):
             aws_session_token: AWS session token for temporary credentials (optional)
             **kwargs: Additional configuration options
         """
+        # Lazy load boto3 when provider is actually used
+        global boto3, Config, BotoCoreError, ClientError
+        if boto3 is None:
+            try:
+                import boto3 as _boto3
+                from botocore.config import Config as _Config
+                from botocore.exceptions import BotoCoreError as _BotoCoreError, ClientError as _ClientError
+                boto3 = _boto3
+                Config = _Config
+                BotoCoreError = _BotoCoreError
+                ClientError = _ClientError
+            except ImportError as e:
+                raise ImportError(
+                    "AWS SDK (boto3) is required for Bedrock provider. "
+                    "Install it with: pip install boto3"
+                ) from e
+        
         # Load bedrock.json configuration if it exists
         bedrock_config = {}
         bedrock_json_path = os.path.join(os.path.dirname(__file__), "..", "..", "bedrock.json")
