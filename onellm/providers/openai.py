@@ -423,6 +423,11 @@ class OpenAIProvider(Provider):
         if model.startswith("gpt-5") or model.startswith("o"):
             kwargs.pop("temperature", None)
 
+        # Filter out client-side parameters that shouldn't be sent to the API
+        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        for param in client_side_params:
+            kwargs.pop(param, None)
+
         # Set up the request data
         data = {
             "model": model,
@@ -628,6 +633,11 @@ class OpenAIProvider(Provider):
         if model.startswith("gpt-5") or model.startswith("o"):
             kwargs.pop("temperature", None)
 
+        # Filter out client-side parameters that shouldn't be sent to the API
+        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        for param in client_side_params:
+            kwargs.pop(param, None)
+
         # Prepare request data with all parameters
         request_data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
 
@@ -681,6 +691,11 @@ class OpenAIProvider(Provider):
         Returns:
             EmbeddingResponse containing the generated embeddings
         """
+        # Filter out client-side parameters that shouldn't be sent to the API
+        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        for param in client_side_params:
+            kwargs.pop(param, None)
+
         # Prepare request data with all parameters
         request_data = {"model": model, "input": input, **kwargs}
 
