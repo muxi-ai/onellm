@@ -356,7 +356,7 @@ class FallbackProviderProxy(Provider):
 
                     This ensures proper error propagation if the generator fails
                     after yielding some chunks.
-                    
+
                     Args:
                         gen: The generator to wrap
                     """

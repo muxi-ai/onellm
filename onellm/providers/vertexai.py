@@ -307,7 +307,7 @@ class VertexAIProvider(Provider):
                         return await response.json()
 
             except aiohttp.ClientError as e:
-                raise ServiceUnavailableError( from e
+                raise ServiceUnavailableError(
                     f"Failed to connect to Vertex AI: {str(e)}", provider="vertexai"
                 )
 

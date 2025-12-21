@@ -164,7 +164,7 @@ class BedrockProvider(Provider):
                     "AWS SDK (boto3) is required for Bedrock provider. "
                     "Install it with: pip install boto3"
                 ) from e
-        
+
         # Load bedrock.json configuration if it exists
         bedrock_config = {}
         bedrock_json_path = os.path.join(os.path.dirname(__file__), "..", "..", "bedrock.json")
@@ -526,17 +526,17 @@ class BedrockProvider(Provider):
                     """Generator function to process streaming chunks"""
                     # Use thread-safe queue (not asyncio.Queue) for cross-thread communication
                     sync_queue: queue.Queue = queue.Queue()
-                    
+
                     # Generate a unique stream ID for consistent chunk IDs
                     stream_id = str(uuid.uuid4())
                     chunk_counter = 0
-                    
+
                     def stream_worker():
                         """Worker function to run sync boto3 streaming in a thread"""
                         try:
                             # Use converse_stream for streaming (runs in thread)
                             response = self.client.converse_stream(**request_params)
-                            
+
                             # Process the event stream
                             for event in response.get("stream", []):
                                 # Put events in thread-safe queue
@@ -547,17 +547,17 @@ class BedrockProvider(Provider):
                         finally:
                             # Signal completion
                             sync_queue.put(("done", None))
-                    
+
                     # Start the streaming worker in a background thread
                     # Use default executor (None) for simpler lifecycle management
                     loop = asyncio.get_event_loop()
                     future = loop.run_in_executor(None, stream_worker)
-                    
+
                     # Helper function for queue.get with timeout (for run_in_executor)
                     def get_with_timeout():
                         """Get item from queue with timeout to detect worker failures"""
                         return sync_queue.get(block=True, timeout=30.0)
-                    
+
                     try:
                         # Process events from the queue with timeout to prevent indefinite hangs
                         while True:
@@ -576,20 +576,20 @@ class BedrockProvider(Provider):
                                         raise RuntimeError(f"Streaming worker failed: {str(e)}") from e
                                 # Worker still running but no data - timeout
                                 raise RequestTimeoutError("Streaming timeout: no data received within 30 seconds") from None
-                            
+
                             # Check for completion signal
                             if msg_type == "done":
                                 break
-                            
+
                             # Check for error
                             if msg_type == "error":
                                 raise data
-                            
+
                             # Process event
                             if msg_type == "event":
                                 event = data
                                 chunk_counter += 1
-                                
+
                                 if "contentBlockStart" in event:
                                     # Beginning of a content block
                                     continue

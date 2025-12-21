@@ -38,16 +38,16 @@ from .utils.file_validator import FileValidator, DEFAULT_MAX_FILE_SIZE
 def _sanitize_filename(filename: str | None, default: str = "file.bin") -> str:
     """
     Sanitize a filename by removing directory components and null bytes.
-    
+
     This prevents directory traversal attacks and ensures the filename is safe.
-    
+
     Args:
         filename: Raw filename that may contain directory components or null bytes
         default: Default filename to use if sanitized result is empty
-        
+
     Returns:
         Sanitized filename safe for use
-        
+
     Examples:
         >>> _sanitize_filename("../../etc/passwd")
         'passwd'
@@ -77,13 +77,13 @@ def _sanitize_filename(filename: str | None, default: str = "file.bin") -> str:
 class SizeLimitedFileWrapper:
     """
     Transparent wrapper for file-like objects that enforces size limits during reading.
-    
+
     This is used for non-seekable streams where we can't check the size upfront.
     The wrapper tracks bytes read and raises an error if the limit is exceeded.
-    
+
     All read methods (read, readline, readlines, readinto, readinto1, iteration)
     are explicitly wrapped to ensure size accounting cannot be bypassed.
-    
+
     Note: This only protects against reading too much data. A race condition
     exists where the file could be modified between size check and read for
     seekable files. For untrusted sources, validate both before and after.
@@ -163,10 +163,10 @@ class SizeLimitedFileWrapper:
     def __getattr__(self, name: str):
         """
         Delegate all other attributes and methods to the wrapped file object.
-        
+
         This makes the wrapper transparent to code expecting standard file-like
         objects, including provider implementations.
-        
+
         Note: All common read methods are explicitly wrapped above to ensure
         size limits cannot be bypassed.
         """
@@ -210,7 +210,7 @@ class File:
         Example:
             >>> file_obj = File.upload("path/to/file.pdf", purpose="fine-tune", provider="openai")
             >>> print(f"Uploaded file ID: {file_obj.id}")
-            
+
             >>> # With custom size limit
             >>> file_obj = File.upload("large.mp3", purpose="transcription", max_size=200*1024*1024)
         """
@@ -235,19 +235,19 @@ class File:
 
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
-            
+
             # Sanitize and validate the filename even for paths
             # This prevents smuggling disallowed extensions or path segments
             raw_filename = kwargs.get("filename") or validated_path.name
             sanitized_name = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate the sanitized filename
             FileValidator.validate_filename(
                 sanitized_name,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always set the sanitized and validated filename
             kwargs["filename"] = sanitized_name
 
@@ -429,19 +429,19 @@ class File:
 
             # Pass the validated path string to provider (allows provider to stream)
             file_to_upload = str(validated_path)
-            
+
             # Sanitize and validate the filename even for paths
             # This prevents smuggling disallowed extensions or path segments
             raw_filename = kwargs.get("filename") or validated_path.name
             sanitized_name = _sanitize_filename(raw_filename, "file.bin")
-            
+
             # Validate the sanitized filename
             FileValidator.validate_filename(
                 sanitized_name,
                 allowed_extensions=allowed_extensions,
                 validate_mime=validate_mime
             )
-            
+
             # Always set the sanitized and validated filename
             kwargs["filename"] = sanitized_name
 

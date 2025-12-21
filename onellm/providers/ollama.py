@@ -201,7 +201,7 @@ class OllamaProvider(OpenAICompatibleProvider):
 
         except ServiceUnavailableError as e:
             # Provide more helpful error for Ollama
-            raise ServiceUnavailableError( from e
+            raise ServiceUnavailableError(
                 f"Cannot connect to Ollama server at {endpoint}. "
                 f"Make sure Ollama is running (ollama serve).",
                 provider=self.provider_name,
@@ -209,7 +209,7 @@ class OllamaProvider(OpenAICompatibleProvider):
             )
         except ResourceNotFoundError as e:
             # Model not found error
-            raise ResourceNotFoundError( from e
+            raise ResourceNotFoundError(
                 f"Model '{clean_model}' not found on {endpoint}. "
                 f"Pull the model with: ollama pull {clean_model}",
                 provider=self.provider_name,
@@ -301,7 +301,7 @@ class OllamaProvider(OpenAICompatibleProvider):
                             status_code=response.status,
                         )
         except aiohttp.ClientError as e:
-            raise ServiceUnavailableError( from e
+            raise ServiceUnavailableError(
                 f"Cannot connect to Ollama server at {endpoint}: {str(e)}",
                 provider=self.provider_name,
             )

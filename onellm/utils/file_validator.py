@@ -262,9 +262,9 @@ class FileValidator:
         try:
             file_size = path.stat().st_size
         except OSError as e:
-            raise InvalidRequestError( from e
+            raise InvalidRequestError(
                 f"Cannot access file: {e}"
-            )
+            ) from e
 
         # Check against max_size if provided
         if max_size and file_size > max_size:
@@ -299,13 +299,13 @@ class FileValidator:
             return b"".join(chunks)
 
         except OSError as e:
-            raise InvalidRequestError( from e
+            raise InvalidRequestError(
                 f"Error reading file: {e}"
-            )
-        except MemoryError:
-            raise InvalidRequestError( from e
+            ) from e
+        except MemoryError as e:
+            raise InvalidRequestError(
                 f"File too large to fit in memory: {path.name}"
-            )
+            ) from e
 
     @staticmethod
     def validate_bytes_size(
@@ -409,3 +409,4 @@ class FileValidator:
                 # If we can't guess the MIME type, only allow if extension is common
                 # This prevents rejecting valid files that mimetypes doesn't recognize
                 pass  # Don't reject - extension validation above is sufficient
+

@@ -792,7 +792,7 @@ class OpenAIProvider(Provider):
     ) -> bytes:
         """
         Execute the HTTP request for file download.
-        
+
         This method is separated to allow for easier testing/mocking.
 
         Args:

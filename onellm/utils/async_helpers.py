@@ -35,20 +35,20 @@ T = TypeVar("T")
 def run_async(coro: Coroutine[Any, Any, T]) -> T:
     """
     Safely run an async coroutine from synchronous code.
-    
+
     This function handles the complexity of running async code in sync contexts,
     including environments that may already have running event loops (Jupyter,
     IPython, web frameworks, etc.).
-    
+
     Args:
         coro: The coroutine to run
-        
+
     Returns:
         The result of the coroutine
-        
+
     Raises:
         RuntimeError: If called from within an async context (use await instead)
-        
+
     Examples:
         >>> async def get_data():
         ...     return "data"
@@ -99,7 +99,7 @@ def run_async(coro: Coroutine[Any, Any, T]) -> T:
 def _is_jupyter_environment() -> bool:
     """
     Detect if we're running in a Jupyter notebook or IPython environment.
-    
+
     Returns:
         True if in Jupyter/IPython, False otherwise
     """
@@ -131,15 +131,15 @@ def _is_jupyter_environment() -> bool:
 async def maybe_await(obj: Any) -> Any:
     """
     Await an object if it's awaitable, otherwise return it directly.
-    
+
     This is useful for functions that can accept both sync and async callables.
-    
+
     Args:
         obj: The object to potentially await
-        
+
     Returns:
         The result after awaiting (if awaitable) or the object itself
-        
+
     Examples:
         >>> async def async_func():
         ...     return "async"

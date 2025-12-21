@@ -110,9 +110,9 @@ class SimpleCache:
     def _init_semantic(self):
         """Lazy load semantic search components."""
         try:
-            from sentence_transformers import SentenceTransformer
             import faiss
             import numpy as np
+            from sentence_transformers import SentenceTransformer
 
             logger.info("Loading cache embedding model (one-time, ~13s)...")
             self.embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
@@ -421,6 +421,7 @@ class SimpleCache:
             ChatCompletionChunk objects
         """
         import re
+
         from .models import ChatCompletionChunk
 
         # Extract the full text from the cached response

@@ -1292,13 +1292,13 @@ def validate_tools(
 def validate_chat_params(**kwargs) -> None:
     """
     Validate all chat completion parameters.
-    
+
     This is a convenience function that validates all common parameters
     used in chat completion requests.
-    
+
     Args:
         **kwargs: Parameters to validate
-        
+
     Raises:
         InvalidRequestError: If any parameter is invalid
     """
@@ -1317,13 +1317,13 @@ def validate_chat_params(**kwargs) -> None:
 def validate_provider_model(model: str, provider_name: str) -> None:
     """
     Validate model name for a specific provider.
-    
+
     Performs provider-specific validation to catch common errors early.
-    
+
     Args:
         model: Model name (without provider prefix)
         provider_name: Provider name
-        
+
     Raises:
         InvalidRequestError: If model is invalid for the provider
     """
@@ -1386,10 +1386,10 @@ def validate_provider_model(model: str, provider_name: str) -> None:
 def validate_completion_params(**kwargs) -> None:
     """
     Validate text completion parameters.
-    
+
     Args:
         **kwargs: Parameters to validate
-        
+
     Raises:
         InvalidRequestError: If any parameter is invalid
     """
