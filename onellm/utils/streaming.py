@@ -99,7 +99,7 @@ async def stream_generator(
                 else:
                     # If no transform function, yield the item directly
                     yield item  # type: ignore
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         # Handle timeout errors with a specific message
         raise StreamingError(f"Streaming response timed out after {timeout} seconds") from e
     except Exception as e:
@@ -167,7 +167,7 @@ async def _stream_with_timeout(
             except StopAsyncIteration:
                 # End of generator reached
                 break
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         # Handle timeout errors with a specific message
         raise StreamingError(f"Streaming response timed out after {timeout} seconds") from e
 

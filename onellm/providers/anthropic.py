@@ -316,7 +316,7 @@ class AnthropicProvider(Provider):
         elif status_code == 502:
             raise BadGatewayError(message, provider="anthropic", status_code=status_code)
         elif status_code == 504:
-            raise TimeoutError(message, provider="anthropic", status_code=status_code)
+            raise RequestTimeoutError(message, provider="anthropic", status_code=status_code)
         else:
             # Generic error for unhandled status codes
             raise APIError(
