@@ -231,7 +231,7 @@ class CohereProvider(Provider):
                         return await response.json()
 
             except aiohttp.ClientError as e:
-                raise ServiceUnavailableError(
+                raise ServiceUnavailableError( from e
                     f"Failed to connect to Cohere API: {str(e)}", provider="cohere"
                 )
 

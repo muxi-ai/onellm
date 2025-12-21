@@ -242,7 +242,7 @@ class GoogleProvider(Provider):
                         return await response.json()
 
             except aiohttp.ClientError as e:
-                raise ServiceUnavailableError(
+                raise ServiceUnavailableError( from e
                     f"Failed to connect to Google API: {str(e)}", provider="google"
                 )
 

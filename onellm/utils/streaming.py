@@ -101,7 +101,7 @@ async def stream_generator(
                     yield item  # type: ignore
     except asyncio.TimeoutError:
         # Handle timeout errors with a specific message
-        raise StreamingError(f"Streaming response timed out after {timeout} seconds")
+        raise StreamingError(f"Streaming response timed out after {timeout} seconds") from e
     except Exception as e:
         # Preserve StreamingError instances
         if isinstance(e, StreamingError):
@@ -169,7 +169,7 @@ async def _stream_with_timeout(
                 break
     except asyncio.TimeoutError:
         # Handle timeout errors with a specific message
-        raise StreamingError(f"Streaming response timed out after {timeout} seconds")
+        raise StreamingError(f"Streaming response timed out after {timeout} seconds") from e
 
 async def json_stream_generator(
     source_generator: AsyncGenerator[str, None],

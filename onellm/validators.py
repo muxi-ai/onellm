@@ -372,7 +372,7 @@ def validate_url(
         # Re-raise InvalidRequestError exceptions, wrap others
         if isinstance(e, InvalidRequestError):
             raise
-        raise InvalidRequestError(f"{name} is not a valid URL: {str(e)}")
+        raise InvalidRequestError(f"{name} is not a valid URL: {str(e)}") from e
 
     return value
 

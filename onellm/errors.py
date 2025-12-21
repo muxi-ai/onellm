@@ -124,7 +124,7 @@ class ServiceUnavailableError(MuxiLLMError):
 
     pass
 
-class TimeoutError(MuxiLLMError):
+class RequestTimeoutError(MuxiLLMError):
     """
     Raised when a request times out.
 
@@ -144,7 +144,7 @@ class BadGatewayError(MuxiLLMError):
 
     pass
 
-class PermissionError(MuxiLLMError):
+class PermissionDeniedError(MuxiLLMError):
     """
     Raised when permission is denied for the requested operation.
 

@@ -38,11 +38,11 @@ from ..errors import (
     AuthenticationError,
     BadGatewayError,
     InvalidRequestError,
-    PermissionError,
+    PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -303,7 +303,7 @@ class MistralProvider(Provider):
         if status_code == 401:
             raise AuthenticationError(message, provider="mistral", status_code=status_code)
         elif status_code == 403:
-            raise PermissionError(message, provider="mistral", status_code=status_code)
+            raise PermissionDeniedError(message, provider="mistral", status_code=status_code)
         elif status_code == 404:
             raise ResourceNotFoundError(message, provider="mistral", status_code=status_code)
         elif status_code == 429:
@@ -315,7 +315,7 @@ class MistralProvider(Provider):
         elif status_code == 502:
             raise BadGatewayError(message, provider="mistral", status_code=status_code)
         elif status_code == 504:
-            raise TimeoutError(message, provider="mistral", status_code=status_code)
+            raise RequestTimeoutError(message, provider="mistral", status_code=status_code)
         else:
             # Generic error for unhandled status codes
             raise APIError(

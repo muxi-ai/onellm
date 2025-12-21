@@ -262,7 +262,7 @@ class FileValidator:
         try:
             file_size = path.stat().st_size
         except OSError as e:
-            raise InvalidRequestError(
+            raise InvalidRequestError( from e
                 f"Cannot access file: {e}"
             )
 
@@ -299,11 +299,11 @@ class FileValidator:
             return b"".join(chunks)
 
         except OSError as e:
-            raise InvalidRequestError(
+            raise InvalidRequestError( from e
                 f"Error reading file: {e}"
             )
         except MemoryError:
-            raise InvalidRequestError(
+            raise InvalidRequestError( from e
                 f"File too large to fit in memory: {path.name}"
             )
 

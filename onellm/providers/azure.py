@@ -39,11 +39,11 @@ from ..errors import (
     AuthenticationError,
     BadGatewayError,
     InvalidRequestError,
-    PermissionError,
+    PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -382,7 +382,7 @@ class AzureProvider(Provider):
                 message, provider="azure", status_code=status_code
             )
         elif status_code == 403:
-            raise PermissionError(message, provider="azure", status_code=status_code)
+            raise PermissionDeniedError(message, provider="azure", status_code=status_code)
         elif status_code == 404:
             raise ResourceNotFoundError(
                 message, provider="azure", status_code=status_code
@@ -400,7 +400,7 @@ class AzureProvider(Provider):
         elif status_code == 502:
             raise BadGatewayError(message, provider="azure", status_code=status_code)
         elif status_code == 504:
-            raise TimeoutError(message, provider="azure", status_code=status_code)
+            raise RequestTimeoutError(message, provider="azure", status_code=status_code)
         else:
             # Generic error for unhandled status codes
             raise APIError(
@@ -1007,7 +1007,7 @@ class AzureProvider(Provider):
                         try:
                             error_data = await response.json()
                             self._handle_error_response(response.status, error_data)
-                        except json.JSONDecodeError:
+                        except json.JSONDecodeError as json_err:
                             # If not valid JSON, raise a generic error with the status code
                             error_text = await response.text()
                             raise APIError(
@@ -1015,7 +1015,7 @@ class AzureProvider(Provider):
                                 f"(status code: {response.status})",
                                 provider="azure",
                                 status_code=response.status,
-                            )
+                            ) from json_err
 
                     # Return the raw binary data
                     return await response.read()

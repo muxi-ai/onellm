@@ -39,11 +39,11 @@ from ..errors import (
     AuthenticationError,
     BadGatewayError,
     InvalidRequestError,
-    PermissionError,
+    PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
+    RequestTimeoutError,
     ServiceUnavailableError,
-    TimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -304,7 +304,7 @@ class AnthropicProvider(Provider):
         if status_code == 401:
             raise AuthenticationError(message, provider="anthropic", status_code=status_code)
         elif status_code == 403:
-            raise PermissionError(message, provider="anthropic", status_code=status_code)
+            raise PermissionDeniedError(message, provider="anthropic", status_code=status_code)
         elif status_code == 404:
             raise ResourceNotFoundError(message, provider="anthropic", status_code=status_code)
         elif status_code == 429:

@@ -369,7 +369,7 @@ class ChatCompletion:
 
         # Validate fallback models if provided
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
+            for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
 
         # Preserve original messages for cache operations (before _process_capabilities mutates them)
@@ -484,7 +484,7 @@ class ChatCompletion:
 
         # Validate fallback models if provided
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
+            for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
 
         # Preserve original messages for cache operations (before _process_capabilities mutates them)

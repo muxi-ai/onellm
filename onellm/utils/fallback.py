@@ -33,7 +33,7 @@ from ..errors import (
     BadGatewayError,
     RateLimitError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 
 # Define a generic type for the return value
@@ -71,7 +71,7 @@ class FallbackConfig:
         # Default to common API errors if no specific errors are provided
         self.retriable_errors = retriable_errors or [
             ServiceUnavailableError,
-            TimeoutError,
+            RequestTimeoutError,
             BadGatewayError,
             RateLimitError,
         ]

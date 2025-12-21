@@ -34,7 +34,7 @@ from ..errors import (
     BadGatewayError,
     RateLimitError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 
 # Type variable for the return type of the retried function
@@ -64,7 +64,7 @@ class RetryConfig:
                 RateLimitError,  # Server rate limit exceeded
                 ServiceUnavailableError,  # Service temporarily unavailable
                 BadGatewayError,  # Bad gateway response
-                TimeoutError,  # Request timed out
+                RequestTimeoutError,  # Request timed out
                 ConnectionError,  # Connection issues
                 asyncio.TimeoutError,  # Async operation timed out
             ]

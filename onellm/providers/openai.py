@@ -38,11 +38,11 @@ from ..errors import (
     AuthenticationError,
     BadGatewayError,
     InvalidRequestError,
-    PermissionError,
+    PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -369,7 +369,7 @@ class OpenAIProvider(Provider):
                 message, provider="openai", status_code=status_code
             )
         elif status_code == 403:
-            raise PermissionError(message, provider="openai", status_code=status_code)
+            raise PermissionDeniedError(message, provider="openai", status_code=status_code)
         elif status_code == 404:
             raise ResourceNotFoundError(
                 message, provider="openai", status_code=status_code
@@ -387,7 +387,7 @@ class OpenAIProvider(Provider):
         elif status_code == 502:
             raise BadGatewayError(message, provider="openai", status_code=status_code)
         elif status_code == 504:
-            raise TimeoutError(message, provider="openai", status_code=status_code)
+            raise RequestTimeoutError(message, provider="openai", status_code=status_code)
         else:
             # Generic error for unhandled status codes
             raise APIError(

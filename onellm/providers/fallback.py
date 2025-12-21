@@ -350,15 +350,18 @@ class FallbackProviderProxy(Provider):
                     )
 
                 # Create a wrapper generator that forwards chunks but handles errors
-                async def safe_generator():
+                async def safe_generator(gen):
                     """
                     Wrapper generator that handles errors during streaming.
 
                     This ensures proper error propagation if the generator fails
                     after yielding some chunks.
+                    
+                    Args:
+                        gen: The generator to wrap
                     """
                     try:
-                        async for chunk in generator:
+                        async for chunk in gen:
                             yield chunk
                     except Exception as e:
                         # If the generator fails after yielding some chunks,
@@ -374,7 +377,7 @@ class FallbackProviderProxy(Provider):
                             raise
 
                 # Return the wrapped generator
-                return safe_generator()
+                return safe_generator(generator)
 
             except Exception as e:
                 last_error = e

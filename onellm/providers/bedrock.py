@@ -48,11 +48,11 @@ from ..errors import (
     APIError,
     AuthenticationError,
     InvalidRequestError,
-    PermissionError,
+    PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -204,7 +204,7 @@ class BedrockProvider(Provider):
                 "Ensure you have valid AWS credentials configured via environment variables, "
                 "AWS profile, or IAM role.",
                 provider="bedrock",
-            )
+            ) from e
 
     def _init_boto3_client(self):
         """Initialize the boto3 Bedrock runtime client."""
@@ -426,7 +426,7 @@ class BedrockProvider(Provider):
 
             if error_code == "AccessDeniedException":
                 if "not supported for inference in your account" in error_message:
-                    raise PermissionError(
+                    raise PermissionDeniedError(
                         f"Model access denied: {error_message}. "
                         "Please request access to this model in the AWS Bedrock console.",
                         provider="bedrock",
@@ -445,7 +445,7 @@ class BedrockProvider(Provider):
                     f"Service quota exceeded: {error_message}", provider="bedrock", status_code=429
                 )
             elif error_code == "ModelTimeoutException":
-                raise TimeoutError(error_message, provider="bedrock", status_code=504)
+                raise RequestTimeoutError(error_message, provider="bedrock", status_code=504)
             elif error_code == "InternalServerException":
                 raise ServiceUnavailableError(error_message, provider="bedrock", status_code=500)
             else:
@@ -575,7 +575,7 @@ class BedrockProvider(Provider):
                                     except Exception as e:
                                         raise RuntimeError(f"Streaming worker failed: {str(e)}") from e
                                 # Worker still running but no data - timeout
-                                raise TimeoutError("Streaming timeout: no data received within 30 seconds")
+                                raise RequestTimeoutError("Streaming timeout: no data received within 30 seconds") from None
                             
                             # Check for completion signal
                             if msg_type == "done":

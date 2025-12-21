@@ -240,7 +240,7 @@ class LlamaCppProvider(Provider):
             return model
 
         except Exception as e:
-            raise InvalidRequestError(f"Failed to load model: {str(e)}", provider="llama_cpp")
+            raise InvalidRequestError(f"Failed to load model: {str(e)}", provider="llama_cpp") from e
 
     def _convert_messages_to_prompt(self, messages: list[Message]) -> str:
         """
