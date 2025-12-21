@@ -20,14 +20,28 @@ from onellm import config as onellm_config
 @pytest.fixture(autouse=True)
 def reset_llama_cpp_state():
     """Reset llama.cpp state between tests to avoid state pollution."""
-    # Clear model cache
+    # Clear model cache BEFORE test
     _MODEL_CACHE.clear()
     _LAST_ACCESS.clear()
-    # Store original config
-    original = onellm_config.get_provider_config("llama-cpp").copy()
+
+    # Reset config to defaults BEFORE test
+    # Note: LlamaCppProvider uses "llama_cpp" as the config key (with underscore)
+    default_config = {
+        "model_dir": None,
+        "n_ctx": 2048,
+        "n_gpu_layers": 0,
+        "n_threads": None,
+        "timeout": 300,
+    }
+    # Reset both possible config keys
+    onellm_config.config["providers"]["llama-cpp"] = default_config.copy()
+    onellm_config.config["providers"]["llama_cpp"] = default_config.copy()
+
     yield
-    # Restore original config
-    onellm_config.config["providers"]["llama-cpp"] = original
+
+    # Restore to defaults AFTER test
+    onellm_config.config["providers"]["llama-cpp"] = default_config.copy()
+    onellm_config.config["providers"]["llama_cpp"] = default_config.copy()
     # Clear caches again
     _MODEL_CACHE.clear()
     _LAST_ACCESS.clear()
@@ -357,28 +371,32 @@ class TestLlamaCppProvider:
         with patch.dict("sys.modules", {"llama_cpp": mock_llama_cpp}):
             provider = LlamaCppProvider()
 
-            # Mock directory structure
-            mock_files = [
-                Path("/models/llama-3-8b-q4_K_M.gguf"),
-                Path("/models/subfolder/mistral-7b-q5_K_M.gguf"),
-                Path("/models/codellama-13b-q4_0.gguf"),
-            ]
+            # Create mock Path objects that we can configure
+            mock_file1 = MagicMock()
+            mock_file1.name = "llama-3-8b-q4_K_M.gguf"
+            mock_file1.relative_to.return_value = Path("llama-3-8b-q4_K_M.gguf")
+
+            mock_file2 = MagicMock()
+            mock_file2.name = "mistral-7b-q5_K_M.gguf"
+            mock_file2.relative_to.return_value = Path("subfolder/mistral-7b-q5_K_M.gguf")
+
+            mock_file3 = MagicMock()
+            mock_file3.name = "codellama-13b-q4_0.gguf"
+            mock_file3.relative_to.return_value = Path("codellama-13b-q4_0.gguf")
+
+            mock_files = [mock_file1, mock_file2, mock_file3]
 
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(Path, "rglob") as mock_rglob:
-                    # Mock rglob to return our test files
+                    # Mock rglob to return our mock files
                     mock_rglob.return_value = mock_files
-
-                    # Need to mock relative_to for each file
-                    for mock_file in mock_files:
-                        mock_file.relative_to = MagicMock(return_value=Path(mock_file.name))
 
                     models = provider.list_available_models()
 
-                    # Should return sorted model names
+                    # Should return sorted model names (relative paths as strings)
                     expected = [
                         "codellama-13b-q4_0.gguf",
                         "llama-3-8b-q4_K_M.gguf",
-                        "mistral-7b-q5_K_M.gguf",
+                        "subfolder/mistral-7b-q5_K_M.gguf",
                     ]
                     assert models == expected

@@ -55,40 +55,53 @@ def mock_env_api_key(monkeypatch):
     monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
 
 
+def create_mock_response(status=200, data=None):
+    """Create a mock aiohttp response."""
+    return MockResponse(status=status, data=data or {})
+
+
 @pytest.fixture
 def mock_aiohttp_session():
     """Create a mock for aiohttp.ClientSession."""
-    with mock.patch("aiohttp.ClientSession") as mock_session:
-        # Create a response for chat_completion
-        chat_response = MockResponse(
-            status=200,
-            data={
-                "id": "test-id",
-                "object": "chat.completion",
-                "created": 1677858242,
-                "model": "mistral-large-latest",
-                "choices": [
-                    {
-                        "message": {
-                            "role": "assistant",
-                            "content": "This is a test response from Mistral",
-                        },
-                        "finish_reason": "stop",
-                        "index": 0,
-                    }
-                ],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 25, "total_tokens": 35},
-            },
-        )
+    # Default chat completion response
+    default_response = {
+        "id": "test-id",
+        "object": "chat.completion",
+        "created": 1677858242,
+        "model": "mistral-large-latest",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "This is a test response from Mistral",
+                },
+                "finish_reason": "stop",
+                "index": 0,
+            }
+        ],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 25, "total_tokens": 35},
+    }
+
+    with mock.patch("onellm.providers.mistral.aiohttp.ClientSession") as mock_session:
+        # Create a response object
+        chat_response = MockResponse(status=200, data=default_response)
+
+        # Create a mock for the request context manager
+        request_context = AsyncMock()
+        request_context.__aenter__.return_value = chat_response
+        request_context.__aexit__.return_value = None
 
         # Create session instance mock
         session_instance = AsyncMock()
-        # session.request() returns a context manager that yields chat_response
-        session_instance.request.return_value.__aenter__.return_value = chat_response
+        session_instance.request.return_value = request_context
 
-        # Set up the ClientSession constructor to work as a context manager
-        mock_session.return_value.__aenter__.return_value = session_instance
-        mock_session.return_value.__aexit__.return_value = None
+        # Create session context manager
+        session_context = AsyncMock()
+        session_context.__aenter__.return_value = session_instance
+        session_context.__aexit__.return_value = None
+
+        # Set up the ClientSession constructor
+        mock_session.return_value = session_context
 
         yield mock_session
 
@@ -154,28 +167,48 @@ class TestMistralProvider:
             assert headers["Authorization"] == "Bearer test-key"
 
     @pytest.mark.asyncio
-    async def test_chat_completion(self, mock_env_api_key, mock_aiohttp_session):
+    async def test_chat_completion(self, mock_env_api_key):
         """Test chat completion functionality."""
         with patch("onellm.providers.mistral.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "test-key"}
 
             provider = MistralProvider()
 
-            messages = [{"role": "user", "content": "Hello, how are you?"}]
+            # Mock _make_request to return our expected response
+            mock_response = {
+                "id": "test-id",
+                "object": "chat.completion",
+                "created": 1677858242,
+                "model": "mistral-large-latest",
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "This is a test response from Mistral",
+                        },
+                        "finish_reason": "stop",
+                        "index": 0,
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 25, "total_tokens": 35},
+            }
 
-            response = await provider.create_chat_completion(
-                messages=messages, model="mistral-large-latest"
-            )
+            with patch.object(provider, "_make_request", return_value=mock_response):
+                messages = [{"role": "user", "content": "Hello, how are you?"}]
 
-            # Verify response structure
-            assert response.id == "test-id"
-            assert response.model == "mistral-large-latest"
-            assert len(response.choices) == 1
-            assert response.choices[0].message["content"] == "This is a test response from Mistral"
-            assert response.usage["total_tokens"] == 35
+                response = await provider.create_chat_completion(
+                    messages=messages, model="mistral-large-latest"
+                )
+
+                # Verify response structure
+                assert response.id == "test-id"
+                assert response.model == "mistral-large-latest"
+                assert len(response.choices) == 1
+                assert response.choices[0].message["content"] == "This is a test response from Mistral"
+                assert response.usage["total_tokens"] == 35
 
     @pytest.mark.asyncio
-    async def test_completion(self, mock_env_api_key, mock_aiohttp_session):
+    async def test_completion(self, mock_env_api_key):
         """Test text completion functionality."""
         with patch("onellm.providers.mistral.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "test-key"}
@@ -183,41 +216,34 @@ class TestMistralProvider:
             provider = MistralProvider()
 
             # Mock completion response
-            completion_response = MockResponse(
-                status=200,
-                data={
-                    "id": "test-completion-id",
-                    "object": "text_completion",
-                    "created": 1677858242,
-                    "model": "mistral-large-latest",
-                    "choices": [
-                        {
-                            "text": "This is a completion response",
-                            "index": 0,
-                            "finish_reason": "stop",
-                        }
-                    ],
-                    "usage": {"prompt_tokens": 5, "completion_tokens": 15, "total_tokens": 20},
-                },
-            )
+            mock_response = {
+                "id": "test-completion-id",
+                "object": "text_completion",
+                "created": 1677858242,
+                "model": "mistral-large-latest",
+                "choices": [
+                    {
+                        "text": "This is a completion response",
+                        "index": 0,
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 5, "completion_tokens": 15, "total_tokens": 20},
+            }
 
-            # Update mock to return completion response
-            mock_aiohttp_session.return_value.__aenter__.return_value.request.return_value = (
-                completion_response
-            )
+            with patch.object(provider, "_make_request", return_value=mock_response):
+                response = await provider.create_completion(
+                    prompt="Complete this text:", model="mistral-large-latest"
+                )
 
-            response = await provider.create_completion(
-                prompt="Complete this text:", model="mistral-large-latest"
-            )
-
-            # Verify response structure
-            assert response.id == "test-completion-id"
-            assert response.model == "mistral-large-latest"
-            assert len(response.choices) == 1
-            assert response.choices[0].text == "This is a completion response"
+                # Verify response structure
+                assert response.id == "test-completion-id"
+                assert response.model == "mistral-large-latest"
+                assert len(response.choices) == 1
+                assert response.choices[0].text == "This is a completion response"
 
     @pytest.mark.asyncio
-    async def test_embedding(self, mock_env_api_key, mock_aiohttp_session):
+    async def test_embedding(self, mock_env_api_key):
         """Test embedding functionality."""
         with patch("onellm.providers.mistral.get_provider_config") as mock_get_config:
             mock_get_config.return_value = {"api_key": "test-key"}
@@ -225,31 +251,24 @@ class TestMistralProvider:
             provider = MistralProvider()
 
             # Mock embedding response
-            embedding_response = MockResponse(
-                status=200,
-                data={
-                    "object": "list",
-                    "data": [
-                        {"object": "embedding", "embedding": [0.1, 0.2, 0.3, 0.4, 0.5], "index": 0}
-                    ],
-                    "model": "mistral-embed",
-                    "usage": {"prompt_tokens": 5, "total_tokens": 5},
-                },
-            )
+            mock_response = {
+                "object": "list",
+                "data": [
+                    {"object": "embedding", "embedding": [0.1, 0.2, 0.3, 0.4, 0.5], "index": 0}
+                ],
+                "model": "mistral-embed",
+                "usage": {"prompt_tokens": 5, "total_tokens": 5},
+            }
 
-            # Update mock to return embedding response
-            mock_aiohttp_session.return_value.__aenter__.return_value.request.return_value = (
-                embedding_response
-            )
+            with patch.object(provider, "_make_request", return_value=mock_response):
+                response = await provider.create_embedding(
+                    input="Test text to embed", model="mistral-embed"
+                )
 
-            response = await provider.create_embedding(
-                input="Test text to embed", model="mistral-embed"
-            )
-
-            # Verify response structure
-            assert response.object == "list"
-            assert len(response.data) == 1
-            assert response.data[0].embedding == [0.1, 0.2, 0.3, 0.4, 0.5]
+                # Verify response structure
+                assert response.object == "list"
+                assert len(response.data) == 1
+                assert response.data[0].embedding == [0.1, 0.2, 0.3, 0.4, 0.5]
             assert response.model == "mistral-embed"
 
     def test_vision_model_validation(self, mock_env_api_key):

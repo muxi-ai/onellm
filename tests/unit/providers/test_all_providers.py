@@ -7,8 +7,8 @@ import os
 from onellm.providers import list_providers, get_provider
 
 
-def test_provider(name):
-    """Test if a provider can be instantiated."""
+def check_provider(name):
+    """Check if a provider can be instantiated."""
     try:
         # Special handling for providers that need config files
         if name == "azure":
@@ -50,7 +50,7 @@ def main():
 
     results = []
     for provider_name in providers:
-        result = test_provider(provider_name)
+        result = check_provider(provider_name)
         results.append(result)
         print(result)
 
