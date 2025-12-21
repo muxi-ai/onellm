@@ -4,6 +4,13 @@ import pytest
 
 from onellm.cache import CacheConfig, SimpleCache
 
+# Check if scipy is compatible (some versions have numpy ufunc issues)
+try:
+    import scipy.special
+    SCIPY_WORKS = True
+except (ValueError, ImportError):
+    SCIPY_WORKS = False
+
 
 class TestCacheConfig:
     """Tests for CacheConfig class."""
@@ -23,6 +30,7 @@ class TestCacheConfig:
         assert config.hash_only is True
 
 
+@pytest.mark.skipif(not SCIPY_WORKS, reason="scipy/numpy version incompatibility")
 class TestSimpleCache:
     """Tests for SimpleCache class."""
 

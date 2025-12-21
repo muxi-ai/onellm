@@ -248,8 +248,8 @@ class TestAzureProvider:
                     file="test.mp3", model="whisper-1"
                 )
 
-                assert result.text == "This is a test transcription."
-                assert result.language == "en"
+                assert result["text"] == "This is a test transcription."
+                assert result["language"] == "en"
 
     @pytest.mark.asyncio
     async def test_image_generation(self, azure_provider):
@@ -269,9 +269,9 @@ class TestAzureProvider:
                 prompt="A sunset over mountains", model="dall-e-3", size="1024x1024"
             )
 
-            assert result.created == 1234567890
-            assert len(result.data) == 1
-            assert result.data[0]["url"] == "https://example.com/image.png"
+            assert result["created"] == 1234567890
+            assert len(result["data"]) == 1
+            assert result["data"][0]["url"] == "https://example.com/image.png"
 
     @pytest.mark.asyncio
     async def test_error_handling(self, azure_provider):

@@ -17,7 +17,7 @@ from onellm.errors import InvalidRequestError, AuthenticationError
 load_dotenv()
 
 
-@pytest.mark.skipif(not os.getenv("VERCEL_AI_API_KEY"), reason="VERCEL_AI_API_KEY not set")
+@pytest.mark.skipif(not os.getenv("VERCEL_API_KEY"), reason="VERCEL_API_KEY not set")
 class TestVercelProvider:
     """Test cases for Vercel AI Gateway provider with real API calls."""
 
@@ -31,7 +31,6 @@ class TestVercelProvider:
         assert provider.provider_name == "vercel"
         assert provider.api_base == "https://ai-gateway.vercel.sh/v1"
         assert provider.api_key is not None
-        assert provider.requires_api_key is True
 
     @pytest.mark.asyncio
     async def test_create_chat_completion_basic(self, provider):

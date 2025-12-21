@@ -16,6 +16,17 @@ from unittest.mock import AsyncMock, patch
 from onellm.providers import get_provider
 from onellm.providers.mistral import MistralProvider
 from onellm.errors import AuthenticationError, InvalidRequestError
+from onellm import config as onellm_config
+
+
+@pytest.fixture(autouse=True)
+def reset_mistral_config():
+    """Reset mistral config between tests to avoid state pollution."""
+    # Store original config
+    original = onellm_config.get_provider_config("mistral").copy()
+    yield
+    # Restore original config
+    onellm_config.config["providers"]["mistral"] = original
 
 
 class MockResponse:
@@ -48,9 +59,6 @@ def mock_env_api_key(monkeypatch):
 def mock_aiohttp_session():
     """Create a mock for aiohttp.ClientSession."""
     with mock.patch("aiohttp.ClientSession") as mock_session:
-        # Create a session instance
-        session_instance = AsyncMock()
-
         # Create a response for chat_completion
         chat_response = MockResponse(
             status=200,
@@ -73,11 +81,12 @@ def mock_aiohttp_session():
             },
         )
 
-        # Set up request to return our mock response
-        session_instance.request = AsyncMock(return_value=chat_response)
+        # Create session instance mock
+        session_instance = AsyncMock()
+        # session.request() returns a context manager that yields chat_response
+        session_instance.request.return_value.__aenter__.return_value = chat_response
 
         # Set up the ClientSession constructor to work as a context manager
-        mock_session.return_value = AsyncMock()
         mock_session.return_value.__aenter__.return_value = session_instance
         mock_session.return_value.__aexit__.return_value = None
 

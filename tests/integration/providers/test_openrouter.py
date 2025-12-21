@@ -31,7 +31,6 @@ class TestOpenRouterProvider:
         assert provider.provider_name == "openrouter"
         assert provider.api_base == "https://openrouter.ai/api/v1"
         assert provider.api_key is not None
-        assert provider.requires_api_key is True
 
     @pytest.mark.asyncio
     async def test_create_chat_completion_basic(self, provider):

@@ -14,6 +14,23 @@ from onellm.errors import (
     ResourceNotFoundError,
     InvalidConfigurationError,
 )
+from onellm import config as onellm_config
+
+
+@pytest.fixture(autouse=True)
+def reset_llama_cpp_state():
+    """Reset llama.cpp state between tests to avoid state pollution."""
+    # Clear model cache
+    _MODEL_CACHE.clear()
+    _LAST_ACCESS.clear()
+    # Store original config
+    original = onellm_config.get_provider_config("llama-cpp").copy()
+    yield
+    # Restore original config
+    onellm_config.config["providers"]["llama-cpp"] = original
+    # Clear caches again
+    _MODEL_CACHE.clear()
+    _LAST_ACCESS.clear()
 
 
 class TestLlamaCppProvider:
@@ -27,8 +44,7 @@ class TestLlamaCppProvider:
             assert "llama-cpp-python" in str(exc.value)
             assert "pip install" in str(exc.value)
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_init_default(self, mock_import):
+    def test_init_default(self):
         """Test initialization with default settings."""
         # Mock llama_cpp module
         mock_llama_cpp = MagicMock()
@@ -42,8 +58,7 @@ class TestLlamaCppProvider:
             assert provider.n_threads > 0  # Auto-detected
             assert provider.timeout == 300
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_init_custom_config(self, mock_import):
+    def test_init_custom_config(self):
         """Test initialization with custom configuration."""
         mock_llama_cpp = MagicMock()
 
@@ -57,8 +72,7 @@ class TestLlamaCppProvider:
             assert provider.n_gpu_layers == 32
             assert provider.n_threads == 8
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_init_env_var(self, mock_import):
+    def test_init_env_var(self):
         """Test initialization with environment variable."""
         mock_llama_cpp = MagicMock()
 
@@ -67,8 +81,7 @@ class TestLlamaCppProvider:
                 provider = LlamaCppProvider()
                 assert provider.model_dir == Path("/env/models")
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_parse_model_path_simple(self, mock_import):
+    def test_parse_model_path_simple(self):
         """Test parsing simple model names."""
         mock_llama_cpp = MagicMock()
 
@@ -85,8 +98,7 @@ class TestLlamaCppProvider:
                 path = provider._parse_model_path("model")
                 assert path == provider.model_dir / "model.gguf"
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_parse_model_path_full(self, mock_import):
+    def test_parse_model_path_full(self):
         """Test parsing full model paths."""
         mock_llama_cpp = MagicMock()
 
@@ -103,8 +115,7 @@ class TestLlamaCppProvider:
                 path = provider._parse_model_path("C:/models/model.gguf")
                 assert str(path) == "C:/models/model.gguf"
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_parse_model_path_not_found(self, mock_import):
+    def test_parse_model_path_not_found(self):
         """Test parsing model path when file doesn't exist."""
         mock_llama_cpp = MagicMock()
 
@@ -124,8 +135,7 @@ class TestLlamaCppProvider:
                     provider._parse_model_path("/path/to/missing.gguf")
                 assert "/path/to/missing.gguf" in str(exc.value)
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_load_model_new(self, mock_import):
+    def test_load_model_new(self):
         """Test loading a new model."""
         mock_llama_cpp = MagicMock()
         mock_model = MagicMock()
@@ -157,8 +167,7 @@ class TestLlamaCppProvider:
                 verbose=False,
             )
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_load_model_cached(self, mock_import):
+    def test_load_model_cached(self):
         """Test loading a cached model."""
         mock_llama_cpp = MagicMock()
         mock_model = MagicMock()
@@ -180,8 +189,7 @@ class TestLlamaCppProvider:
             # Llama constructor should not be called
             mock_llama_cpp.Llama.assert_not_called()
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_load_model_cache_cleanup(self, mock_import):
+    def test_load_model_cache_cleanup(self):
         """Test model cache cleanup of old entries."""
         mock_llama_cpp = MagicMock()
         mock_model_new = MagicMock()
@@ -206,8 +214,7 @@ class TestLlamaCppProvider:
             # New model should be cached
             assert str(new_model_path) in _MODEL_CACHE
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_convert_messages_to_prompt(self, mock_import):
+    def test_convert_messages_to_prompt(self):
         """Test converting messages to prompt."""
         mock_llama_cpp = MagicMock()
 
@@ -234,8 +241,7 @@ class TestLlamaCppProvider:
             assert prompt == expected
 
     @pytest.mark.asyncio
-    @patch("onellm.providers.llama_cpp.import")
-    async def test_create_chat_completion(self, mock_import):
+    async def test_create_chat_completion(self):
         """Test creating a chat completion."""
         mock_llama_cpp = MagicMock()
         mock_model = MagicMock()
@@ -266,8 +272,7 @@ class TestLlamaCppProvider:
                     assert response.object == "chat.completion"
 
     @pytest.mark.asyncio
-    @patch("onellm.providers.llama_cpp.import")
-    async def test_create_chat_completion_streaming(self, mock_import):
+    async def test_create_chat_completion_streaming(self):
         """Test creating a streaming chat completion."""
         mock_llama_cpp = MagicMock()
         mock_model = MagicMock()
@@ -304,8 +309,7 @@ class TestLlamaCppProvider:
                     assert chunks == ["I'm ", "doing ", "well!"]
 
     @pytest.mark.asyncio
-    @patch("onellm.providers.llama_cpp.import")
-    async def test_create_completion(self, mock_import):
+    async def test_create_completion(self):
         """Test creating a text completion."""
         mock_llama_cpp = MagicMock()
 
@@ -334,8 +338,7 @@ class TestLlamaCppProvider:
                 assert response.object == "text_completion"
 
     @pytest.mark.asyncio
-    @patch("onellm.providers.llama_cpp.import")
-    async def test_create_embedding_not_supported(self, mock_import):
+    async def test_create_embedding_not_supported(self):
         """Test that embeddings are not supported."""
         mock_llama_cpp = MagicMock()
 
@@ -347,8 +350,7 @@ class TestLlamaCppProvider:
 
             assert "embeddings" in str(exc.value).lower()
 
-    @patch("onellm.providers.llama_cpp.import")
-    def test_list_available_models(self, mock_import):
+    def test_list_available_models(self):
         """Test listing available models."""
         mock_llama_cpp = MagicMock()
 

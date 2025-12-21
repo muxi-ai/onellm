@@ -8,6 +8,17 @@ from unittest.mock import patch, AsyncMock
 
 from onellm.providers.ollama import OllamaProvider
 from onellm.errors import InvalidRequestError, ServiceUnavailableError, ResourceNotFoundError
+from onellm import config as onellm_config
+
+
+@pytest.fixture(autouse=True)
+def reset_ollama_config():
+    """Reset ollama config between tests to avoid state pollution."""
+    # Store original config
+    original = onellm_config.get_provider_config("ollama").copy()
+    yield
+    # Restore original config
+    onellm_config.config["providers"]["ollama"] = original
 
 
 class TestOllamaProvider:
@@ -17,9 +28,9 @@ class TestOllamaProvider:
         """Test initialization with default settings."""
         provider = OllamaProvider()
         assert provider.provider_name == "ollama"
-        assert provider.api_base == "http://localhost:11434"
+        assert provider.api_base == "http://localhost:11434/v1"
         assert provider.api_key == "not-required"
-        assert not provider.requires_api_key
+        assert provider.requires_api_key is False
 
     def test_init_custom_base(self):
         """Test initialization with custom API base."""
@@ -33,7 +44,7 @@ class TestOllamaProvider:
         # Simple model name
         model, endpoint = provider._parse_ollama_model("llama3:8b")
         assert model == "llama3:8b"
-        assert endpoint == "http://localhost:11434"
+        assert endpoint == "http://localhost:11434/v1"
 
     def test_parse_ollama_model_with_endpoint(self):
         """Test parsing model names with endpoints."""
@@ -42,22 +53,22 @@ class TestOllamaProvider:
         # Model with endpoint
         model, endpoint = provider._parse_ollama_model("llama3:8b@server:11434")
         assert model == "llama3:8b"
-        assert endpoint == "http://server:11434"
+        assert endpoint == "http://server:11434/v1"
 
         # Model with IP endpoint
         model, endpoint = provider._parse_ollama_model("mixtral:8x7b@10.0.0.5:11434")
         assert model == "mixtral:8x7b"
-        assert endpoint == "http://10.0.0.5:11434"
+        assert endpoint == "http://10.0.0.5:11434/v1"
 
         # Model with http prefix
         model, endpoint = provider._parse_ollama_model("llama3:8b@http://server:11434")
         assert model == "llama3:8b"
-        assert endpoint == "http://server:11434"
+        assert endpoint == "http://server:11434/v1"
 
         # Model with https prefix
         model, endpoint = provider._parse_ollama_model("llama3:8b@https://server:11434")
         assert model == "llama3:8b"
-        assert endpoint == "https://server:11434"
+        assert endpoint == "https://server:11434/v1"
 
     def test_parse_ollama_model_complex_tags(self):
         """Test parsing model names with complex tags."""
@@ -68,7 +79,7 @@ class TestOllamaProvider:
             "llama3:70b-instruct-q4_K_M@gpu-server:11434"
         )
         assert model == "llama3:70b-instruct-q4_K_M"
-        assert endpoint == "http://gpu-server:11434"
+        assert endpoint == "http://gpu-server:11434/v1"
 
     def test_parse_ollama_model_invalid_endpoint(self):
         """Test parsing model with invalid endpoint format."""
