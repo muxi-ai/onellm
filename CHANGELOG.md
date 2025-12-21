@@ -1,5 +1,83 @@
 # CHANGELOG
 
+## 0.20251218.0 - Exception Naming Improvements
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Breaking Changes
+
+This release contains breaking changes to exception class names. These changes improve Python compatibility and brand consistency.
+
+#### Exception Renames (PR #9 - Python Builtin Shadowing Fix)
+
+The following exceptions were renamed to avoid shadowing Python's built-in exception names:
+
+| Old Name | New Name |
+|----------|----------|
+| `TimeoutError` | `RequestTimeoutError` |
+| `PermissionError` | `PermissionDeniedError` |
+
+**Migration:**
+```python
+# Before
+from onellm.exceptions import TimeoutError, PermissionError
+
+try:
+    response = client.chat.completions.create(...)
+except TimeoutError:
+    print("Request timed out")
+except PermissionError:
+    print("Permission denied")
+
+# After
+from onellm.exceptions import RequestTimeoutError, PermissionDeniedError
+
+try:
+    response = client.chat.completions.create(...)
+except RequestTimeoutError:
+    print("Request timed out")
+except PermissionDeniedError:
+    print("Permission denied")
+```
+
+#### Base Exception Rename (PR #10 - Brand Consistency)
+
+The base exception class was renamed for brand consistency:
+
+| Old Name | New Name |
+|----------|----------|
+| `MuxiLLMError` | `OneLLMError` |
+
+**Migration:**
+```python
+# Before
+from onellm.exceptions import MuxiLLMError
+
+try:
+    response = client.chat.completions.create(...)
+except MuxiLLMError as e:
+    print(f"OneLLM error: {e}")
+
+# After
+from onellm.exceptions import OneLLMError
+
+try:
+    response = client.chat.completions.create(...)
+except OneLLMError as e:
+    print(f"OneLLM error: {e}")
+```
+
+### Improvements
+
+- **Exception Chaining**: All exceptions now use proper exception chaining (`raise ... from e`) for better debugging and stack traces
+- **Test Suite Fixes**: Fixed test suite issues including state pollution between tests and improved mocking patterns
+
+### Technical Details
+
+- Exceptions no longer shadow Python builtins, preventing subtle bugs when catching exceptions
+- All 373 unit tests passing with improved test isolation
+- Exception hierarchy remains unchanged - only class names were updated
+
 ## 0.20251121.0 - MiniMax Provider Support
 
 **Status**: Development Status :: 5 - Production/Stable
