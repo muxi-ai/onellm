@@ -3,10 +3,10 @@ from unittest import mock
 
 from onellm.providers.openai import OpenAIProvider
 from onellm.errors import (
-    TimeoutError,
+    RequestTimeoutError,
     APIError,
     AuthenticationError,
-    PermissionError,
+    PermissionDeniedError,
     ResourceNotFoundError,
     RateLimitError,
     InvalidRequestError,
@@ -74,13 +74,13 @@ class TestOpenAIErrorHandling:
     async def test_completion_timeout_error(self):
         """Test timeout error handling in text completion."""
         # Create a simulated timeout error
-        error = TimeoutError("Request timed out", provider="openai", status_code=408)
+        error = RequestTimeoutError("Request timed out", provider="openai", status_code=408)
 
         # Make the mock _make_request raise the error
         self.mock_make_request.side_effect = error
 
-        # Call the completion method and expect a TimeoutError
-        with pytest.raises(TimeoutError) as exc_info:
+        # Call the completion method and expect a RequestTimeoutError
+        with pytest.raises(RequestTimeoutError) as exc_info:
             await self.provider.create_completion(prompt="Hello, world!", model="text-davinci-003")
 
         # Verify error details
@@ -110,15 +110,15 @@ class TestOpenAIErrorHandling:
     async def test_completion_permission_error(self):
         """Test permission error handling in text completion."""
         # Create a simulated permission error
-        error = PermissionError(
+        error = PermissionDeniedError(
             "You do not have permission to access this resource", provider="openai", status_code=403
         )
 
         # Make the mock _make_request raise the error
         self.mock_make_request.side_effect = error
 
-        # Call the completion method and expect a PermissionError
-        with pytest.raises(PermissionError) as exc_info:
+        # Call the completion method and expect a PermissionDeniedError
+        with pytest.raises(PermissionDeniedError) as exc_info:
             await self.provider.create_completion(prompt="Hello, world!", model="text-davinci-003")
 
         # Verify error details

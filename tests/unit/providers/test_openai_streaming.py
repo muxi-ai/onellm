@@ -3,7 +3,7 @@ import json
 from unittest import mock
 
 from onellm.providers.openai import OpenAIProvider
-from onellm.errors import TimeoutError, AuthenticationError, APIError
+from onellm.errors import RequestTimeoutError, AuthenticationError, APIError
 
 
 class MockResponse:
@@ -95,13 +95,13 @@ class TestOpenAIStreamingAndTools:
         messages = [{"role": "user", "content": "Hello, world!"}]
 
         # Create simulated error
-        error = TimeoutError("Request timed out", provider="openai", status_code=408)
+        error = RequestTimeoutError("Request timed out", provider="openai", status_code=408)
 
         # Make the mock _make_request raise the error
         self.mock_make_request.side_effect = error
 
         # Call the streaming method and expect an error
-        with pytest.raises(TimeoutError) as exc_info:
+        with pytest.raises(RequestTimeoutError) as exc_info:
             async for _ in await self.provider.create_chat_completion(
                 messages=messages, model="gpt-4", stream=True
             ):
