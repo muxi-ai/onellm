@@ -29,12 +29,12 @@ import json
 from collections.abc import AsyncGenerator, Callable
 from typing import Any, TypeVar
 
-from ..errors import MuxiLLMError
+from ..errors import OneLLMError
 
 # Type variable for stream item
 T = TypeVar("T")
 
-class StreamingError(MuxiLLMError):
+class StreamingError(OneLLMError):
     """Error during streaming operation."""
     pass
 

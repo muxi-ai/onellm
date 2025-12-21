@@ -173,7 +173,7 @@ class OpenAIProvider(Provider):
             Response data or streaming response
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Construct the full URL by joining the base URL with the path
         url = f"{self.api_base}/{path.lstrip('/')}"
@@ -294,7 +294,7 @@ class OpenAIProvider(Provider):
             Response data
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Parse the JSON response
         response_data = await response.json()
@@ -318,7 +318,7 @@ class OpenAIProvider(Provider):
             Parsed JSON chunks
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Check for error status codes
         if response.status != 200:
@@ -354,7 +354,7 @@ class OpenAIProvider(Provider):
             response_data: Error response data
 
         Raises:
-            MuxiLLMError: Appropriate error based on the status code
+            OneLLMError: Appropriate error based on the status code
         """
         # Extract error details from the response
         error = response_data.get("error", {})
@@ -1093,7 +1093,7 @@ class OpenAIProvider(Provider):
             Raw binary response data
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         url = f"{self.api_base}/{path.lstrip('/')}"  # Ensure path starts without slash
         timeout = timeout or self.timeout  # Use provided timeout or default

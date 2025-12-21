@@ -417,7 +417,7 @@ class BedrockProvider(Provider):
             error: The exception from boto3
 
         Raises:
-            MuxiLLMError: Appropriate error based on the Bedrock error
+            OneLLMError: Appropriate error based on the Bedrock error
         """
         if isinstance(error, ClientError):
             error_code = error.response["Error"]["Code"]

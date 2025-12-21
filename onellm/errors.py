@@ -27,7 +27,7 @@ to help with error handling in client code.
 from typing import Any
 
 
-class MuxiLLMError(Exception):
+class OneLLMError(Exception):
     """
     Base exception class for OneLLM errors.
 
@@ -76,7 +76,7 @@ class MuxiLLMError(Exception):
         # Combine all components into a single error message
         return f"{self.message}{provider_msg}{status_msg}{request_msg}"
 
-class APIError(MuxiLLMError):
+class APIError(OneLLMError):
     """
     Raised when the provider's API returns an unexpected error.
 
@@ -86,7 +86,7 @@ class APIError(MuxiLLMError):
 
     pass
 
-class AuthenticationError(MuxiLLMError):
+class AuthenticationError(OneLLMError):
     """
     Raised when there are authentication issues (invalid API key, etc.).
 
@@ -95,7 +95,7 @@ class AuthenticationError(MuxiLLMError):
 
     pass
 
-class RateLimitError(MuxiLLMError):
+class RateLimitError(OneLLMError):
     """
     Raised when the provider's rate limit is exceeded.
 
@@ -105,7 +105,7 @@ class RateLimitError(MuxiLLMError):
 
     pass
 
-class InvalidRequestError(MuxiLLMError):
+class InvalidRequestError(OneLLMError):
     """
     Raised when the request parameters are invalid.
 
@@ -115,7 +115,7 @@ class InvalidRequestError(MuxiLLMError):
 
     pass
 
-class ServiceUnavailableError(MuxiLLMError):
+class ServiceUnavailableError(OneLLMError):
     """
     Raised when the provider's service is unavailable.
 
@@ -124,7 +124,7 @@ class ServiceUnavailableError(MuxiLLMError):
 
     pass
 
-class RequestTimeoutError(MuxiLLMError):
+class RequestTimeoutError(OneLLMError):
     """
     Raised when a request times out.
 
@@ -134,7 +134,7 @@ class RequestTimeoutError(MuxiLLMError):
 
     pass
 
-class BadGatewayError(MuxiLLMError):
+class BadGatewayError(OneLLMError):
     """
     Raised when a bad gateway error occurs.
 
@@ -144,7 +144,7 @@ class BadGatewayError(MuxiLLMError):
 
     pass
 
-class PermissionDeniedError(MuxiLLMError):
+class PermissionDeniedError(OneLLMError):
     """
     Raised when permission is denied for the requested operation.
 
@@ -154,7 +154,7 @@ class PermissionDeniedError(MuxiLLMError):
 
     pass
 
-class ResourceNotFoundError(MuxiLLMError):
+class ResourceNotFoundError(OneLLMError):
     """
     Raised when a requested resource is not found.
 
@@ -174,7 +174,7 @@ class InvalidModelError(InvalidRequestError):
 
     pass
 
-class InvalidConfigurationError(MuxiLLMError):
+class InvalidConfigurationError(OneLLMError):
     """
     Raised when the library is configured incorrectly.
 
@@ -184,7 +184,7 @@ class InvalidConfigurationError(MuxiLLMError):
 
     pass
 
-class FallbackExhaustionError(MuxiLLMError):
+class FallbackExhaustionError(OneLLMError):
     """
     Error raised when all fallback models have been tried and failed.
 

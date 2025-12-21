@@ -225,7 +225,7 @@ class AzureProvider(Provider):
             Response data or streaming response
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Get deployment configuration
         deployment_config = self._get_deployment_config(model)
@@ -310,7 +310,7 @@ class AzureProvider(Provider):
             Response data
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Parse the JSON response
         response_data = await response.json()
@@ -334,7 +334,7 @@ class AzureProvider(Provider):
             Parsed JSON chunks
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Check for error status codes
         if response.status != 200:
@@ -370,7 +370,7 @@ class AzureProvider(Provider):
             response_data: Error response data
 
         Raises:
-            MuxiLLMError: Appropriate error based on the status code
+            OneLLMError: Appropriate error based on the status code
         """
         # Extract error details from the response
         error = response_data.get("error", {})
@@ -980,7 +980,7 @@ class AzureProvider(Provider):
             Raw binary response data
 
         Raises:
-            MuxiLLMError: On API errors
+            OneLLMError: On API errors
         """
         # Get deployment configuration
         deployment_config = self._get_deployment_config(model)

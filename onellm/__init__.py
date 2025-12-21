@@ -47,7 +47,7 @@ from .errors import (
     APIError,
     AuthenticationError,
     InvalidRequestError,
-    MuxiLLMError,
+    OneLLMError,
     RateLimitError,
 )
 from .files import File
@@ -115,7 +115,7 @@ __all__ = [
     "cache_stats",     # Get cache statistics
 
     # Error handling
-    "MuxiLLMError",       # Base error class
+    "OneLLMError",       # Base error class
     "APIError",           # API-related errors
     "AuthenticationError",  # Authentication failures
     "RateLimitError",     # Rate limit exceeded
