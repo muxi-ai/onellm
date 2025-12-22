@@ -153,6 +153,33 @@ class SimpleCache:
         json_str = json.dumps(payload, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()
 
+    def _extract_system_hash(self, messages: list[dict]) -> str:
+        """
+        Extract and hash system prompt content.
+
+        This hash is used alongside semantic similarity to ensure
+        different system prompts don't get mixed up even if user
+        messages are similar.
+
+        Args:
+            messages: List of message dictionaries
+
+        Returns:
+            SHA256 hash of system prompt content, or empty string if none
+        """
+        system_texts = []
+        for msg in messages:
+            if msg.get("role") == "system":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    system_texts.append(content)
+
+        if not system_texts:
+            return ""
+
+        combined = " ".join(system_texts)
+        return hashlib.sha256(combined.encode()).hexdigest()[:16]  # Short hash is enough
+
     def _extract_text(self, messages: list[dict]) -> str:
         """
         Extract text content from USER messages only for embedding.
@@ -184,15 +211,16 @@ class SimpleCache:
 
         return " ".join(texts)
 
-    def _semantic_search(self, text: str) -> dict | None:
+    def _semantic_search(self, text: str, system_hash: str = "") -> dict | None:
         """
         Search for semantically similar cached responses.
 
         Args:
             text: Text to search for
+            system_hash: Hash of system prompt (must match for cache hit)
 
         Returns:
-            Cached response if similarity above threshold, None otherwise
+            Cached response if similarity above threshold AND system hash matches, None otherwise
         """
         if self.embedder is None or self.semantic_index.ntotal == 0:
             return None
@@ -212,20 +240,23 @@ class SimpleCache:
         norm = np.linalg.norm(embedding, axis=1, keepdims=True)
         embedding = embedding / norm
 
-        # Search for most similar entry
-        scores, indices = self.semantic_index.search(embedding, k=1)
+        # Search for multiple candidates to find one with matching system hash
+        k = min(10, self.semantic_index.ntotal)  # Check top 10 candidates
+        scores, indices = self.semantic_index.search(embedding, k=k)
 
-        if len(scores) > 0 and scores[0][0] >= self.config.similarity_threshold:
-            # Found similar entry above threshold
-            idx = indices[0][0]
-            response = self._semantic_responses[idx]
+        for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
+            if score < self.config.similarity_threshold:
+                break  # No more candidates above threshold
 
-            logger.debug(
-                f"Semantic cache hit (similarity: {scores[0][0]:.3f}, "
-                f"threshold: {self.config.similarity_threshold})"
-            )
-
-            return response
+            # Check if system hash matches
+            stored_hash, response = self._semantic_responses[idx]
+            if stored_hash == system_hash:
+                logger.debug(
+                    f"Semantic cache hit (similarity: {score:.3f}, "
+                    f"threshold: {self.config.similarity_threshold}, "
+                    f"system_hash match: True)"
+                )
+                return response
 
         return None
 
@@ -266,8 +297,9 @@ class SimpleCache:
         # Step 2: Try semantic similarity search (~18ms)
         if not self.config.hash_only and self.embedder is not None:
             text = self._extract_text(messages)
+            system_hash = self._extract_system_hash(messages)
             if text:
-                result = self._semantic_search(text)
+                result = self._semantic_search(text, system_hash)
                 if result is not None:
                     self.hits += 1
                     # Update timestamp for semantic hit
@@ -317,6 +349,7 @@ class SimpleCache:
         # Add to semantic index (for similarity search)
         if not self.config.hash_only and self.embedder is not None:
             text = self._extract_text(messages)
+            system_hash = self._extract_system_hash(messages)
             if text:
                 try:
                     # Generate embedding
@@ -351,7 +384,7 @@ class SimpleCache:
 
                     # Store embedding and response (keep parallel lists for efficient lookup)
                     self.semantic_data.append((hash_key, embedding[0]))  # Store 1D embedding
-                    self._semantic_responses.append(response)
+                    self._semantic_responses.append((system_hash, response))  # Include system hash
 
                     # Evict from semantic index if needed
                     if len(self.semantic_data) > self.config.max_entries:

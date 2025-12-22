@@ -377,9 +377,11 @@ class ChatCompletion:
         original_messages = copy.deepcopy(messages)
 
         # Check cache first (use original unmutated messages)
+        # Skip cache if caching=False is passed in kwargs
+        use_cache = kwargs.pop("caching", True)
         from . import _cache
 
-        if _cache is not None:
+        if _cache is not None and use_cache:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
@@ -423,7 +425,7 @@ class ChatCompletion:
         )
 
         # Cache the response (use original unmutated messages)
-        if _cache is not None:
+        if _cache is not None and use_cache:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._accumulate_and_cache_stream(
@@ -492,9 +494,11 @@ class ChatCompletion:
         original_messages = copy.deepcopy(messages)
 
         # Check cache first (use original unmutated messages)
+        # Skip cache if caching=False is passed in kwargs
+        use_cache = kwargs.pop("caching", True)
         from . import _cache
 
-        if _cache is not None:
+        if _cache is not None and use_cache:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
@@ -535,7 +539,7 @@ class ChatCompletion:
         )
 
         # Cache the response (use original unmutated messages)
-        if _cache is not None:
+        if _cache is not None and use_cache:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._aaccumulate_and_cache_stream(
