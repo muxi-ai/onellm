@@ -40,22 +40,25 @@ class CacheConfig:
     def __init__(
         self,
         max_entries: int = 1000,
-        similarity_threshold: float = 0.95,
+        similarity_threshold: float = 0.98,
         hash_only: bool = False,
         stream_chunk_strategy: str = "words",
         stream_chunk_length: int = 8,
         ttl: int = 86400,
+        min_text_length: int = 128,
     ):
         """
         Initialize cache configuration.
 
         Args:
             max_entries: Maximum number of cache entries before LRU eviction (default: 1000)
-            similarity_threshold: Minimum similarity score for semantic cache hit (default: 0.95)
+            similarity_threshold: Minimum similarity score for semantic cache hit (default: 0.98)
             hash_only: Disable semantic matching, use only hash-based exact matches (default: False)
             stream_chunk_strategy: How to chunk cached streaming responses (default: "words")
             stream_chunk_length: Number of strategy units per chunk (default: 8)
             ttl: Time-to-live in seconds for cache entries (default: 86400, 1 day)
+            min_text_length: Minimum text length for semantic matching (default: 128).
+                Short texts have misleadingly high similarity and skip semantic cache.
         """
         self.max_entries = max_entries
         self.similarity_threshold = similarity_threshold
@@ -63,6 +66,7 @@ class CacheConfig:
         self.stream_chunk_strategy = stream_chunk_strategy
         self.stream_chunk_length = stream_chunk_length
         self.ttl = ttl
+        self.min_text_length = min_text_length
 
         # Validate strategy
         valid_strategies = {"words", "sentences", "paragraphs", "characters"}
@@ -300,7 +304,7 @@ class SimpleCache:
             system_hash = self._extract_system_hash(messages)
             # Skip semantic search for short texts - they have misleadingly high similarity
             # Short questions like "what about X?" and "what is Y?" can match incorrectly
-            if text and len(text) >= 50:
+            if text and len(text) >= self.config.min_text_length:
                 result = self._semantic_search(text, system_hash)
                 if result is not None:
                     self.hits += 1
@@ -353,7 +357,7 @@ class SimpleCache:
             text = self._extract_text(messages)
             system_hash = self._extract_system_hash(messages)
             # Skip semantic indexing for short texts - they cause false matches
-            if text and len(text) >= 50:
+            if text and len(text) >= self.config.min_text_length:
                 try:
                     # Generate embedding
                     import numpy as np

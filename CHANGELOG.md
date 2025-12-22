@@ -12,13 +12,16 @@ Fixed critical issues with the semantic cache that caused incorrect cache matche
 
 1. **System Prompt Hash Matching**: The semantic cache now includes a hash of the system prompt when matching cached responses. Previously, different LLM operations with similar user messages but different system prompts could incorrectly return cached responses from unrelated operations.
 
-2. **Short Text Exclusion**: Messages shorter than 50 characters are now excluded from semantic matching. Short questions like "what about X?" and "what is Y?" have misleadingly high semantic similarity scores which caused false cache hits. These short messages still benefit from exact hash matching.
+2. **Short Text Exclusion**: Messages shorter than 128 characters are now excluded from semantic matching (configurable via `min_text_length`). Short questions have misleadingly high semantic similarity scores which caused false cache hits. These short messages still benefit from exact hash matching.
+
+3. **Stricter Default Threshold**: Default similarity threshold increased from 0.95 to 0.98 for more reliable matching.
 
 ### Changes
 
 - Added `_extract_system_hash()` method to compute SHA256 hash of system prompt content
 - Modified `_semantic_search()` to require both semantic similarity AND system hash match
-- Added minimum text length check (50 chars) before semantic cache operations
+- Added configurable `min_text_length` parameter (default: 128 chars) before semantic cache operations
+- Changed default `similarity_threshold` from 0.95 to 0.98
 - Added `caching` parameter to `ChatCompletion.create/acreate` for per-call cache bypass
 
 ---
