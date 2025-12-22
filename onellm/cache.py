@@ -298,7 +298,9 @@ class SimpleCache:
         if not self.config.hash_only and self.embedder is not None:
             text = self._extract_text(messages)
             system_hash = self._extract_system_hash(messages)
-            if text:
+            # Skip semantic search for very short texts - they have misleadingly high similarity
+            # (e.g., "hi", "why", "ok" would all match each other at >95%)
+            if text and len(text) >= 15:
                 result = self._semantic_search(text, system_hash)
                 if result is not None:
                     self.hits += 1
@@ -350,7 +352,8 @@ class SimpleCache:
         if not self.config.hash_only and self.embedder is not None:
             text = self._extract_text(messages)
             system_hash = self._extract_system_hash(messages)
-            if text:
+            # Skip semantic indexing for very short texts - they cause false matches
+            if text and len(text) >= 15:
                 try:
                     # Generate embedding
                     import numpy as np
