@@ -155,16 +155,24 @@ class SimpleCache:
 
     def _extract_text(self, messages: list[dict]) -> str:
         """
-        Extract text content from messages for embedding.
+        Extract text content from USER messages only for embedding.
+
+        Only user messages are used for semantic comparison to avoid
+        false positives when system prompts are large and identical
+        across different requests.
 
         Args:
             messages: List of message dictionaries
 
         Returns:
-            Concatenated text content
+            Concatenated text content from user messages only
         """
         texts = []
         for msg in messages:
+            # Only extract from user messages to avoid system prompt dominating similarity
+            if msg.get("role") != "user":
+                continue
+
             content = msg.get("content", "")
             if isinstance(content, str):
                 texts.append(content)
