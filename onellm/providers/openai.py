@@ -41,9 +41,10 @@ from ..errors import (
     PermissionDeniedError,
     RateLimitError,
     ResourceNotFoundError,
-    ServiceUnavailableError,
     RequestTimeoutError,
+    ServiceUnavailableError,
 )
+from ..http_pool import get_session_safe
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -218,7 +219,8 @@ class OpenAIProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the HTTP request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
+            session, pooled = await get_session_safe("openai")
+            try:
                 async with session.request(
                     method=method,
                     url=url,
@@ -232,6 +234,9 @@ class OpenAIProvider(Provider):
                     else:
                         # For regular responses, parse JSON and handle errors
                         return await self._handle_response(response)
+            finally:
+                if not pooled:
+                    await session.close()
 
         # Use retry mechanism for non-streaming requests
         if not stream:
@@ -803,7 +808,8 @@ class OpenAIProvider(Provider):
         Returns:
             Bytes content of the file
         """
-        async with aiohttp.ClientSession() as session:
+        session, pooled = await get_session_safe("openai")
+        try:
             async with session.get(
                 url=url,
                 headers=headers,
@@ -816,6 +822,9 @@ class OpenAIProvider(Provider):
 
                 # Return the raw file content
                 return await response.read()
+        finally:
+            if not pooled:
+                await session.close()
 
     async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
@@ -1102,7 +1111,8 @@ class OpenAIProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the HTTP request with error handling"""
-            async with aiohttp.ClientSession() as session:
+            session, pooled = await get_session_safe("openai")
+            try:
                 async with session.request(
                     method=method,
                     url=url,
@@ -1126,6 +1136,9 @@ class OpenAIProvider(Provider):
 
                     # Return the raw binary data
                     return await response.read()
+            finally:
+                if not pooled:
+                    await session.close()
 
         # Use retry mechanism for resilience
         return await retry_async(execute_request, config=self.retry_config)

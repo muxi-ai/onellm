@@ -46,10 +46,11 @@ def mock_env_api_key(monkeypatch):
 
 @pytest.fixture
 def mock_aiohttp_session():
-    """Create a mock for aiohttp.ClientSession."""
-    with mock.patch("aiohttp.ClientSession") as mock_session:
+    """Create a mock for get_session_safe to return a mock session."""
+    with mock.patch("onellm.providers.anthropic.get_session_safe") as mock_get_session:
         # Create a session instance
-        session_instance = AsyncMock()
+        session_instance = MagicMock()
+        session_instance.close = AsyncMock()
 
         # Create a response for messages endpoint (Anthropic native format)
         anthropic_response = MockResponse(
@@ -72,12 +73,10 @@ def mock_aiohttp_session():
         request_context.__aexit__.return_value = None
         session_instance.request = MagicMock(return_value=request_context)
 
-        # Set up the ClientSession constructor to work as a context manager
-        mock_session.return_value = AsyncMock()
-        mock_session.return_value.__aenter__.return_value = session_instance
-        mock_session.return_value.__aexit__.return_value = None
+        # Set up get_session_safe to return (session, is_pooled) tuple
+        mock_get_session.return_value = (session_instance, False)
 
-        yield mock_session
+        yield mock_get_session
 
 
 class TestAnthropicProvider:

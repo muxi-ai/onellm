@@ -8,6 +8,43 @@ nav_order: 8
 
 This guide covers advanced features and configurations in OneLLM, including fallback mechanisms, retry strategies, semantic caching, and working with multiple providers.
 
+## HTTP Connection Pooling
+
+OneLLM supports persistent HTTP connection pooling to reduce latency for sequential LLM calls. By reusing TCP connections, you can save 100-300ms per request that would otherwise be spent on TCP/TLS handshakes.
+
+**Quick example:**
+```python
+import onellm
+
+# Enable connection pooling (off by default)
+onellm.init_pooling()
+
+# Use OneLLM normally - connections are reused automatically
+response = ChatCompletion.create(...)  # First call establishes connection
+response = ChatCompletion.create(...)  # Reuses existing connection (faster!)
+
+# Cleanup on shutdown
+await onellm.close_pooling()
+```
+
+**Configuration options:**
+```python
+onellm.init_pooling(
+    max_connections=100,      # Total connection limit (default: 100)
+    max_per_host=20,          # Per-provider limit (default: 20)
+    keepalive_timeout=30,     # Seconds to keep idle connections (default: 30)
+    dns_cache_ttl=300,        # DNS cache duration in seconds (default: 300)
+)
+```
+
+**Key benefits:**
+- 100-300ms faster per request after first call
+- Reduces load on provider APIs
+- Zero-risk: automatically falls back to per-request sessions if pooling fails
+- Separate connection pools per provider for isolation
+
+**Best practice:** Enable pooling for workflows with multiple sequential LLM calls (agents, chains, etc.).
+
 ## Semantic Caching
 
 OneLLM includes intelligent semantic caching to reduce API costs and improve response times. For complete documentation, see [Semantic Caching]({{ site.baseurl }}/caching).

@@ -1,5 +1,50 @@
 # CHANGELOG
 
+## 0.20251229.0 - HTTP Connection Pooling
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New Features
+
+#### HTTP Connection Pooling
+
+Added opt-in HTTP connection pooling to reduce latency for sequential LLM calls. By reusing TCP connections, you can save 100-300ms per request that would otherwise be spent on TCP/TLS handshakes.
+
+```python
+import onellm
+
+# Enable connection pooling (off by default)
+onellm.init_pooling()
+
+# All subsequent calls reuse HTTP connections
+response = ChatCompletion.create(...)  # First call: establishes connection
+response = ChatCompletion.create(...)  # Subsequent calls: 100-300ms faster!
+
+# Cleanup on shutdown
+await onellm.close_pooling()
+```
+
+**Key features:**
+- **Opt-in**: Disabled by default, enable with `onellm.init_pooling()`
+- **Zero-risk**: Automatically falls back to per-request sessions if pooling fails
+- **Per-provider isolation**: Separate connection pools for each provider (OpenAI, Anthropic, etc.)
+- **Configurable**: Customize limits with `onellm.init_pooling(max_connections=100, max_per_host=20)`
+
+**Configuration options:**
+- `max_connections`: Total connection limit (default: 100)
+- `max_per_host`: Per-provider limit (default: 20)
+- `keepalive_timeout`: Seconds to keep idle connections (default: 30)
+- `dns_cache_ttl`: DNS cache duration in seconds (default: 300)
+
+### Changes
+
+- Added `onellm/http_pool.py` with `HTTPConnectionPool` class and `PoolConfig`
+- Added `init_pooling()` and `close_pooling()` functions to public API
+- Updated OpenAI and Anthropic providers to use connection pooling when enabled
+- Added `get_session_safe()` helper for graceful fallback to per-request sessions
+
+---
+
 ## 0.20251222.0 - Semantic Cache Improvements
 
 **Status**: Development Status :: 5 - Production/Stable

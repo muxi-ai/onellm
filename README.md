@@ -108,6 +108,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | **📦 Drop-in replacement** | Use your existing OpenAI code with minimal changes |
 | **🔄 Provider-agnostic** | Support for 300+ models across 20 implemented providers |
 | **⚡ Blazing-fast semantic cache** | 42,000-143,000x faster responses, 50-80% cost savings with streaming support & TTL |
+| **🔌 Connection pooling** | Reuse HTTP connections for 100-300ms faster sequential calls |
 | **🔁 Automatic fallback** | Seamlessly switch to alternative models when needed |
 | **🔄 Auto-retry mechanism** | Retry the same model multiple times before failing |
 | **🧩 OpenAI-compatible** | Familiar interface for developers used to OpenAI |
@@ -633,6 +634,29 @@ onellm.disable_cache()  # Disable caching
 ```
 
 See [examples/cache_example.py](./examples/cache_example.py) and [docs/caching.md](./docs/caching.md) for complete documentation.
+
+### HTTP Connection Pooling (Optional)
+
+For workflows with multiple sequential LLM calls, OneLLM supports HTTP connection pooling to reduce latency:
+
+```python
+import onellm
+
+# Enable connection pooling (off by default)
+onellm.init_pooling()
+
+# All subsequent calls reuse HTTP connections
+response = ChatCompletion.create(...)  # First call: establishes connection
+response = ChatCompletion.create(...)  # Subsequent calls: 100-300ms faster!
+
+# Cleanup on shutdown
+await onellm.close_pooling()
+```
+
+**Benefits:**
+- **100-300ms faster** per request after the first call (saves TCP/TLS handshake)
+- **Zero-risk**: automatically falls back to per-request sessions if pooling fails
+- **Configurable**: `onellm.init_pooling(max_connections=100, max_per_host=20)`
 
 ---
 

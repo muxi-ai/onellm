@@ -45,6 +45,7 @@ from ..errors import (
     RequestTimeoutError,
     ServiceUnavailableError,
 )
+from ..http_pool import get_session_safe
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -203,7 +204,8 @@ class AnthropicProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the HTTP request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
+            session, pooled = await get_session_safe("anthropic")
+            try:
                 async with session.request(
                     method=method,
                     url=url,
@@ -217,6 +219,9 @@ class AnthropicProvider(Provider):
                     else:
                         # For regular responses, parse JSON and handle errors
                         return await self._handle_response(response)
+            finally:
+                if not pooled:
+                    await session.close()
 
         # Use retry mechanism for non-streaming requests
         if not stream:
@@ -814,7 +819,8 @@ class AnthropicProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the download request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
+            session, pooled = await get_session_safe("anthropic")
+            try:
                 async with session.get(
                     url=url,
                     headers=headers,
@@ -827,6 +833,9 @@ class AnthropicProvider(Provider):
 
                     # Return the raw file content
                     return await response.read()
+            finally:
+                if not pooled:
+                    await session.close()
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)

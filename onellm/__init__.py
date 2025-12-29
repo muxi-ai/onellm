@@ -114,6 +114,10 @@ __all__ = [
     "clear_cache",     # Clear cache entries
     "cache_stats",     # Get cache statistics
 
+    # Connection pooling
+    "init_pooling",    # Initialize HTTP connection pooling
+    "close_pooling",   # Close all pooled connections
+
     # Error handling
     "OneLLMError",       # Base error class
     "APIError",           # API-related errors
@@ -224,6 +228,68 @@ def cache_stats() -> dict:
     if _cache:
         return _cache.stats()
     return {"hits": 0, "misses": 0, "entries": 0}
+
+
+# Connection pooling management
+def init_pooling(
+    max_connections: int = 100,
+    max_per_host: int = 20,
+    keepalive_timeout: int = 30,
+    dns_cache_ttl: int = 300,
+    request_timeout: int = 300,
+):
+    """
+    Initialize HTTP connection pooling for improved performance.
+
+    Connection pooling reduces TCP/TLS handshake overhead by reusing connections
+    across multiple LLM API calls. This can save 100-300ms per request for
+    workflows with sequential LLM calls.
+
+    Pooling is opt-in and disabled by default. If pooling fails for any reason,
+    providers silently fall back to creating a new session per request.
+
+    Args:
+        max_connections: Maximum total connections across all providers (default: 100)
+        max_per_host: Maximum connections per provider/host (default: 20)
+        keepalive_timeout: Seconds to keep idle connections alive (default: 30)
+        dns_cache_ttl: DNS cache duration in seconds (default: 300)
+        request_timeout: Default request timeout in seconds (default: 300)
+
+    Example:
+        >>> import onellm
+        >>> onellm.init_pooling()  # Enable with defaults
+        >>> onellm.init_pooling(max_per_host=50)  # Higher per-provider limit
+        >>> # ... use OneLLM normally ...
+        >>> await onellm.close_pooling()  # Cleanup on shutdown
+    """
+    from .http_pool import HTTPConnectionPool, PoolConfig
+
+    config = PoolConfig(
+        max_connections=max_connections,
+        max_per_host=max_per_host,
+        keepalive_timeout=keepalive_timeout,
+        dns_cache_ttl=dns_cache_ttl,
+        request_timeout=request_timeout,
+    )
+    HTTPConnectionPool.configure(config)
+
+
+async def close_pooling():
+    """
+    Close all pooled HTTP connections.
+
+    Call this on application shutdown to cleanly close all pooled connections.
+    After calling this, pooling is disabled until init_pooling() is called again.
+
+    Example:
+        >>> import onellm
+        >>> onellm.init_pooling()
+        >>> # ... use OneLLM ...
+        >>> await onellm.close_pooling()  # Cleanup
+    """
+    from .http_pool import HTTPConnectionPool
+
+    await HTTPConnectionPool.close_all()
 
 
 # Provider-specific API keys can be accessed as globals after they're set:

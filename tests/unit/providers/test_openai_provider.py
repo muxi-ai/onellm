@@ -891,13 +891,12 @@ class TestOpenAIProvider:
         """Test _make_request with file uploads."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         # Setup file data
         files = {
@@ -947,13 +946,12 @@ class TestOpenAIProvider:
         """Test _make_request_raw successful call."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         expected_data = b"raw binary data"
         mock_response = MockResponse(expected_data)
@@ -974,13 +972,12 @@ class TestOpenAIProvider:
         """Test _make_request_raw with error response as JSON."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         error_response = {"error": {"message": "Invalid API key", "type": "authentication_error"}}
         mock_response = MockResponse(error_response, status=401)
@@ -1000,13 +997,12 @@ class TestOpenAIProvider:
         """Test _make_request_raw with non-JSON error response."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         error_text = "Internal Server Error"
         mock_response = MockResponse(error_text, status=500)
@@ -1119,13 +1115,12 @@ class TestOpenAIProvider:
         with pytest.raises(InvalidRequestError, match="Response format 'png' is not supported"):
             await provider.create_image(prompt="A beautiful sunset", response_format="png")
 
-        # Patch aiohttp.ClientSession for successful test
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         # Test successful call with valid parameters
         mock_response = MockResponse(image_response)
@@ -1152,13 +1147,12 @@ class TestOpenAIProvider:
         """Test audio transcription."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         # Mock response for successful transcription
         mock_response = MockResponse(
@@ -1203,13 +1197,12 @@ class TestOpenAIProvider:
         """Test audio translation."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch aiohttp.ClientSession
-        session_patch = patch("aiohttp.ClientSession")
-        mock_session = session_patch.start()
+        # Patch get_session_safe to return a mock session
+        session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
+        mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session.return_value = mock_session_instance
-        mock_session_instance.__aenter__.return_value = mock_session_instance
-        mock_session_instance.__aexit__.return_value = None
+        mock_session_instance.close = AsyncMock()
+        mock_get_session.return_value = (mock_session_instance, False)
 
         # Mock response for successful translation
         mock_response = MockResponse({"text": "This is a translation of audio content."})
