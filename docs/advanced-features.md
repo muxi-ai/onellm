@@ -15,6 +15,7 @@ OneLLM supports persistent HTTP connection pooling to reduce latency for sequent
 **Quick example:**
 ```python
 import onellm
+from onellm import ChatCompletion
 
 # Enable connection pooling (off by default)
 onellm.init_pooling()
