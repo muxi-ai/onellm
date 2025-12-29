@@ -44,6 +44,15 @@ onellm.init_pooling(
 - Zero-risk: automatically falls back to per-request sessions if pooling fails
 - Separate connection pools per provider for isolation
 
+**Benchmark results** (20 requests, 10 concurrent, OpenAI gpt-4o-mini):
+
+| Metric | Without Pooling | With Pooling | Improvement |
+|--------|-----------------|--------------|-------------|
+| Total time | 2.55s | 1.58s | **38% faster** |
+| Throughput | 7.84 req/s | 12.70 req/s | **62% higher** |
+| Avg latency | 0.74s | 0.60s | 140ms saved |
+| Latency variance | 0.27s std | 0.08s std | **3x more consistent** |
+
 **Best practice:** Enable pooling for workflows with multiple sequential LLM calls (agents, chains, etc.).
 
 ## Semantic Caching
