@@ -4,6 +4,7 @@ on:
   branch_protection_rule:
   schedule:
     - cron: "0 6 * * 1"
+  workflow_dispatch:
   workflow_run:
     workflows: ["Release"]
     types: [completed]
