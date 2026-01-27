@@ -64,7 +64,6 @@ tests/
 ### Testing Conventions
 
 - Use `pytest` with `pytest-asyncio` (asyncio_mode = auto)
-- Aim for >90% coverage on new code
 - Unit tests use mocked responses from `tests/patch_providers.py`
 - Integration tests **must** use `pytest.mark.skipif` to guard missing credentials
 - Never execute provider calls or load secrets at import/module level
@@ -160,7 +159,6 @@ tests/
 
 - **Unit tests**: Required for all new features and bug fixes
 - **Mock API responses**: Use the fixtures in `tests/fixtures`
-- **Test coverage**: Aim for >90% coverage for new code
 - **Test offline mode**: Ensure fallbacks work properly when providers are unavailable
 - **Test edge cases**: Handle proper error cases, empty inputs, large inputs, etc.
 - **Testing tools**:

@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/pypi/v/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![Status](https://img.shields.io/pypi/status/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/onellm)
+[![Scorecard](https://github.com/muxi-ai/onellm/actions/workflows/scorecard.yml/badge.svg?branch=develop)](https://github.com/muxi-ai/onellm/actions/workflows/scorecard.yml)
 &nbsp;
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/muxi-ai/onellm)
 
@@ -36,7 +36,6 @@
 - [Model Naming Convention](https://github.com/muxi-ai/onellm/blob/main/README.md#-model-naming-convention)
 - [Configuration](https://github.com/muxi-ai/onellm/blob/main/README.md#-configuration)
 - [Versioning](https://github.com/muxi-ai/onellm/blob/main/README.md#-versioning)
-- [Test Coverage](https://github.com/muxi-ai/onellm/blob/main/README.md#-test-coverage)
 - [Documentation](https://github.com/muxi-ai/onellm/blob/main/README.md#-documentation)
 - [Call for Contributions](https://github.com/muxi-ai/onellm/blob/main/README.md#-call-for-contributions)
 - [License](https://github.com/muxi-ai/onellm/blob/main/README.md#-license)
@@ -118,7 +117,7 @@ For more detailed examples, check out the [examples directory](./examples).
 | **⬇️ Model downloads** | Built-in CLI to download GGUF models from HuggingFace |
 | **🧹 Unicode artifact cleaning** | Automatic removal of invisible characters to prevent AI detection |
 | **🏷️ Consistent naming** | Clear `provider/model-name` format for attribution |
-| **🧪 Comprehensive tests** | 96% test coverage ensuring reliability |
+| **🧪 Comprehensive tests** | Extensive unit and integration test suite |
 | **📄 Apache-2.0 license** | Open-source license that protects contributions |
 
 ---
@@ -886,38 +885,6 @@ ScalVer is a calendar-aware versioning scheme that's fully compatible with SemVe
 | `1.20251101.3` | Fourth release on Nov 1, 2025 (stable, backward compatible) |
 
 Learn more at [scalver.org](https://scalver.org)
-
----
-
-## 🧪 Test Coverage
-
-OneLLM maintains comprehensive test coverage to ensure reliability and compatibility:
-
-<!-- Test coverage visualization -->
-<table>
-  <tr>
-    <th>Coverage Metric</th>
-    <th>Value</th>
-  </tr>
-  <tr>
-    <td>Overall Package Coverage</td>
-    <td>96% (357 passing tests)</td>
-  </tr>
-  <tr>
-    <td>Modules with 100% Coverage</td>
-    <td>16 modules</td>
-  </tr>
-  <tr>
-    <td>Minimum Module Coverage</td>
-    <td>90%</td>
-  </tr>
-  <tr>
-    <td>Provider Implementations</td>
-    <td>93-95% coverage</td>
-  </tr>
-</table>
-
-This extensive test coverage ensures reliable operation across all supported providers and models.
 
 ---
 

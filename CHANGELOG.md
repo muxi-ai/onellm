@@ -204,7 +204,7 @@ response = client.chat.completions.create(
 ### Testing
 
 - Added 15 comprehensive unit tests for MiniMax provider
-- All tests passing with 100% coverage for new code
+- All tests passing
 - Verified Anthropic provider remains unaffected (17/17 tests passing)
 
 ### Documentation Updates
@@ -445,7 +445,7 @@ This release marks OneLLM's transition from beta to production-ready status, wit
 
 - **18 Implemented Providers**: Full support for OpenAI, Anthropic, Google, Azure, Bedrock, Mistral, Groq, Together, Anyscale, Fireworks, DeepSeek, Perplexity, OpenRouter, X.AI, Cohere, Vertex AI, Ollama, and llama.cpp
 - **300+ Accessible Models**: Comprehensive model coverage across all major LLM families
-- **96% Test Coverage**: Extensive test suite with 357 passing tests ensuring reliability
+- **Extensive Test Suite**: 400+ passing tests ensuring reliability
 - **Complete Documentation**: Full Jekyll-based documentation site with guides, API reference, and examples
 
 ### New Features
@@ -597,7 +597,7 @@ The initial release of OneLLM includes a comprehensive set of features providing
 
 ### Quality Assurance
 
-- Comprehensive test suite (96% code coverage)
+- Comprehensive test suite
 - Unit and integration tests for all components
 - Error handling and edge case testing
 - Mock provider implementations for testing

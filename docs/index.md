@@ -10,7 +10,7 @@ nav_order: 1
 [![Version](https://img.shields.io/pypi/v/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![Status](https://img.shields.io/pypi/status/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/muxi-ai/onellm)
+[![Scorecard](https://github.com/muxi-ai/onellm/actions/workflows/scorecard.yml/badge.svg?branch=develop)](https://github.com/muxi-ai/onellm/actions/workflows/scorecard.yml)
 &nbsp;
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
