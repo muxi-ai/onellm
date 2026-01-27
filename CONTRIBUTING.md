@@ -10,15 +10,80 @@ I welcome contributions to OneLLM! Whether you're fixing bugs, adding features, 
 4. Add or update tests as necessary
 5. Submit a pull request
 
-## Coding Standards
+## Style Guide
 
-- **Type annotations**: Always use type hints for function parameters and return values
-- **Docstrings**: All public functions, classes, and methods should have docstrings (follow the Google style)
-- **Tests**: New features should include tests with >90% coverage
-- **Error handling**: Use appropriate error types from `onellm.errors`
-- **Imports**: Group imports as standard library, third-party, and local
-- **File structure**: Follow the existing project structure patterns
-- **Naming**: Use clear, descriptive names for functions, classes, and variables
+### Formatting & Linting
+
+All code is enforced by CI. Run these before pushing:
+
+```bash
+# Format
+black onellm tests            # line-length 100
+isort onellm tests            # profile: black
+
+# Lint
+ruff check onellm tests       # rules: E, F, N, W, C90, I, B, UP, A
+
+# Type check
+mypy onellm
+```
+
+Configuration lives in `pyproject.toml` — do not duplicate settings elsewhere.
+
+### Python Style
+
+- **Target**: Python 3.10+ (use `X | Y` union syntax, not `Union[X, Y]`)
+- **Line length**: 100 characters
+- **Type annotations**: Required on all public function signatures and return values
+- **Docstrings**: Google style on all public functions, classes, and methods
+- **Imports**: Group as standard library → third-party → local, sorted by `isort`
+- **Naming**: `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE` for constants
+- **Error handling**: Raise appropriate types from `onellm.errors`, never bare `Exception`
+- **Comments**: Only where the *why* isn't obvious from the code; avoid restating what the code does
+- **Security**: Never log API keys, tokens, or credentials — not even prefixes
+
+### Project Structure
+
+```
+onellm/              # Core package
+  providers/         # One module per provider (inherit from Provider or OpenAICompatibleProvider)
+  types/             # OpenAI-compatible type definitions
+  utils/             # Shared utilities (validation, retry, token counting)
+tests/
+  unit/              # Fast, fully mocked — runs in CI
+  integration/       # Real API calls — guarded by skipif on missing credentials
+```
+
+### Provider Conventions
+
+- Model names follow `provider/model-name` format (e.g., `openai/gpt-4`)
+- Declare capabilities via class attributes (`json_mode_support`, `vision_support`, etc.)
+- Register new providers in `onellm/providers/__init__.py`
+- Use `get_provider_config()` for configuration — never read env vars directly in providers
+
+### Testing Conventions
+
+- Use `pytest` with `pytest-asyncio` (asyncio_mode = auto)
+- Aim for >90% coverage on new code
+- Unit tests use mocked responses from `tests/patch_providers.py`
+- Integration tests **must** use `pytest.mark.skipif` to guard missing credentials
+- Never execute provider calls or load secrets at import/module level
+- Avoid duplicate test module basenames across `unit/` and `integration/`
+
+### Dependency Management
+
+- `pyproject.toml` is the single source of truth for all metadata and dependencies
+- `setup.py` is a thin shim — do not add deps or metadata there
+- Pin transitive dependencies only when required by a known CVE
+- Heavy optional deps (e.g., `sentence-transformers`, `faiss-cpu`) belong in extras, not core
+
+### Git & CI
+
+- **Branch model**: `develop` → `rc` → `main`
+- **Default branch**: `develop` (all PRs target here)
+- **Commit style**: conventional commits (`feat:`, `fix:`, `chore:`, `ci:`, `docs:`)
+- All GitHub Actions are pinned to full commit SHAs
+- All workflows use `permissions: {}` at top level with per-job grants
 
 ---
 
