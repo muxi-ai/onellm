@@ -94,6 +94,11 @@ class FallbackProviderProxy(Provider):
                 except Exception:
                     # Provider can't be instantiated (e.g. missing creds);
                     # treat as "capability unsupported" rather than crashing.
+                    self.logger.debug(
+                        "Cannot check capability %s for %s: provider failed to init",
+                        capability_name,
+                        provider_name,
+                    )
                     return False
             if not getattr(self.providers[provider_name], capability_name, False):
                 return False
