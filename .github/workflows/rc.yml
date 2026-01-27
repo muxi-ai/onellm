@@ -54,5 +54,5 @@ jobs:
       - name: Verify distributions
         run: |
           ls -la dist/
-          python -m pip install --require-hashes -r requirements/publish.txt
+          pip install twine==6.2.0
           twine check dist/*
