@@ -5,16 +5,17 @@ on:
     paths:
       - 'docs/**'
   push:
-    branches:
-      - main
+    branches: [main, develop]
     paths:
       - 'docs/**'
 
-permissions: read-all
+permissions: {}
 
 jobs:
   check-links:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 

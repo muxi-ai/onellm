@@ -2,19 +2,20 @@ name: CodeQL
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop, rc]
   pull_request:
-    branches: [main]
+    branches: [develop]
   schedule:
     - cron: "0 6 * * 1"
 
-permissions: read-all
+permissions: {}
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
     strategy:
       fail-fast: false
