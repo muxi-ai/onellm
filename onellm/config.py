@@ -25,6 +25,7 @@ It provides a centralized way to manage API keys, endpoints, and other settings
 for various LLM providers.
 """
 
+import copy
 import os
 from typing import Any
 
@@ -171,7 +172,7 @@ DEFAULT_CONFIG = {
 }
 
 # Global configuration dictionary that will be populated with settings
-config = DEFAULT_CONFIG.copy()
+config = copy.deepcopy(DEFAULT_CONFIG)
 
 # Environment variables prefixes
 ENV_PREFIX = "ONELLM_"  # Prefix for OneLLM specific environment variables
@@ -195,6 +196,25 @@ PROVIDER_API_KEY_ENV_MAP = {
 }
 
 
+def _cast_env_value(raw: str, current: Any) -> Any:
+    """Cast an environment variable string to match the type of the current config value."""
+    if current is None:
+        return raw
+    if isinstance(current, bool):
+        return raw.lower() in ("1", "true", "yes")
+    if isinstance(current, int):
+        try:
+            return int(raw)
+        except ValueError:
+            return raw
+    if isinstance(current, float):
+        try:
+            return float(raw)
+        except ValueError:
+            return raw
+    return raw
+
+
 def _load_env_vars() -> None:
     """
     Load configuration from environment variables.
@@ -213,13 +233,19 @@ def _load_env_vars() -> None:
             config_key = key[len(ENV_PREFIX):].lower()
 
             # Handle nested configuration with double underscores
-            if "__" in config_key:
-                section, option = config_key.split("__", 1)
-                if section in config and option in config[section]:
-                    config[section][option] = os.environ[key]
-            else:
-                if config_key in config:
-                    config[config_key] = os.environ[key]
+            segments = config_key.split("__")
+            target = config
+            for seg in segments[:-1]:
+                if isinstance(target, dict) and seg in target:
+                    target = target[seg]
+                else:
+                    target = None
+                    break
+
+            if target is not None and isinstance(target, dict) and segments[-1] in target:
+                raw = os.environ[key]
+                current = target[segments[-1]]
+                target[segments[-1]] = _cast_env_value(raw, current)
 
     # Provider API keys (support both prefixed and provider-standard environment variables)
     # This allows users to use either OPENAI_API_KEY or ONELLM_PROVIDERS__OPENAI__API_KEY

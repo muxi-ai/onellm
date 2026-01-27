@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
-"""
-Test OpenAI provider file upload with cross-platform path fix.
-"""
+"""Integration test for GLM provider connectivity."""
 
-import asyncio
-from onellm.providers.glm import GLMProvider
+import os
+
+import pytest
+import pytest_asyncio  # noqa: F401
+
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("GLM_API_KEY") and not os.environ.get("ZAI_API_KEY"),
+    reason="GLM_API_KEY or ZAI_API_KEY not set",
+)
 
 
-async def main():
+@pytest.mark.asyncio
+async def test_glm_chat_completion():
+    from onellm.providers.glm import GLMProvider
+
     provider = GLMProvider()
     resp = await provider.create_chat_completion(
         model="glm-4-plus",
         messages=[{"role": "user", "content": "Quick connectivity test."}],
         max_tokens=16,
     )
-    print(resp.choices[0].message["content"])
-    print(resp.usage)
-
-asyncio.run(main())
+    assert resp.choices[0].message["content"]
+    assert resp.usage

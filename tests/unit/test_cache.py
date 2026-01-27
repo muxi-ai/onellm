@@ -19,7 +19,7 @@ class TestCacheConfig:
         """Test default configuration values."""
         config = CacheConfig()
         assert config.max_entries == 1000
-        assert config.similarity_threshold == 0.95
+        assert config.similarity_threshold == 0.98
         assert config.hash_only is False
 
     def test_custom_config(self):

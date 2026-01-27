@@ -70,33 +70,29 @@ class FallbackProviderProxy(Provider):
 
     def _check_provider_capability(self, capability_name: str) -> bool:
         """
-        Check if the primary provider supports a specific capability.
+        Check if all fallback providers support a specific capability.
 
-        This method lazily loads the primary provider and checks if it supports
-        the requested capability.
+        Uses the least-common-denominator approach: returns True only if every
+        provider in the fallback chain supports the capability.  This prevents
+        requests that rely on a feature (e.g. JSON mode, vision) from being
+        routed to a provider that cannot handle them.
 
         Args:
             capability_name: Name of the capability flag to check
 
         Returns:
-            True if the primary provider supports the capability, False otherwise
+            True if every provider in the chain supports the capability
         """
         if not self.models:
             return False
 
-        # Get the provider for the primary model
-        primary_model = self.models[0]
-        provider_name, _ = parse_model_name(primary_model)
-
-        # Lazy load the provider if needed
-        if provider_name not in self.providers:
-            self.providers[provider_name] = get_provider(provider_name)
-
-        # Get the provider instance
-        provider = self.providers[provider_name]
-
-        # Check if the capability is supported
-        return getattr(provider, capability_name, False)
+        for model in self.models:
+            provider_name, _ = parse_model_name(model)
+            if provider_name not in self.providers:
+                self.providers[provider_name] = get_provider(provider_name)
+            if not getattr(self.providers[provider_name], capability_name, False):
+                return False
+        return True
 
     @property
     def json_mode_support(self) -> bool:

@@ -64,12 +64,11 @@ class ChatCompletionsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
-        # This ensures consistent model naming across primary and fallback models
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return ChatCompletion.create(
             model=model,
@@ -104,11 +103,11 @@ class ChatCompletionsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return await ChatCompletion.acreate(
             model=model,
@@ -155,11 +154,11 @@ class CompletionsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return Completion.create(
             model=model,
@@ -194,11 +193,11 @@ class CompletionsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return await Completion.acreate(
             model=model,
@@ -234,11 +233,11 @@ class EmbeddingsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return Embedding.create(
             model=model,
@@ -270,11 +269,11 @@ class EmbeddingsResource:
         if "/" not in model:
             model = f"openai/{model}"
 
-        # Add provider prefix to fallback models if needed
+        # Copy to avoid mutating the caller's list, then add provider prefix
         if fallback_models:
-            for i, fallback_model in enumerate(fallback_models):
-                if "/" not in fallback_model:
-                    fallback_models[i] = f"openai/{fallback_model}"
+            fallback_models = [
+                f"openai/{m}" if "/" not in m else m for m in fallback_models
+            ]
 
         return await Embedding.acreate(
             model=model,
