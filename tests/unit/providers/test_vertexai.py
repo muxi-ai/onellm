@@ -33,7 +33,8 @@ class TestVertexAIProvider:
         assert provider.provider_name == "vertexai"
         assert provider.requires_api_key is False  # Uses service account
         # Vertex AI endpoint varies by project/region
-        assert "googleapis.com" in provider.api_base
+        from urllib.parse import urlparse
+        assert urlparse(provider.api_base).hostname.endswith("googleapis.com")
 
     @pytest.mark.asyncio
     async def test_create_chat_completion_basic(self, provider):

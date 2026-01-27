@@ -27,7 +27,7 @@ def test_anyscale():
         print("Please set it with: export ANYSCALE_API_KEY='esecret_your_key_here'")
         return False
 
-    print(f"API Key prefix: {api_key[:10]}...")
+    assert len(api_key) > 0
 
     from onellm import OpenAI
 

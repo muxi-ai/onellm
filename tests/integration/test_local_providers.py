@@ -20,8 +20,8 @@ async def test_ollama():
 
         provider = OllamaProvider()
 
-        print(f"  API Base: {provider.api_base}")
-        print(f"  Requires API Key: {provider.requires_api_key}")
+        assert provider.api_base
+        assert provider.requires_api_key is False
 
         # Test with available model
         response = await provider.create_chat_completion(
