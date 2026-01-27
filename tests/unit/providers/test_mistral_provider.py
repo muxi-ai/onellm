@@ -135,14 +135,18 @@ class TestMistralProvider:
             assert provider.api_key == "test-key"
             assert provider.api_base == "https://api.mistral.ai/v1"
 
-    def test_provider_registration(self, mock_env_api_key):
+    def test_provider_registration(self):
         """Test that the Mistral provider is properly registered."""
-        provider = get_provider("mistral")
-        assert isinstance(provider, MistralProvider)
+        with patch("onellm.providers.mistral.get_provider_config") as mock_cfg:
+            mock_cfg.return_value = {"api_key": "test-key"}
+            provider = get_provider("mistral")
+            assert isinstance(provider, MistralProvider)
 
-    def test_capability_flags(self, mock_env_api_key):
+    def test_capability_flags(self):
         """Test that the provider has correct capability flags."""
-        provider = get_provider("mistral")
+        with patch("onellm.providers.mistral.get_provider_config") as mock_cfg:
+            mock_cfg.return_value = {"api_key": "test-key"}
+            provider = get_provider("mistral")
 
         # Check supported capabilities
         assert provider.json_mode_support is True
