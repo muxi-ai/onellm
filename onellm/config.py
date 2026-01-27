@@ -197,9 +197,11 @@ PROVIDER_API_KEY_ENV_MAP = {
 
 
 def _cast_env_value(raw: str, current: Any) -> Any:
-    """Cast an environment variable string to match the type of the current config value."""
-    if current is None:
-        return raw
+    """Cast an environment variable string to match the type of the current config value.
+
+    When current is None the type is unknown, so we attempt int -> float -> bool
+    inference before falling back to the raw string.
+    """
     if isinstance(current, bool):
         return raw.lower() in ("1", "true", "yes")
     if isinstance(current, int):
@@ -212,6 +214,19 @@ def _cast_env_value(raw: str, current: Any) -> Any:
             return float(raw)
         except ValueError:
             return raw
+    if current is not None:
+        return raw
+    # current is None — try to infer a sensible type
+    if raw.lower() in ("true", "false", "yes", "no"):
+        return raw.lower() in ("true", "yes")
+    try:
+        return int(raw)
+    except ValueError:
+        pass
+    try:
+        return float(raw)
+    except ValueError:
+        pass
     return raw
 
 

@@ -89,7 +89,12 @@ class FallbackProviderProxy(Provider):
         for model in self.models:
             provider_name, _ = parse_model_name(model)
             if provider_name not in self.providers:
-                self.providers[provider_name] = get_provider(provider_name)
+                try:
+                    self.providers[provider_name] = get_provider(provider_name)
+                except Exception:
+                    # Provider can't be instantiated (e.g. missing creds);
+                    # treat as "capability unsupported" rather than crashing.
+                    return False
             if not getattr(self.providers[provider_name], capability_name, False):
                 return False
         return True

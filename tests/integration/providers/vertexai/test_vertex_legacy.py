@@ -2,29 +2,12 @@
 """Integration test for Vertex AI with legacy models and different endpoint formats."""
 
 import json
-import os
 
 import pytest
 
-_CREDS_PATH = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "tests/artifacts/vertexai.json")
+from .conftest import CREDS_PATH, skip_no_creds
 
-
-def _creds_valid() -> bool:
-    """Return True only when the credentials file exists and has non-empty required fields."""
-    if not os.path.isfile(_CREDS_PATH):
-        return False
-    try:
-        with open(_CREDS_PATH) as f:
-            info = json.load(f)
-        return bool(info.get("project_id") and info.get("private_key"))
-    except (json.JSONDecodeError, OSError):
-        return False
-
-
-pytestmark = pytest.mark.skipif(
-    not _creds_valid(),
-    reason=f"Valid Vertex AI credentials not found at {_CREDS_PATH}",
-)
+pytestmark = skip_no_creds
 
 
 @pytest.fixture(scope="module")
@@ -32,7 +15,7 @@ def vertex_env():
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
 
-    with open(_CREDS_PATH) as f:
+    with open(CREDS_PATH) as f:
         info = json.load(f)
 
     credentials = service_account.Credentials.from_service_account_info(
