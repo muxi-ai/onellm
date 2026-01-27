@@ -4,14 +4,16 @@ on:
   branch_protection_rule:
   schedule:
     - cron: "0 6 * * 1"
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
 
 permissions: {}
 
 jobs:
   analysis:
     name: Scorecard analysis
+    if: "${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}"
     runs-on: ubuntu-latest
     permissions:
       contents: read
