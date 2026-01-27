@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements/pip.txt
           pip install -e ".[dev]"
 
       - name: Lint with ruff
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.MUXI_RELEASE_TOKEN }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
@@ -81,7 +81,7 @@ jobs:
 
       - name: Build distributions
         run: |
-          python -m pip install --upgrade pip build
+          python -m pip install --require-hashes -r requirements/build.txt
           python -m build
 
       - name: Publish to PyPI
@@ -124,7 +124,7 @@ jobs:
         with:
           ref: develop
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.MUXI_RELEASE_TOKEN }}
 
       - name: Merge main into develop
         run: |

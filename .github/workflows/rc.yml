@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements/pip.txt
           pip install -e ".[dev]"
 
       - name: Lint with ruff
@@ -48,11 +48,11 @@ jobs:
 
       - name: Build distributions
         run: |
-          python -m pip install --upgrade pip build
+          python -m pip install --require-hashes -r requirements/build.txt
           python -m build
 
       - name: Verify distributions
         run: |
           ls -la dist/
-          python -m pip install --upgrade twine
+          python -m pip install --require-hashes -r requirements/publish.txt
           twine check dist/*
