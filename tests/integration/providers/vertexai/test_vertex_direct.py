@@ -8,9 +8,22 @@ import pytest
 
 _CREDS_PATH = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "tests/artifacts/vertexai.json")
 
+
+def _creds_valid() -> bool:
+    """Return True only when the credentials file exists and has non-empty required fields."""
+    if not os.path.isfile(_CREDS_PATH):
+        return False
+    try:
+        with open(_CREDS_PATH) as f:
+            info = json.load(f)
+        return bool(info.get("project_id") and info.get("private_key"))
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 pytestmark = pytest.mark.skipif(
-    not os.path.isfile(_CREDS_PATH),
-    reason=f"Vertex AI credentials not found at {_CREDS_PATH}",
+    not _creds_valid(),
+    reason=f"Valid Vertex AI credentials not found at {_CREDS_PATH}",
 )
 
 

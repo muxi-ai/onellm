@@ -127,7 +127,7 @@ class SimpleCache:
         except ImportError as e:
             warnings.warn(
                 f"Semantic cache disabled due to missing dependencies: {e}. "
-                f"Install with: pip install sentence-transformers faiss-cpu. "
+                f"Install with: pip install 'onellm[cache]'. "
                 f"Falling back to hash-only mode (exact matches only).",
                 UserWarning,
                 stacklevel=2,

@@ -2238,7 +2238,6 @@ name = "onellm"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "faiss-cpu" },
     { name = "filelock" },
     { name = "huggingface-hub" },
     { name = "openai" },
@@ -2246,7 +2245,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "requests" },
-    { name = "sentence-transformers" },
     { name = "tiktoken" },
     { name = "urllib3" },
 ]
@@ -2255,13 +2253,19 @@ dependencies = [
 all = [
     { name = "anthropic" },
     { name = "boto3" },
+    { name = "faiss-cpu" },
     { name = "google-auth" },
     { name = "google-cloud-aiplatform" },
     { name = "google-generativeai" },
     { name = "llama-cpp-python" },
+    { name = "sentence-transformers" },
 ]
 bedrock = [
     { name = "boto3" },
+]
+cache = [
+    { name = "faiss-cpu" },
+    { name = "sentence-transformers" },
 ]
 dev = [
     { name = "black" },
@@ -2288,7 +2292,8 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=26.1.0" },
     { name = "boto3", marker = "extra == 'all'", specifier = ">=1.42.35" },
     { name = "boto3", marker = "extra == 'bedrock'", specifier = ">=1.42.35" },
-    { name = "faiss-cpu", specifier = ">=1.13.2" },
+    { name = "faiss-cpu", marker = "extra == 'all'", specifier = ">=1.13.2" },
+    { name = "faiss-cpu", marker = "extra == 'cache'", specifier = ">=1.13.2" },
     { name = "filelock", specifier = ">=3.20.3" },
     { name = "google-auth", marker = "extra == 'all'", specifier = ">=2.48.0" },
     { name = "google-auth", marker = "extra == 'vertexai'", specifier = ">=2.48.0" },
@@ -2310,11 +2315,12 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.14" },
-    { name = "sentence-transformers", specifier = ">=5.2.2" },
+    { name = "sentence-transformers", marker = "extra == 'all'", specifier = ">=5.2.2" },
+    { name = "sentence-transformers", marker = "extra == 'cache'", specifier = ">=5.2.2" },
     { name = "tiktoken", specifier = ">=0.12.0" },
     { name = "urllib3", specifier = ">=2.6.3" },
 ]
-provides-extras = ["all", "bedrock", "vertexai", "llama", "dev"]
+provides-extras = ["cache", "all", "bedrock", "vertexai", "llama", "dev"]
 
 [[package]]
 name = "openai"

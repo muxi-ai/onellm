@@ -26,7 +26,7 @@ providers to customize only the necessary parts (API key, base URL, etc.)
 while reusing all the OpenAI implementation logic.
 """
 
-from ..config import get_provider_config
+from ..config import PROVIDER_API_KEY_ENV_MAP, get_provider_config
 from ..errors import AuthenticationError
 from .openai import OpenAIProvider
 
@@ -77,10 +77,13 @@ class OpenAICompatibleProvider(OpenAIProvider):
 
         # Check for required configuration (only if API key is required)
         if getattr(self, "requires_api_key", True) and not self.config.get("api_key"):
-            env_var_name = f"{self.provider_name.upper()}_API_KEY"
+            env_vars = PROVIDER_API_KEY_ENV_MAP.get(self.provider_name)
+            if isinstance(env_vars, str):
+                env_vars = (env_vars,)
+            env_hint = " or ".join(env_vars) if env_vars else f"{self.provider_name.upper()}_API_KEY"
             raise AuthenticationError(
                 f"{self.provider_name.title()} API key is required. "
-                f"Set it via environment variable {env_var_name} "
+                f"Set it via environment variable {env_hint} "
                 f"or with onellm.{self.provider_name}_api_key = 'your-key'.",
                 provider=self.provider_name,
             )
