@@ -4,7 +4,8 @@ Test script to verify all providers can be instantiated.
 """
 
 import os
-from onellm.providers import list_providers, get_provider
+
+from onellm.providers import get_provider, list_providers
 
 
 def check_provider(name):
@@ -19,7 +20,7 @@ def check_provider(name):
                 return f"⚠️  {name}: Skipped (vertexai.json not found)"
             # Try to instantiate with the config file
             try:
-                provider = get_provider(name, service_account_json="vertexai.json")
+                get_provider(name, service_account_json="vertexai.json")
                 return f"✅ {name}: Success"
             except Exception as e:
                 if "google-auth" in str(e):
@@ -31,7 +32,7 @@ def check_provider(name):
                 return f"⚠️  {name}: Skipped (bedrock.json not found)"
 
         # Try to instantiate the provider
-        provider = get_provider(name)
+        get_provider(name)
         return f"✅ {name}: Success"
     except Exception as e:
         error_msg = str(e)
@@ -59,7 +60,7 @@ def main():
     warning_count = sum(1 for r in results if r.startswith("⚠️"))
     error_count = sum(1 for r in results if r.startswith("❌"))
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  ✅ Success: {success_count}")
     print(f"  ⚠️  Warnings: {warning_count}")
     print(f"  ❌ Errors: {error_count}")

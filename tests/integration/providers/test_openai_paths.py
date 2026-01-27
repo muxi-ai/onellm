@@ -6,6 +6,7 @@ Test OpenAI provider file upload with cross-platform path fix.
 import os
 import sys
 import tempfile
+
 from dotenv import load_dotenv
 
 # Add project root to path

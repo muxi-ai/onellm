@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the retry functionality.
 """
 
-import unittest.mock as mock
 import asyncio
+import unittest.mock as mock
 
 from onellm.chat_completion import ChatCompletion
 from onellm.completion import Completion

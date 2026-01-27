@@ -32,8 +32,8 @@ from typing import TypeVar
 from ..errors import (
     BadGatewayError,
     RateLimitError,
-    ServiceUnavailableError,
     RequestTimeoutError,
+    ServiceUnavailableError,
 )
 
 # Define a generic type for the return value

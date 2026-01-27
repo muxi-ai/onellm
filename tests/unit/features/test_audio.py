@@ -7,13 +7,13 @@ These tests verify that the OpenAI provider can correctly handle
 audio transcription and translation requests.
 """
 
+import io
 import unittest
 from unittest import mock
-import io
 
-from onellm.providers.openai import OpenAIProvider
 from onellm import AudioTranscription, AudioTranslation
 from onellm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
 
 
 class TestAudioCapabilities(unittest.TestCase):

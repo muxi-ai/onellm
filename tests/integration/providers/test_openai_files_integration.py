@@ -4,6 +4,7 @@ Integration tests for OpenAI file operations.
 """
 
 import os
+
 import pytest
 
 
@@ -15,6 +16,7 @@ class TestOpenAIFilePathFix:
     async def test_file_upload_with_path_separator(self):
         """Test OpenAI file upload with os.path.basename fix."""
         import tempfile
+
         from onellm import OpenAI
 
         client = OpenAI()

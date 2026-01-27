@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Tests for OneLLM client interface (OpenAI compatibility)
 #
 # Copyright (C) 2025 Ran Aroussi
 #
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from onellm import Client, OpenAI
 

@@ -33,8 +33,8 @@ from typing import Any, TypeVar
 from ..errors import (
     BadGatewayError,
     RateLimitError,
-    ServiceUnavailableError,
     RequestTimeoutError,
+    ServiceUnavailableError,
 )
 
 # Type variable for the return type of the retried function

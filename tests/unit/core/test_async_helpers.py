@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """Tests for async helper utilities."""
 
@@ -8,7 +7,7 @@ import sys
 
 import pytest
 
-from onellm.utils.async_helpers import run_async, maybe_await, _is_jupyter_environment
+from onellm.utils.async_helpers import _is_jupyter_environment, maybe_await, run_async
 
 
 class TestRunAsync:
@@ -105,7 +104,7 @@ class TestJupyterDetection:
 
         # Now it should detect as Jupyter
         # Note: The actual function imports get_ipython, so we need to mock it there too
-        monkeypatch.setattr('onellm.utils.async_helpers.sys.modules', 
+        monkeypatch.setattr('onellm.utils.async_helpers.sys.modules',
                            {'IPython': mock_ipython_module, **sys.modules})
 
         # This test is complex due to import behavior, so we'll just verify no errors
@@ -161,7 +160,7 @@ class TestEdgeCases:
             return "completed"
 
         # This should complete (not actually cancelled in this test)
-        result = run_async(cancellable_task())
+        run_async(cancellable_task())
         # Since we're not actually cancelling, it should timeout or complete
         # This is just to ensure the function handles the case
 

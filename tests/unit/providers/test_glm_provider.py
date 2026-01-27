@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for the GLM provider implementation."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from onellm.errors import AuthenticationError
 from onellm.providers.glm import GLMProvider

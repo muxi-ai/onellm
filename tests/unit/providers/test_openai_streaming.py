@@ -1,9 +1,10 @@
-import pytest
 import json
 from unittest import mock
 
+import pytest
+
+from onellm.errors import APIError, AuthenticationError, RequestTimeoutError
 from onellm.providers.openai import OpenAIProvider
-from onellm.errors import RequestTimeoutError, AuthenticationError, APIError
 
 
 class MockResponse:

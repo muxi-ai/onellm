@@ -7,11 +7,12 @@ Perplexity provides search-augmented models with online capabilities.
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers.perplexity import PerplexityProvider
-from onellm.errors import InvalidRequestError, AuthenticationError
 
 # Load environment variables
 load_dotenv()

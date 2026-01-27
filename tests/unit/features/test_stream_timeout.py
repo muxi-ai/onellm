@@ -5,19 +5,22 @@ This file focuses on testing the timeout functionality in a simpler, more direct
 """
 
 import asyncio
-import pytest
+from collections.abc import AsyncGenerator
+from typing import Any
 from unittest import mock
-from typing import AsyncGenerator, Any, List
+
+import pytest
 
 from onellm.utils.streaming import (
-    stream_generator,
+    StreamingError,
     json_stream_generator,
     line_stream_generator,
-    StreamingError
+    stream_generator,
 )
 
+
 # Helper to create a simple async generator for testing
-async def async_generator(items: List[Any]) -> AsyncGenerator[Any, None]:
+async def async_generator(items: list[Any]) -> AsyncGenerator[Any, None]:
     """Helper to create a simple async generator for testing."""
     for item in items:
         yield item

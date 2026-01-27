@@ -56,7 +56,7 @@ DEFAULT_ALLOWED_EXTENSIONS: set[str] = {
 class FileValidator:
     """
     Validates file paths and contents for security and compliance.
-    
+
     This class provides methods to:
     - Validate file paths to prevent directory traversal attacks
     - Enforce file size limits to prevent DoS attacks
@@ -74,7 +74,7 @@ class FileValidator:
     ) -> Path:
         """
         Validate and normalize a file path for security.
-        
+
         This method performs comprehensive validation including:
         - Path resolution and normalization (follows symlinks, resolves "..")
         - Path existence and type checking
@@ -82,14 +82,14 @@ class FileValidator:
         - File size validation
         - Extension validation
         - MIME type validation
-        
+
         Security Notes:
             - Path is resolved immediately, eliminating TOCTOU race conditions
             - All checks are performed on the resolved (final) path
             - For maximum security, specify base_directory to restrict access scope
             - Without base_directory, any accessible file can be validated
             - Directory traversal attempts ("..", symlinks, etc.) are caught by base_directory check
-        
+
         Args:
             file_path: Path to the file to validate
             max_size: Maximum allowed file size in bytes (default: 100MB)
@@ -97,18 +97,18 @@ class FileValidator:
             validate_mime: Whether to validate MIME type matches extension
             base_directory: Optional base directory to restrict file access to.
                           If provided, resolved path must be within this directory.
-            
+
         Returns:
             Validated and normalized Path object
-            
+
         Raises:
             InvalidRequestError: If any validation check fails
-            
+
         Example:
             >>> path = FileValidator.validate_file_path("data/file.txt")
             >>> with open(path, 'rb') as f:
             ...     data = f.read()
-            
+
             >>> # With base directory restriction
             >>> path = FileValidator.validate_file_path(
             ...     "uploads/user123/file.txt",
@@ -131,14 +131,14 @@ class FileValidator:
             # Convert to Path object and resolve with strict=True
             # This atomically resolves and checks existence, minimizing TOCTOU window
             path = Path(file_path).resolve(strict=True)
-            
+
             # Use stat() to check file type atomically
             # This minimizes TOCTOU window compared to separate exists() and is_file() calls
             try:
                 stat_result = path.stat()
             except (FileNotFoundError, OSError) as e:
                 raise InvalidRequestError(f"Cannot access file: {e}") from e
-            
+
             # Check if it's a regular file using stat result
             import stat as stat_module
             if not stat_module.S_ISREG(stat_result.st_mode):
@@ -234,21 +234,21 @@ class FileValidator:
     ) -> bytes:
         """
         Safely read file contents with memory protection.
-        
+
         This method reads files in chunks to avoid loading huge files
         into memory all at once, which could cause memory issues.
-        
+
         Args:
             path: Validated Path object to read
             max_size: Maximum size to read (default: file size)
             chunk_size: Size of chunks to read (default: 8KB)
-            
+
         Returns:
             File contents as bytes
-            
+
         Raises:
             InvalidRequestError: If file cannot be read or is too large
-            
+
         Example:
             >>> path = FileValidator.validate_file_path("data.bin")
             >>> data = FileValidator.safe_read_file(path)
@@ -315,12 +315,12 @@ class FileValidator:
     ) -> None:
         """
         Validate size of byte data.
-        
+
         Args:
             data: Bytes to validate
             max_size: Maximum allowed size in bytes
             name: Name for error messages
-            
+
         Raises:
             InvalidRequestError: If data is too large
         """
@@ -349,15 +349,15 @@ class FileValidator:
     ) -> None:
         """
         Validate a filename for extension and MIME type compatibility.
-        
+
         This is useful for validating bytes or file-like object uploads where
         we don't have access to the actual file path.
-        
+
         Args:
             filename: Name of the file to validate
             allowed_extensions: Set of allowed file extensions (e.g., {'.pdf', '.txt'})
             validate_mime: Whether to check MIME type compatibility
-            
+
         Raises:
             InvalidRequestError: If filename validation fails
         """

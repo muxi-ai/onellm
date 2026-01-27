@@ -5,18 +5,17 @@ These tests verify that streaming transformations work correctly.
 """
 
 import json
+from collections.abc import AsyncGenerator
+
 import pytest
-import asyncio
-from typing import AsyncGenerator, Optional, List
 
 from onellm.utils.streaming import (
+    StreamingError,
     stream_generator,
-    json_stream_generator,
-    line_stream_generator,
-    StreamingError
 )
 
-async def async_generator(items: List[str]) -> AsyncGenerator[str, None]:
+
+async def async_generator(items: list[str]) -> AsyncGenerator[str, None]:
     """Helper to create a simple async generator for testing."""
     for item in items:
         yield item

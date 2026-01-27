@@ -7,15 +7,15 @@ These tests verify that the OpenAI provider can correctly handle
 image generation requests.
 """
 
-import unittest
-from unittest import mock
+import base64
 import os
 import tempfile
-import base64
+import unittest
+from unittest import mock
 
-from onellm.providers.openai import OpenAIProvider
 from onellm import Image
 from onellm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
 
 
 class TestImageCapabilities(unittest.TestCase):

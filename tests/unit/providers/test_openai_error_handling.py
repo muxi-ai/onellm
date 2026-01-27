@@ -1,18 +1,19 @@
-import pytest
 from unittest import mock
 
-from onellm.providers.openai import OpenAIProvider
+import pytest
+
 from onellm.errors import (
-    RequestTimeoutError,
     APIError,
     AuthenticationError,
-    PermissionDeniedError,
-    ResourceNotFoundError,
-    RateLimitError,
-    InvalidRequestError,
-    ServiceUnavailableError,
     BadGatewayError,
+    InvalidRequestError,
+    PermissionDeniedError,
+    RateLimitError,
+    RequestTimeoutError,
+    ResourceNotFoundError,
+    ServiceUnavailableError,
 )
+from onellm.providers.openai import OpenAIProvider
 
 
 class MockResponse:

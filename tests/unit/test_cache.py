@@ -6,7 +6,7 @@ from onellm.cache import CacheConfig, SimpleCache
 
 # Check if scipy is compatible (some versions have numpy ufunc issues)
 try:
-    import scipy.special
+    import scipy.special  # noqa: F401
     SCIPY_WORKS = True
 except (ValueError, ImportError):
     SCIPY_WORKS = False

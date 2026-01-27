@@ -40,8 +40,8 @@ from ..errors import (
     InvalidRequestError,
     PermissionDeniedError,
     RateLimitError,
-    ResourceNotFoundError,
     RequestTimeoutError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
 )
 from ..http_pool import get_session_safe
@@ -203,7 +203,7 @@ class OpenAIProvider(Provider):
             # Add other fields to the form
             if data:
                 for key, value in data.items():
-                    if isinstance(value, (dict, list)):
+                    if isinstance(value, dict | list):
                         # Convert complex objects to JSON strings
                         form_data.add_field(
                             key, json.dumps(value), content_type="application/json"
@@ -1194,7 +1194,7 @@ class OpenAIProvider(Provider):
 
         # Check speed if provided
         speed = kwargs.get("speed", 1.0)
-        if not isinstance(speed, (int, float)) or speed < 0.25 or speed > 4.0:
+        if not isinstance(speed, int | float) or speed < 0.25 or speed > 4.0:
             raise InvalidRequestError("Speed must be a number between 0.25 and 4.0")
 
         # Prepare request data

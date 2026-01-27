@@ -4,15 +4,16 @@ Tests for the token_counter utility module.
 These tests verify that token counting works correctly for different types of inputs.
 """
 
-import pytest
 from unittest import mock
 
+import pytest
+
 from onellm.utils.token_counter import (
-    get_encoder,
-    num_tokens_from_string,
-    num_tokens_from_messages,
-    TIKTOKEN_AVAILABLE,
     SIMPLE_TOKEN_PATTERN,
+    TIKTOKEN_AVAILABLE,
+    get_encoder,
+    num_tokens_from_messages,
+    num_tokens_from_string,
 )
 
 

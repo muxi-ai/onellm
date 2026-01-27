@@ -3,12 +3,13 @@
 Tests for the Ollama provider.
 """
 
-import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
-from onellm.providers.ollama import OllamaProvider
-from onellm.errors import InvalidRequestError, ServiceUnavailableError, ResourceNotFoundError
+import pytest
+
 from onellm import config as onellm_config
+from onellm.errors import InvalidRequestError, ResourceNotFoundError, ServiceUnavailableError
+from onellm.providers.ollama import OllamaProvider
 
 
 @pytest.fixture(autouse=True)

@@ -278,7 +278,7 @@ def validate_number(
     else:
         # Check if value is a number (int or float, but not a boolean)
         # Exclude booleans which are a subclass of int
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
+        if not isinstance(value, int | float) or isinstance(value, bool):
             raise InvalidRequestError(
                 f"{name} must be a number, got {type(value).__name__}"
             )
@@ -585,7 +585,7 @@ def validate_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         content = message.get("content")
         if content is not None:
             # Content can be a string or a list of content parts (for multi-modal)
-            if not isinstance(content, (str, list)):
+            if not isinstance(content, str | list):
                 raise InvalidRequestError(
                     f"Message {i} content must be a string or list, got {type(content).__name__}"
                 )
@@ -779,7 +779,7 @@ def validate_temperature(temperature: float | None) -> float | None:
         return None
 
     # Check if temperature is a number (int or float)
-    if not isinstance(temperature, (int, float)):
+    if not isinstance(temperature, int | float):
         raise InvalidRequestError(
             f"Temperature must be a number, got {type(temperature).__name__}"
         )
@@ -811,7 +811,7 @@ def validate_top_p(top_p: float | None) -> float | None:
         return None
 
     # Check if top_p is a number (int or float)
-    if not isinstance(top_p, (int, float)):
+    if not isinstance(top_p, int | float):
         raise InvalidRequestError(f"Top_p must be a number, got {type(top_p).__name__}")
 
     # Convert to float for consistency
@@ -841,7 +841,7 @@ def validate_presence_penalty(presence_penalty: float | None) -> float | None:
         return None
 
     # Check if presence_penalty is a number (int or float)
-    if not isinstance(presence_penalty, (int, float)):
+    if not isinstance(presence_penalty, int | float):
         raise InvalidRequestError(
             f"Presence_penalty must be a number, got {type(presence_penalty).__name__}"
         )
@@ -873,7 +873,7 @@ def validate_frequency_penalty(frequency_penalty: float | None) -> float | None:
         return None
 
     # Check if frequency_penalty is a number (int or float)
-    if not isinstance(frequency_penalty, (int, float)):
+    if not isinstance(frequency_penalty, int | float):
         raise InvalidRequestError(
             f"Frequency_penalty must be a number, got {type(frequency_penalty).__name__}"
         )

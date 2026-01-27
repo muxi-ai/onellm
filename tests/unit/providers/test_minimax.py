@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the MiniMax provider implementation.
@@ -8,21 +7,22 @@ These tests verify that the MiniMax provider correctly uses the Anthropic-compat
 interface and properly configures the API endpoint for MiniMax's API.
 """
 
-import pytest
-import mock
-from typing import Dict, Any
+from typing import Any
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from onellm.providers import get_provider
-from onellm.providers.minimax import MinimaxProvider
-from onellm.providers.anthropic_compatible import AnthropicCompatibleProvider
+import pytest
+
 from onellm.errors import AuthenticationError, InvalidRequestError
+from onellm.providers import get_provider
+from onellm.providers.anthropic_compatible import AnthropicCompatibleProvider
+from onellm.providers.minimax import MinimaxProvider
 
 
 class MockResponse:
     """Mock aiohttp response object."""
 
-    def __init__(self, status: int, data: Dict[str, Any]):
+    def __init__(self, status: int, data: dict[str, Any]):
         self.status = status
         self._data = data
 
@@ -304,7 +304,7 @@ class TestMinimaxProvider:
                     "usage": {"input_tokens": 5, "output_tokens": 8},
                 }
 
-                response = await provider.create_chat_completion(
+                await provider.create_chat_completion(
                     messages=messages, model="MiniMax-M2-Stable", max_tokens=1000
                 )
 

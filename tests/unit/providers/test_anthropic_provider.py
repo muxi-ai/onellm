@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the Anthropic provider implementation.
@@ -8,20 +7,21 @@ These tests verify that the Anthropic provider correctly handles various request
 converts between OpenAI and Anthropic formats, and manages unique Anthropic features.
 """
 
-import pytest
-import mock
-from typing import Dict, Any
+from typing import Any
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers import get_provider
 from onellm.providers.anthropic import AnthropicProvider
-from onellm.errors import AuthenticationError, InvalidRequestError
 
 
 class MockResponse:
     """Mock aiohttp response object."""
 
-    def __init__(self, status: int, data: Dict[str, Any]):
+    def __init__(self, status: int, data: dict[str, Any]):
         self.status = status
         self._data = data
 

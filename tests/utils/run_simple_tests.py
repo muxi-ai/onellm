@@ -7,6 +7,7 @@ Tests only basic functionality with working models.
 import asyncio
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -22,7 +23,7 @@ api_keys_file = os.path.join(
 if os.path.exists(api_keys_file):
     print(f"Loading API keys from {api_keys_file}")
     # Parse the shell script and set environment variables
-    with open(api_keys_file, "r") as f:
+    with open(api_keys_file) as f:
         for line in f:
             line = line.strip()
             if line.startswith("export ") and "=" in line:

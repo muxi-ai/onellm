@@ -7,11 +7,12 @@ Moonshot is a Chinese LLM provider known for Kimi models with strong long-contex
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers.moonshot import MoonshotProvider
-from onellm.errors import InvalidRequestError, AuthenticationError
 
 # Load environment variables
 load_dotenv()

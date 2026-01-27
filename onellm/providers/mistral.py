@@ -40,9 +40,9 @@ from ..errors import (
     InvalidRequestError,
     PermissionDeniedError,
     RateLimitError,
+    RequestTimeoutError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -188,7 +188,7 @@ class MistralProvider(Provider):
             # Add other fields to the form
             if data:
                 for key, value in data.items():
-                    if isinstance(value, (dict, list)):
+                    if isinstance(value, dict | list):
                         # Convert complex objects to JSON strings
                         form_data.add_field(key, json.dumps(value), content_type="application/json")
                     else:

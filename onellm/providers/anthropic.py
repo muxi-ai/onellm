@@ -41,8 +41,8 @@ from ..errors import (
     InvalidRequestError,
     PermissionDeniedError,
     RateLimitError,
-    ResourceNotFoundError,
     RequestTimeoutError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
 )
 from ..http_pool import get_session_safe
@@ -190,7 +190,7 @@ class AnthropicProvider(Provider):
             # Add other fields to the form
             if data:
                 for key, value in data.items():
-                    if isinstance(value, (dict, list)):
+                    if isinstance(value, dict | list):
                         # Convert complex objects to JSON strings
                         form_data.add_field(key, json.dumps(value), content_type="application/json")
                     else:

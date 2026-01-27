@@ -4,15 +4,15 @@ Tests for file operations functionality in the OpenAI provider.
 This module tests file upload, listing, deletion, and download functionality.
 """
 
-import os
 import io
-import pytest
 from unittest import mock
-from unittest.mock import AsyncMock, patch, mock_open
+from unittest.mock import AsyncMock, mock_open, patch
 
-from onellm.providers.openai import OpenAIProvider
-from onellm.models import FileObject
+import pytest
+
 from onellm.errors import InvalidRequestError
+from onellm.models import FileObject
+from onellm.providers.openai import OpenAIProvider
 
 
 class MockResponse:
@@ -377,7 +377,7 @@ class TestOpenAIFileOperations:
         """Test download_file error handling."""
         # Configure mock to raise an error (simulating 404 response)
         from onellm.errors import InvalidRequestError
-        
+
         mock_execute_download.side_effect = InvalidRequestError(
             "File not found", status_code=404, provider="openai"
         )

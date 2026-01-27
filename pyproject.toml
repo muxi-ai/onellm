@@ -92,8 +92,16 @@ version = {file = ["onellm/.version"]}
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "F", "N", "W", "C90", "I", "B", "UP", "A"]
-ignore = ["E501"]  # Line too long
+ignore = [
+    "E501",   # Line too long (handled by black)
+    "A002",   # Argument shadowing builtin (e.g. `input`) — OpenAI API compat
+    "C901",   # Function too complex — tracked for incremental cleanup
+    "E402",   # Module-level import not at top — integration test path setup
+    "B904",   # raise ... from err — tracked for incremental cleanup
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

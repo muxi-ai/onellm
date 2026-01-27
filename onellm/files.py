@@ -32,7 +32,7 @@ from .errors import InvalidRequestError
 from .models import FileObject
 from .providers.base import get_provider
 from .utils.async_helpers import run_async
-from .utils.file_validator import FileValidator, DEFAULT_MAX_FILE_SIZE
+from .utils.file_validator import DEFAULT_MAX_FILE_SIZE, FileValidator
 
 
 def _sanitize_filename(filename: str | None, default: str = "file.bin") -> str:
@@ -223,7 +223,7 @@ class File:
 
         # Validate file based on type, but preserve original object for provider
         # This allows providers to optimize (e.g., streaming) while ensuring security
-        if isinstance(file, (str, Path)):
+        if isinstance(file, str | Path):
             # Validate file path for security (checks size, extension, MIME, traversal)
             validated_path = FileValidator.validate_file_path(
                 str(file),
@@ -323,7 +323,7 @@ class File:
                     file.seek(0, 2)  # Seek to end
                     file_size = file.tell()
                     file.seek(current_pos)  # Restore position
-                except (OSError, IOError) as e:
+                except OSError as e:
                     # Any seek/tell operation failed
                     # Try to restore position as a best effort, but don't mask the original error
                     try:
@@ -417,7 +417,7 @@ class File:
 
         # Validate file based on type, but preserve original object for provider
         # This allows providers to optimize (e.g., streaming) while ensuring security
-        if isinstance(file, (str, Path)):
+        if isinstance(file, str | Path):
             # Validate file path for security (checks size, extension, MIME, traversal)
             validated_path = FileValidator.validate_file_path(
                 str(file),
@@ -517,7 +517,7 @@ class File:
                     file.seek(0, 2)  # Seek to end
                     file_size = file.tell()
                     file.seek(current_pos)  # Restore position
-                except (OSError, IOError) as e:
+                except OSError as e:
                     # Any seek/tell operation failed
                     # Try to restore position as a best effort, but don't mask the original error
                     try:

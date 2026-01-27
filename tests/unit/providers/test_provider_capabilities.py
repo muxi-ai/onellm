@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the provider capability flags in OneLLM.
 """
 
 import unittest
-from unittest.mock import patch, AsyncMock, MagicMock
 import warnings
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from onellm.chat_completion import ChatCompletion
 from onellm.providers.base import Provider

@@ -20,7 +20,7 @@
 """
 MiniMax provider implementation for OneLLM.
 
-MiniMax provides AI models through an Anthropic-compatible API. They offer the MiniMax-M2 
+MiniMax provides AI models through an Anthropic-compatible API. They offer the MiniMax-M2
 model series with advanced reasoning capabilities, tool use, and interleaved thinking.
 
 Supported models:
@@ -30,8 +30,8 @@ Supported models:
 For more information, see: https://platform.minimax.io/docs/api-reference/text-anthropic-api
 """
 
-from .base import register_provider
 from .anthropic_compatible import AnthropicCompatibleProvider
+from .base import register_provider
 
 
 class MinimaxProvider(AnthropicCompatibleProvider):

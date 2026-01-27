@@ -5,23 +5,24 @@ These tests verify that the OpenAI provider correctly handles various request ty
 formats responses appropriately, and handles errors correctly.
 """
 
-import os
 import io
 import json
-import pytest
-import mock
-from typing import Dict, Any, List
-from unittest.mock import AsyncMock, patch, MagicMock, mock_open
+import os
+from typing import Any
+from unittest import mock
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
+import pytest
+
+from onellm.errors import (
+    APIError,
+    AuthenticationError,
+    InvalidRequestError,
+    ServiceUnavailableError,
+)
 from onellm.providers import get_provider
 from onellm.providers.openai import OpenAIProvider
 from onellm.types.common import Message
-from onellm.errors import (
-    AuthenticationError,
-    ServiceUnavailableError,
-    InvalidRequestError,
-    APIError,
-)
 
 
 class MockResponse:
@@ -29,7 +30,7 @@ class MockResponse:
 
     def __init__(
         self,
-        data: Dict[str, Any] | bytes | str | None = None,
+        data: dict[str, Any] | bytes | str | None = None,
         *,
         status: int = 200,
         content_type: str = "application/json",
@@ -120,7 +121,7 @@ def has_keys(obj, keys):
 
 
 def assert_usage_metrics(
-    usage: Dict[str, Any],
+    usage: dict[str, Any],
     prompt_total: int,
     completion_total: int = 0,
     prompt_cached: int = 0,
@@ -643,7 +644,7 @@ class TestOpenAIProvider:
         provider = OpenAIProvider(api_key="sk-test-key")
 
         # Create messages with no images
-        messages: List[Message] = [
+        messages: list[Message] = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Tell me about this concept."},
             {"role": "assistant", "content": "I'd be happy to help."},
@@ -662,7 +663,7 @@ class TestOpenAIProvider:
         provider = OpenAIProvider(api_key="sk-test-key")
 
         # Create messages with an image
-        messages: List[Message] = [
+        messages: list[Message] = [
             {
                 "role": "user",
                 "content": [
@@ -684,7 +685,7 @@ class TestOpenAIProvider:
         provider = OpenAIProvider(api_key="sk-test-key")
 
         # Create messages with an image
-        messages: List[Message] = [
+        messages: list[Message] = [
             {
                 "role": "user",
                 "content": [
@@ -803,7 +804,7 @@ class TestOpenAIProvider:
         provider = OpenAIProvider(api_key="sk-test-key")
 
         # Create messages
-        messages: List[Message] = [{"role": "user", "content": "What's the weather like in Tokyo?"}]
+        messages: list[Message] = [{"role": "user", "content": "What's the weather like in Tokyo?"}]
 
         # Define tools
         tools = [

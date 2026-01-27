@@ -3,18 +3,19 @@
 Tests for the llama.cpp provider.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-from pathlib import Path
 import time
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from onellm.providers.llama_cpp import LlamaCppProvider, _MODEL_CACHE, _LAST_ACCESS
+import pytest
+
+from onellm import config as onellm_config
 from onellm.errors import (
+    InvalidConfigurationError,
     InvalidRequestError,
     ResourceNotFoundError,
-    InvalidConfigurationError,
 )
-from onellm import config as onellm_config
+from onellm.providers.llama_cpp import _LAST_ACCESS, _MODEL_CACHE, LlamaCppProvider
 
 
 @pytest.fixture(autouse=True)

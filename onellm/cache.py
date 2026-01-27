@@ -248,7 +248,7 @@ class SimpleCache:
         k = min(10, self.semantic_index.ntotal)  # Check top 10 candidates
         scores, indices = self.semantic_index.search(embedding, k=k)
 
-        for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
+        for _i, (score, idx) in enumerate(zip(scores[0], indices[0], strict=False)):
             if score < self.config.similarity_threshold:
                 break  # No more candidates above threshold
 

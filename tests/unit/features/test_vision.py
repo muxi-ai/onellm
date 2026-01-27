@@ -10,8 +10,8 @@ content with images in chat completion requests.
 import unittest
 from unittest import mock
 
-from onellm.providers.openai import OpenAIProvider
 from onellm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
 
 
 class TestVisionCapabilities(unittest.TestCase):

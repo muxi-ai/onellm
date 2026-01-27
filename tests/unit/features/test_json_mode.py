@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the JSON mode functionality in OneLLM.
 """
 
 import unittest
-from unittest.mock import patch, AsyncMock, MagicMock
 import warnings
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import onellm.providers.openai
 from onellm.chat_completion import ChatCompletion
 from onellm.providers.base import Provider
-import onellm.providers.openai
 
 
 class TestJSONMode(unittest.TestCase):

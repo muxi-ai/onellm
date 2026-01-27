@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+import base64
 
 import pytest
-import base64
 
 import onellm
 from onellm.errors import InvalidRequestError
 from onellm.validators import (
-    validate_type,
-    validate_dict,
-    validate_list,
-    validate_string,
-    validate_number,
-    validate_boolean,
-    validate_url,
     validate_base64,
+    validate_boolean,
+    validate_dict,
     validate_json,
-    validate_model_name,
+    validate_list,
     validate_messages,
+    validate_model_name,
+    validate_number,
+    validate_string,
+    validate_type,
+    validate_url,
 )
 
 

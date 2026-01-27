@@ -7,11 +7,12 @@ DeepSeek is a Chinese LLM provider with strong multilingual capabilities.
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers.deepseek import DeepSeekProvider
-from onellm.errors import InvalidRequestError, AuthenticationError
 
 # Load environment variables
 load_dotenv()

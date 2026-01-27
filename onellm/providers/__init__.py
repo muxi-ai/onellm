@@ -50,10 +50,10 @@ from .google import GoogleProvider
 
 # OpenAI-compatible providers
 from .groq import GroqProvider
+from .llama_cpp import LlamaCppProvider
 
 # Anthropic-compatible providers
 from .minimax import MinimaxProvider
-from .llama_cpp import LlamaCppProvider
 from .mistral import MistralProvider
 from .moonshot import MoonshotProvider
 

@@ -50,9 +50,9 @@ from ..errors import (
     InvalidRequestError,
     PermissionDeniedError,
     RateLimitError,
+    RequestTimeoutError,
     ResourceNotFoundError,
     ServiceUnavailableError,
-    RequestTimeoutError,
 )
 from ..models import (
     ChatCompletionChunk,
@@ -154,7 +154,8 @@ class BedrockProvider(Provider):
             try:
                 import boto3 as _boto3
                 from botocore.config import Config as _Config
-                from botocore.exceptions import BotoCoreError as _BotoCoreError, ClientError as _ClientError
+                from botocore.exceptions import BotoCoreError as _BotoCoreError
+                from botocore.exceptions import ClientError as _ClientError
                 boto3 = _boto3
                 Config = _Config
                 BotoCoreError = _BotoCoreError

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """Tests for file security validation."""
 
@@ -11,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from onellm.errors import InvalidRequestError
-from onellm.files import _sanitize_filename, SizeLimitedFileWrapper
+from onellm.files import SizeLimitedFileWrapper, _sanitize_filename
 from onellm.utils.file_validator import FileValidator
 
 
@@ -69,23 +68,23 @@ class TestFileValidator:
             base = Path(tmpdir)
             subdir = base / "uploads"
             subdir.mkdir()
-            
+
             # Create a file inside the allowed directory
             test_file = subdir / "test.txt"
             test_file.write_text("content")
-            
-            # Create a file outside the allowed directory  
+
+            # Create a file outside the allowed directory
             outside_file = base / "secret.txt"
             outside_file.write_text("secret")
-            
+
             # Valid file within base_directory should work
             validated = FileValidator.validate_file_path(str(test_file), base_directory=subdir)
             assert validated.exists()
-            
+
             # Attempt to traverse outside base_directory should fail
             with pytest.raises(InvalidRequestError, match="File path outside allowed directory"):
                 FileValidator.validate_file_path(str(outside_file), base_directory=subdir)
-            
+
             # Attempt using ../ to escape should also fail
             try:
                 escape_path = subdir / "../secret.txt"
@@ -93,7 +92,7 @@ class TestFileValidator:
                     FileValidator.validate_file_path(str(escape_path), base_directory=subdir)
             except InvalidRequestError:
                 pass  # Expected
-            
+
         # Without base_directory, non-existent files just fail with "File not found"
         with pytest.raises(InvalidRequestError, match="File not found"):
             FileValidator.validate_file_path("../../../nonexistent.txt")
@@ -213,12 +212,12 @@ class TestSizeLimitedFileWrapper:
         # Third read returns empty (EOF reached)
         chunk3 = wrapper.read(500)
         assert len(chunk3) == 0  # EOF, no more data
-        
+
         # Test exceeding limit with larger file
         large_data = b"x" * 2000
         file_obj2 = io.BytesIO(large_data)
         wrapper2 = SizeLimitedFileWrapper(file_obj2, max_size=1500, name="test")
-        
+
         # This should raise because we try to read 2000 bytes with 1500 limit
         with pytest.raises(InvalidRequestError, match="test too large"):
             wrapper2.read()

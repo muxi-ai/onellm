@@ -5,7 +5,6 @@ import pytest
 from onellm.http_pool import (
     HTTPConnectionPool,
     PoolConfig,
-    get_http_session,
     get_session_safe,
 )
 

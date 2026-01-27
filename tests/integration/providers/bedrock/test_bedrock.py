@@ -5,6 +5,7 @@ Test AWS Bedrock provider implementation.
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Add project root to path

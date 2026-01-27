@@ -7,11 +7,12 @@ Vercel AI Gateway provides access to 100+ models through a unified OpenAI-compat
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers.vercel import VercelProvider
-from onellm.errors import InvalidRequestError, AuthenticationError
 
 # Load environment variables
 load_dotenv()

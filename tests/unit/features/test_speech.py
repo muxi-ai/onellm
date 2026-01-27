@@ -5,13 +5,13 @@ These tests verify that the OpenAI provider can correctly handle
 text-to-speech requests.
 """
 
+import asyncio
 import unittest
 from unittest import mock
-import asyncio
 
-from onellm.providers.openai import OpenAIProvider
 from onellm import Speech
 from onellm.errors import InvalidRequestError
+from onellm.providers.openai import OpenAIProvider
 from tests.test_utils import run_async
 
 

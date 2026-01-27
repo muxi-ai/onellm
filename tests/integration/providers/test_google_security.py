@@ -5,6 +5,7 @@ Test Google provider after security fix (API key in header instead of URL).
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Add project root to path

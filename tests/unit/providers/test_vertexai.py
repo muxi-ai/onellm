@@ -7,11 +7,12 @@ Vertex AI provides Google Cloud's enterprise Gemini models.
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
-from onellm.providers.vertexai import VertexAIProvider
 from onellm.errors import InvalidRequestError
+from onellm.providers.vertexai import VertexAIProvider
 
 # Load environment variables
 load_dotenv()

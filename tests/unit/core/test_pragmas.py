@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Demonstration of pragma-based approaches for handling unreachable code in coverage.
@@ -9,6 +8,7 @@ line 123 using coverage pragmas.
 """
 
 from onellm.errors import RateLimitError
+
 
 class TestPragmaApproach:
     """

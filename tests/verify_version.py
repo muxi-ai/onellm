@@ -4,7 +4,7 @@
 import os
 
 # Version from .version file in the onellm package
-with open(os.path.join('onellm', '.version'), 'r') as f:
+with open(os.path.join('onellm', '.version')) as f:
     version_from_file = f.read().strip()
 
 # Import from onellm to check __version__

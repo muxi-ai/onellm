@@ -5,6 +5,7 @@ Test AWS Bedrock with Amazon Nova models.
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Add project root to path

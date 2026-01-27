@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Comprehensive tests for the fallback mechanism in OneLLM.
@@ -13,14 +12,15 @@ This file consolidates all fallback-related tests including:
 """
 
 import asyncio
-import pytest
-import mock
+from unittest import mock
 
-from onellm.utils.fallback import FallbackConfig, maybe_await
-from onellm.providers.fallback import FallbackProviderProxy
-from onellm.providers.base import Provider
-from onellm.errors import APIError, AuthenticationError, RateLimitError, FallbackExhaustionError
+import pytest
+
+from onellm.errors import APIError, AuthenticationError, FallbackExhaustionError, RateLimitError
 from onellm.models import CompletionResponse
+from onellm.providers.base import Provider
+from onellm.providers.fallback import FallbackProviderProxy
+from onellm.utils.fallback import FallbackConfig, maybe_await
 
 # Mock response for testing
 mock_chat_completion_response = {

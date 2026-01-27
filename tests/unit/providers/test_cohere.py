@@ -7,11 +7,12 @@ Cohere provides enterprise NLP capabilities with RAG support.
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers.cohere import CohereProvider
-from onellm.errors import InvalidRequestError, AuthenticationError
 
 # Load environment variables
 load_dotenv()

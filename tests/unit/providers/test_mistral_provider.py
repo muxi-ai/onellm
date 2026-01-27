@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Tests for the Mistral AI provider implementation.
@@ -8,15 +7,16 @@ These tests verify that the Mistral provider correctly handles various request t
 and formats responses appropriately.
 """
 
-import pytest
-import mock
-from typing import Dict, Any
+from typing import Any
+from unittest import mock
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from onellm import config as onellm_config
+from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers import get_provider
 from onellm.providers.mistral import MistralProvider
-from onellm.errors import AuthenticationError, InvalidRequestError
-from onellm import config as onellm_config
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +32,7 @@ def reset_mistral_config():
 class MockResponse:
     """Mock aiohttp response object."""
 
-    def __init__(self, status: int, data: Dict[str, Any]):
+    def __init__(self, status: int, data: dict[str, Any]):
         self.status = status
         self._data = data
 
