@@ -12,17 +12,6 @@
 
 ---
 
-> [!IMPORTANT]
-> #### Support this project by starring this repo on GitHub!
->
-> More stars → more visibility → more contributors → better features → more robust tool for everyone 🎉
->
-> [🌟 Star this repo on GitHub →](https://github.com/muxi-ai/onellm)
->
-> Thank you for your support! 🙏
-
----
-
 ## 📚 Table of Contents
 
 - [Overview](https://github.com/muxi-ai/onellm/blob/main/README.md#-overview)
