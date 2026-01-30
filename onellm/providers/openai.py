@@ -142,6 +142,8 @@ class OpenAIProvider(Provider):
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
+            # Explicitly exclude brotli (br) to avoid decompression issues
+            "Accept-Encoding": "gzip, deflate",
         }
 
         # Add organization ID if provided
