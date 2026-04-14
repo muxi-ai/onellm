@@ -39,7 +39,7 @@ class MinimaxProvider(AnthropicCompatibleProvider):
 
     # Provider configuration
     provider_name = "minimax"
-    default_api_base = "https://api.minimax.io/anthropic"
+    default_api_base = "https://api.minimax.io/anthropic/v1"
 
     # Set capability flags (inherited from Anthropic but documented here for clarity)
     json_mode_support = False  # Anthropic doesn't have explicit JSON mode

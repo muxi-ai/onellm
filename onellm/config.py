@@ -47,7 +47,7 @@ DEFAULT_CONFIG = {
         },
         "minimax": {
             "api_key": None,
-            "api_base": "https://api.minimax.io/anthropic",
+            "api_base": "https://api.minimax.io/anthropic/v1",
             "timeout": 30,
             "max_retries": 3,
         },
