@@ -108,7 +108,7 @@ class TestMinimaxProvider:
 
             provider = MinimaxProvider()
             assert provider.api_key == "test-minimax-key"
-            assert provider.api_base == "https://api.minimax.io/anthropic"
+            assert provider.api_base == "https://api.minimax.io/anthropic/v1"
             assert provider.provider_name == "minimax"
 
     def test_inherits_from_anthropic_compatible(self):
@@ -225,7 +225,7 @@ class TestMinimaxProvider:
             mock_get_config.return_value = {"api_key": "test-minimax-key"}
 
             provider = MinimaxProvider()
-            assert provider.api_base == "https://api.minimax.io/anthropic"
+            assert provider.api_base == "https://api.minimax.io/anthropic/v1"
 
     def test_api_base_configuration(self, mock_env_api_key):
         """Test that API base URL can be overridden (e.g., for China users)."""
