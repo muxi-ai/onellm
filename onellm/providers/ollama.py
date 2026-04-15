@@ -119,6 +119,24 @@ class OllamaProvider(OpenAICompatibleProvider):
             # No endpoint specified, use default
             return model, self.api_base
 
+    def _get_discovery_endpoint(self, endpoint: str) -> str:
+        """
+        Get the Ollama root endpoint used for model discovery APIs.
+
+        Chat/completions use the OpenAI-compatible `/v1` base, but Ollama's
+        native discovery endpoint lives at the server root under `/api/tags`.
+
+        Args:
+            endpoint: Endpoint URL, optionally ending with `/v1`
+
+        Returns:
+            Root endpoint URL for discovery requests
+        """
+        endpoint = endpoint.rstrip("/")
+        if endpoint.endswith("/v1"):
+            return endpoint[:-3]
+        return endpoint
+
     async def _check_model_available(self, model: str, endpoint: str) -> bool:
         """
         Check if a model is available on the Ollama server.
@@ -130,22 +148,27 @@ class OllamaProvider(OpenAICompatibleProvider):
         Returns:
             True if model is available, False otherwise
         """
+        discovery_endpoint = self._get_discovery_endpoint(endpoint)
+
         # Check cache first
-        if endpoint in self._model_cache and model in self._model_cache[endpoint]:
+        if (
+            discovery_endpoint in self._model_cache
+            and model in self._model_cache[discovery_endpoint]
+        ):
             return True
 
         try:
             # Query available models
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
+                    f"{discovery_endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
                         models = {m["name"] for m in data.get("models", [])}
 
                         # Cache the results
-                        self._model_cache[endpoint] = models
+                        self._model_cache[discovery_endpoint] = models
 
                         # Check if our model is available
                         return model in models
@@ -285,11 +308,12 @@ class OllamaProvider(OpenAICompatibleProvider):
             List of available model names
         """
         endpoint = endpoint or self.api_base
+        discovery_endpoint = self._get_discovery_endpoint(endpoint)
 
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
+                    f"{discovery_endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status == 200:
                         data = await response.json()

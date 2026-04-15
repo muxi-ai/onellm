@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.20260415.0 - Ollama Model Discovery Fixes
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Bug Fixes
+
+#### Ollama model listing and availability checks
+
+Fixed Ollama model discovery when using the default OpenAI-compatible `/v1` base URL. Chat requests should continue using `/v1`, but model discovery must query Ollama's native root endpoint under `/api/tags`.
+
+### Changes
+
+- Normalized Ollama discovery endpoints so `.../v1` bases query `.../api/tags` instead of `.../v1/api/tags`
+- Fixed `list_models()` and `_check_model_available()` to use the Ollama root discovery endpoint
+- Added regression tests covering default and custom `/v1` discovery paths
+
+---
+
 ## 0.20251229.0 - HTTP Connection Pooling
 
 **Status**: Development Status :: 5 - Production/Stable
