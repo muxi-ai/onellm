@@ -237,8 +237,10 @@ class MistralProvider(Provider):
         Raises:
             OneLLMError: On API errors
         """
-        # Parse the JSON response
-        response_data = await response.json()
+        # Tolerant read handles non-JSON error bodies (gateway HTML,
+        # text/plain rate-limit pages) routing them through the proper
+        # status-code taxonomy.
+        response_data = await self._read_response_body(response)
 
         # Check for error status codes
         if response.status != 200:
@@ -263,7 +265,7 @@ class MistralProvider(Provider):
         """
         # Check for error status codes
         if response.status != 200:
-            error_data = await response.json()
+            error_data = await self._read_response_body(response)
             self._handle_error_response(response.status, error_data)
 
         # Process the stream line by line
@@ -697,7 +699,7 @@ class MistralProvider(Provider):
                 ) as response:
                     # Check for error status codes
                     if response.status != 200:
-                        error_data = await response.json()
+                        error_data = await self._read_response_body(response)
                         self._handle_error_response(response.status, error_data)
 
                     # Return the raw file content
@@ -705,6 +707,7 @@ class MistralProvider(Provider):
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)
+
 
 # Register the Mistral provider
 register_provider("mistral", MistralProvider)

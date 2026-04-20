@@ -385,13 +385,19 @@ class TestOpenAIProvider:
         """Test _handle_streaming_response error handling."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Create a mock response with error status and content
+        # Error body is read via response.text() now so we can tolerate
+        # non-JSON content types (see _read_response_body helper).
         mock_response = mock.MagicMock()
         mock_response.status = 401
-        mock_response.json = mock.AsyncMock(
-            return_value={
-                "error": {"message": "Invalid authentication", "type": "authentication_error"}
-            }
+        mock_response.text = mock.AsyncMock(
+            return_value=json.dumps(
+                {
+                    "error": {
+                        "message": "Invalid authentication",
+                        "type": "authentication_error",
+                    }
+                }
+            )
         )
 
         with pytest.raises(AuthenticationError) as excinfo:
@@ -399,7 +405,7 @@ class TestOpenAIProvider:
                 pass
 
         assert "Invalid authentication" in str(excinfo.value)
-        assert mock_response.json.called
+        assert mock_response.text.called
 
     @pytest.mark.asyncio
     async def test_streaming_invalid_json(self):
@@ -546,11 +552,14 @@ class TestOpenAIProvider:
         """Test _handle_response error handling."""
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Create a mock response
+        # _handle_response now reads via response.text() so the body can be
+        # tolerated even when the server returns a non-JSON content type.
         mock_response = mock.MagicMock()
         mock_response.status = 500
-        mock_response.json = mock.AsyncMock(
-            return_value={"error": {"message": "Internal server error", "type": "server_error"}}
+        mock_response.text = mock.AsyncMock(
+            return_value=json.dumps(
+                {"error": {"message": "Internal server error", "type": "server_error"}}
+            )
         )
 
         with pytest.raises(ServiceUnavailableError) as excinfo:
@@ -995,10 +1004,15 @@ class TestOpenAIProvider:
 
     @pytest.mark.asyncio
     async def test_make_request_raw_error_non_json(self):
-        """Test _make_request_raw with non-JSON error response."""
+        """Test _make_request_raw with non-JSON error response.
+
+        The 500 now routes correctly through the status-code mapper to
+        ``ServiceUnavailableError`` (the old behavior demoted it to a
+        generic ``APIError`` because the JSON parser failed before the
+        mapper ran). The raw body is preserved as the error message.
+        """
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Patch get_session_safe to return a mock session
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
@@ -1009,13 +1023,11 @@ class TestOpenAIProvider:
         mock_response = MockResponse(error_text, status=500)
         mock_session_instance.request.return_value.__aenter__.return_value = mock_response
 
-        # Call the method and expect an error
-        with pytest.raises(APIError) as exc_info:
+        with pytest.raises(ServiceUnavailableError) as exc_info:
             await provider._make_request_raw(method="GET", path="/raw-endpoint")
 
-        # Verify error message
+        assert exc_info.value.status_code == 500
         assert "Internal Server Error" in str(exc_info.value)
-        assert "status code: 500" in str(exc_info.value)
 
         session_patch.stop()
 

@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.20260420.0 - Local Embedding Provider (Phase 1)
+## 0.20260420.0 - Local Embedding Provider (Phase 1) + Provider Error Normalization
 
 **Status**: Development Status :: 5 - Production/Stable
 
@@ -48,6 +48,20 @@ vec = resp.data[0].embedding
   hint when `sentence-transformers` isn't installed.
 - **Uses the standard HF cache** (`$HF_HOME` or `~/.cache/huggingface/hub/`)
   so downloads are shared with every other HF-using tool in the environment.
+- **Cloud-shaped error taxonomy**: failures from the HuggingFace backend are
+  normalized to the same `onellm.errors` classes the cloud providers use so
+  `fallback_models=["local/...", "openai/..."]` works out of the box with the
+  default `FallbackConfig.retriable_errors` list. Mapping:
+  - missing HF repo / invalid id -> `ResourceNotFoundError` (404)
+  - gated or private repo without token -> `AuthenticationError` (401)
+  - HF rate limit on download -> `RateLimitError` (429, retriable)
+  - HF 5xx / network failure -> `ServiceUnavailableError` (retriable)
+  - network timeout -> `RequestTimeoutError` (retriable)
+  - out of memory (CPU/GPU) -> `ServiceUnavailableError` (retriable)
+  - `trust_remote_code` kill-switch rejection -> `PermissionDeniedError` (403)
+  - invalid `dimensions` -> `InvalidRequestError` (400)
+  - `sentence-transformers` missing -> `InvalidConfigurationError`
+  - unsupported method (chat/completion/upload/download) -> `InvalidRequestError` (400)
 
 #### `onellm download` snapshot mode
 
@@ -63,6 +77,46 @@ Whatever follows `local/` is passed directly to `huggingface_hub.snapshot_downlo
 as the repo id. Respects `HF_HOME` for the cache directory, falling back to
 `~/.cache/huggingface/hub/`. The GGUF single-file mode
 (`--repo-id`/`--filename`) is unchanged.
+
+### Bug Fixes
+
+#### Non-JSON error bodies no longer crash the error mapper (all aiohttp providers)
+
+Upstream APIs (OpenAI, Anthropic, Azure OpenAI, Cohere, Google, Mistral,
+Vertex AI) occasionally return error bodies with `text/plain` or `text/html`
+content types instead of JSON - reverse-proxy WAF pages, gateway timeouts,
+rate-limit HTML pages, or bare-text 401s at the edge. The previous
+implementation called `response.json()` unconditionally before the
+status-code check, which raised `aiohttp.ContentTypeError` and leaked past
+each provider's error-classification layer. Callers saw the raw aiohttp
+exception instead of the proper `AuthenticationError` /
+`ServiceUnavailableError` / etc., and the default
+`FallbackConfig.retriable_errors` list did not catch it, so cross-provider
+fallback chains broke silently.
+
+Fixed by adding a shared `Provider._read_response_body()` helper that reads
+the body via `response.text()`, parses JSON with a tolerant fallback to
+`{"error": {"message": <raw>}}`, and is now used at every error-handling
+call site across the 7 aiohttp-based providers plus OpenAI's streaming,
+upload, and download paths. Non-object JSON (e.g. bare arrays from a
+misbehaving proxy) is wrapped identically so the downstream
+`data.get("error", ...)` lookup still works.
+
+#### OpenAI audio transcription/translation non-JSON formats
+
+`response_format="text"` / `"srt"` / `"vtt"` now correctly returns the raw
+text body in `TranscriptionResult.text` instead of an opaque dict. The path
+was latently broken since the old `response.json()` would have raised
+`ContentTypeError` on the non-JSON success body.
+
+### Type hygiene
+
+- Added `@overload` variants on `OpenAIProvider._make_request` so mypy can
+  narrow the return type based on `stream: Literal[True|False]`; eliminated
+  all 56 pre-existing mypy errors in `onellm/providers/openai.py`
+  (project-wide: 342 -> 288).
+- Imported and `cast()`-tagged `UsageInfo` conversions at response-construction
+  sites in the OpenAI provider.
 
 ### Infrastructure
 

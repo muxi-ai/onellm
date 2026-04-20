@@ -7,6 +7,7 @@ These tests verify that the Anthropic provider correctly handles various request
 converts between OpenAI and Anthropic formats, and manages unique Anthropic features.
 """
 
+import json
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -19,7 +20,14 @@ from onellm.providers.anthropic import AnthropicProvider
 
 
 class MockResponse:
-    """Mock aiohttp response object."""
+    """Mock aiohttp response object.
+
+    ``_read_response_body`` (inherited from ``Provider`` base class) now
+    consumes ``response.text()`` instead of ``response.json()`` so that
+    non-JSON error bodies from gateways survive the error-mapper. Tests
+    therefore need a ``text()`` method that returns a JSON-serialised
+    string; ``json()`` is kept for backwards-compat with other call sites.
+    """
 
     def __init__(self, status: int, data: dict[str, Any]):
         self.status = status
@@ -27,6 +35,9 @@ class MockResponse:
 
     async def json(self):
         return self._data
+
+    async def text(self):
+        return json.dumps(self._data)
 
     async def read(self):
         return b"test data"

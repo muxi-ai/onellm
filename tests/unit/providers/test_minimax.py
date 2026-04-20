@@ -7,6 +7,7 @@ These tests verify that the MiniMax provider correctly uses the Anthropic-compat
 interface and properly configures the API endpoint for MiniMax's API.
 """
 
+import json
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -20,7 +21,12 @@ from onellm.providers.minimax import MinimaxProvider
 
 
 class MockResponse:
-    """Mock aiohttp response object."""
+    """Mock aiohttp response object.
+
+    The shared ``_read_response_body`` on ``Provider`` reads bodies via
+    ``response.text()`` so non-JSON error bodies from gateways survive
+    the error-mapper; tests therefore need to expose ``text()``.
+    """
 
     def __init__(self, status: int, data: dict[str, Any]):
         self.status = status
@@ -28,6 +34,9 @@ class MockResponse:
 
     async def json(self):
         return self._data
+
+    async def text(self):
+        return json.dumps(self._data)
 
     async def read(self):
         return b"test data"
@@ -184,7 +193,9 @@ class TestMinimaxProvider:
             assert response.id == "msg_minimax-test-id"
             assert response.model == "MiniMax-M2"
             assert len(response.choices) == 1
-            assert response.choices[0].message["content"] == "This is a test response from MiniMax-M2"
+            assert (
+                response.choices[0].message["content"] == "This is a test response from MiniMax-M2"
+            )
             assert response.usage["total_tokens"] == 42  # 12 + 30
 
     @pytest.mark.asyncio

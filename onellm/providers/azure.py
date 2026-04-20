@@ -70,16 +70,16 @@ class AzureProvider(Provider):
     json_mode_support = True
 
     # Multi-modal capabilities
-    vision_support = True          # GPT-4V, GPT-4 Turbo, GPT-4o support images
-    audio_input_support = False    # No direct audio in chat
-    video_input_support = False    # No video support
+    vision_support = True  # GPT-4V, GPT-4 Turbo, GPT-4o support images
+    audio_input_support = False  # No direct audio in chat
+    video_input_support = False  # No video support
 
     # Streaming capabilities
-    streaming_support = True       # All models support streaming
+    streaming_support = True  # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
 
     # Realtime capabilities
-    realtime_support = False       # No realtime API yet
+    realtime_support = False  # No realtime API yet
 
     def __init__(self, **kwargs):
         """
@@ -93,9 +93,8 @@ class AzureProvider(Provider):
         self.config = get_provider_config("azure")
 
         # Check if azure config path is provided
-        azure_config_path = (
-            kwargs.pop("azure_config_path", None)
-            or os.environ.get("AZURE_OPENAI_CONFIG_PATH")
+        azure_config_path = kwargs.pop("azure_config_path", None) or os.environ.get(
+            "AZURE_OPENAI_CONFIG_PATH"
         )
 
         if not azure_config_path:
@@ -157,7 +156,7 @@ class AzureProvider(Provider):
             "endpoint": self.endpoint,
             "deployment": model,
             "subscription_key": self.key1 or self.key2,
-            "api_version": self.api_version
+            "api_version": self.api_version,
         }
 
     def _get_headers(self, deployment_config: dict[str, Any]) -> dict[str, str]:
@@ -251,9 +250,7 @@ class AzureProvider(Provider):
                     key,
                     file_info["data"],
                     filename=file_info.get("filename", "file"),
-                    content_type=file_info.get(
-                        "content_type", "application/octet-stream"
-                    ),
+                    content_type=file_info.get("content_type", "application/octet-stream"),
                 )
 
             # Add other fields to the form
@@ -261,9 +258,7 @@ class AzureProvider(Provider):
                 for key, value in data.items():
                     if isinstance(value, dict | list):
                         # Convert complex objects to JSON strings
-                        form_data.add_field(
-                            key, json.dumps(value), content_type="application/json"
-                        )
+                        form_data.add_field(key, json.dumps(value), content_type="application/json")
                     else:
                         # Add simple values as strings
                         form_data.add_field(key, str(value))
@@ -297,9 +292,7 @@ class AzureProvider(Provider):
             # Streaming requests don't use retry mechanism
             return await execute_request()
 
-    async def _handle_response(
-        self, response: aiohttp.ClientResponse
-    ) -> dict[str, Any]:
+    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -312,8 +305,9 @@ class AzureProvider(Provider):
         Raises:
             OneLLMError: On API errors
         """
-        # Parse the JSON response
-        response_data = await response.json()
+        # Read tolerantly: Azure Front Door, APIM, and the OpenAI gateway
+        # sometimes return HTML or text/plain error bodies on 401/429/5xx.
+        response_data = await self._read_response_body(response)
 
         # Check for error status codes
         if response.status != 200:
@@ -338,7 +332,7 @@ class AzureProvider(Provider):
         """
         # Check for error status codes
         if response.status != 200:
-            error_data = await response.json()
+            error_data = await self._read_response_body(response)
             self._handle_error_response(response.status, error_data)
 
         # Process the stream line by line
@@ -359,9 +353,7 @@ class AzureProvider(Provider):
                     # Skip invalid lines
                     continue
 
-    def _handle_error_response(
-        self, status_code: int, response_data: dict[str, Any]
-    ) -> None:
+    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -378,25 +370,17 @@ class AzureProvider(Provider):
 
         # Map HTTP status codes to appropriate error types
         if status_code == 401:
-            raise AuthenticationError(
-                message, provider="azure", status_code=status_code
-            )
+            raise AuthenticationError(message, provider="azure", status_code=status_code)
         elif status_code == 403:
             raise PermissionDeniedError(message, provider="azure", status_code=status_code)
         elif status_code == 404:
-            raise ResourceNotFoundError(
-                message, provider="azure", status_code=status_code
-            )
+            raise ResourceNotFoundError(message, provider="azure", status_code=status_code)
         elif status_code == 429:
             raise RateLimitError(message, provider="azure", status_code=status_code)
         elif status_code == 400:
-            raise InvalidRequestError(
-                message, provider="azure", status_code=status_code
-            )
+            raise InvalidRequestError(message, provider="azure", status_code=status_code)
         elif status_code == 500:
-            raise ServiceUnavailableError(
-                message, provider="azure", status_code=status_code
-            )
+            raise ServiceUnavailableError(message, provider="azure", status_code=status_code)
         elif status_code == 502:
             raise BadGatewayError(message, provider="azure", status_code=status_code)
         elif status_code == 504:
@@ -509,9 +493,7 @@ class AzureProvider(Provider):
             )
             return response
 
-    def _process_messages_for_vision(
-        self, messages: list[Message], model: str
-    ) -> list[Message]:
+    def _process_messages_for_vision(self, messages: list[Message], model: str) -> list[Message]:
         """
         Process messages to ensure they're compatible with vision models if needed.
 
@@ -572,15 +554,11 @@ class AzureProvider(Provider):
                 processed_content = []
                 for item in content:
                     # Process image_url to ensure correct format
-                    if item.get("type") == "image_url" and isinstance(
-                        item.get("image_url"), dict
-                    ):
+                    if item.get("type") == "image_url" and isinstance(item.get("image_url"), dict):
                         image_url = item["image_url"]
                         # Ensure url field exists
                         if "url" not in image_url:
-                            raise InvalidRequestError(
-                                "Image URL must contain a 'url' field"
-                            )
+                            raise InvalidRequestError("Image URL must contain a 'url' field")
 
                         # Ensure detail field is valid if present
                         if "detail" in image_url and image_url["detail"] not in [
@@ -714,7 +692,7 @@ class AzureProvider(Provider):
         raise InvalidRequestError(
             "Azure OpenAI does not support file uploads through the standard API. "
             "Files are typically handled through Azure Blob Storage or included in requests.",
-            provider="azure"
+            provider="azure",
         )
 
     async def download_file(self, file_id: str, **kwargs) -> bytes:
@@ -732,7 +710,7 @@ class AzureProvider(Provider):
         """
         raise InvalidRequestError(
             "Azure OpenAI does not support file downloads through the standard API.",
-            provider="azure"
+            provider="azure",
         )
 
     async def create_transcription(
@@ -928,8 +906,7 @@ class AzureProvider(Provider):
         supported_voices = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
         if voice not in supported_voices:
             raise InvalidRequestError(
-                f"Voice '{voice}' is not supported. "
-                f"Use one of: {', '.join(supported_voices)}"
+                f"Voice '{voice}' is not supported. " f"Use one of: {', '.join(supported_voices)}"
             )
 
         # Check response format if provided
@@ -1003,19 +980,11 @@ class AzureProvider(Provider):
                     timeout=timeout,
                 ) as response:
                     if response.status != 200:
-                        # Handle error response as JSON
-                        try:
-                            error_data = await response.json()
-                            self._handle_error_response(response.status, error_data)
-                        except json.JSONDecodeError as json_err:
-                            # If not valid JSON, raise a generic error with the status code
-                            error_text = await response.text()
-                            raise APIError(
-                                f"Azure OpenAI API error: {error_text} "
-                                f"(status code: {response.status})",
-                                provider="azure",
-                                status_code=response.status,
-                            ) from json_err
+                        # Tolerant read handles non-JSON error bodies;
+                        # _handle_error_response routes via the proper
+                        # status-code taxonomy instead of a generic APIError.
+                        error_data = await self._read_response_body(response)
+                        self._handle_error_response(response.status, error_data)
 
                     # Return the raw binary data
                     return await response.read()
@@ -1066,9 +1035,7 @@ class AzureProvider(Provider):
         # Check n (number of images)
         # DALL-E 3 only supports n=1
         if dalle_version == "dall-e-3" and n > 1:
-            raise InvalidRequestError(
-                "DALL-E 3 only supports generating one image at a time (n=1)"
-            )
+            raise InvalidRequestError("DALL-E 3 only supports generating one image at a time (n=1)")
 
         # For DALL-E 2, n can be between 1 and 10
         if dalle_version == "dall-e-2" and (not isinstance(n, int) or n < 1 or n > 10):
@@ -1127,6 +1094,7 @@ class AzureProvider(Provider):
             created=response_data.get("created", int(time.time())),
             data=response_data.get("data", []),
         )
+
 
 # Register the Azure provider
 register_provider("azure", AzureProvider)

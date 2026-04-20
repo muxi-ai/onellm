@@ -28,7 +28,7 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator
-from typing import IO, Any
+from typing import IO, Any, Literal, cast, overload
 
 import aiohttp
 
@@ -57,7 +57,7 @@ from ..models import (
     FileObject,
     StreamingChoice,
 )
-from ..types import Message
+from ..types import Message, UsageInfo
 from ..types.common import ImageGenerationResult, TranscriptionResult
 from ..utils.retry import RetryConfig, retry_async
 from .base import Provider, register_provider
@@ -70,16 +70,16 @@ class OpenAIProvider(Provider):
     json_mode_support = True
 
     # Multi-modal capabilities
-    vision_support = True          # GPT-4V, GPT-4 Turbo, GPT-4o support images
-    audio_input_support = False    # No direct audio in chat (only via transcription)
-    video_input_support = False    # No video support
+    vision_support = True  # GPT-4V, GPT-4 Turbo, GPT-4o support images
+    audio_input_support = False  # No direct audio in chat (only via transcription)
+    video_input_support = False  # No video support
 
     # Streaming capabilities
-    streaming_support = True       # All models support streaming
+    streaming_support = True  # All models support streaming
     token_by_token_support = True  # Provides token-by-token streaming
 
     # Realtime capabilities
-    realtime_support = False       # No realtime API yet
+    realtime_support = False  # No realtime API yet
 
     def __init__(self, **kwargs):
         """
@@ -152,6 +152,29 @@ class OpenAIProvider(Provider):
 
         return headers
 
+    @overload
+    async def _make_request(
+        self,
+        method: str,
+        path: str,
+        data: dict[str, Any] | None = ...,
+        stream: Literal[False] = False,
+        timeout: float | None = ...,
+        files: dict[str, Any] | None = ...,
+    ) -> dict[str, Any]: ...
+
+    @overload
+    async def _make_request(
+        self,
+        method: str,
+        path: str,
+        data: dict[str, Any] | None = ...,
+        *,
+        stream: Literal[True],
+        timeout: float | None = ...,
+        files: dict[str, Any] | None = ...,
+    ) -> AsyncGenerator[dict[str, Any], None]: ...
+
     async def _make_request(
         self,
         method: str,
@@ -185,7 +208,10 @@ class OpenAIProvider(Provider):
         # Get authentication and content-type headers
         headers = self._get_headers()
 
-        # Handle file uploads
+        # Body can be one of three shapes: multipart FormData (file uploads),
+        # serialized JSON string (regular POST/PUT), or None (GET/DELETE).
+        # Annotating up front so mypy can follow the branches.
+        body: aiohttp.FormData | str | None
         if files:
             # Need to use multipart/form-data for file uploads
             headers.pop("Content-Type", None)  # Remove Content-Type for multipart form
@@ -197,9 +223,7 @@ class OpenAIProvider(Provider):
                     key,
                     file_info["data"],
                     filename=file_info.get("filename", "file"),
-                    content_type=file_info.get(
-                        "content_type", "application/octet-stream"
-                    ),
+                    content_type=file_info.get("content_type", "application/octet-stream"),
                 )
 
             # Add other fields to the form
@@ -207,9 +231,7 @@ class OpenAIProvider(Provider):
                 for key, value in data.items():
                     if isinstance(value, dict | list):
                         # Convert complex objects to JSON strings
-                        form_data.add_field(
-                            key, json.dumps(value), content_type="application/json"
-                        )
+                        form_data.add_field(key, json.dumps(value), content_type="application/json")
                     else:
                         # Add simple values as strings
                         form_data.add_field(key, str(value))
@@ -247,9 +269,7 @@ class OpenAIProvider(Provider):
             # Streaming requests don't use retry mechanism
             return await execute_request()
 
-    def _normalize_usage(
-        self, usage: dict[str, Any] | None
-    ) -> dict[str, Any] | None:
+    def _normalize_usage(self, usage: dict[str, Any] | None) -> dict[str, Any] | None:
         """Augment provider usage payload with cache-aware fields."""
 
         if not usage:
@@ -288,9 +308,7 @@ class OpenAIProvider(Provider):
 
         return normalized
 
-    async def _handle_response(
-        self, response: aiohttp.ClientResponse
-    ) -> dict[str, Any]:
+    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -303,8 +321,7 @@ class OpenAIProvider(Provider):
         Raises:
             OneLLMError: On API errors
         """
-        # Parse the JSON response
-        response_data = await response.json()
+        response_data = await self._read_response_body(response)
 
         # Check for error status codes
         if response.status != 200:
@@ -329,12 +346,14 @@ class OpenAIProvider(Provider):
         """
         # Check for error status codes
         if response.status != 200:
-            error_data = await response.json()
+            error_data = await self._read_response_body(response)
             self._handle_error_response(response.status, error_data)
 
-        # Process the stream line by line
-        async for line in response.content:
-            line = line.decode("utf-8").strip()
+        # Process the stream line by line. aiohttp yields ``bytes`` for each
+        # line; we decode to ``str`` immediately via a separate name so mypy
+        # doesn't see one variable holding two types across the loop body.
+        async for raw_line in response.content:
+            line = raw_line.decode("utf-8").strip()
             # OpenAI's streaming format prefixes each JSON chunk with "data: "
             if line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
@@ -350,9 +369,7 @@ class OpenAIProvider(Provider):
                     # Skip invalid lines
                     continue
 
-    def _handle_error_response(
-        self, status_code: int, response_data: dict[str, Any]
-    ) -> None:
+    def _handle_error_response(self, status_code: int, response_data: dict[str, Any]) -> None:
         """
         Handle an error response.
 
@@ -372,25 +389,17 @@ class OpenAIProvider(Provider):
 
         # Map HTTP status codes to appropriate error types
         if status_code == 401:
-            raise AuthenticationError(
-                message, provider="openai", status_code=status_code
-            )
+            raise AuthenticationError(message, provider="openai", status_code=status_code)
         elif status_code == 403:
             raise PermissionDeniedError(message, provider="openai", status_code=status_code)
         elif status_code == 404:
-            raise ResourceNotFoundError(
-                message, provider="openai", status_code=status_code
-            )
+            raise ResourceNotFoundError(message, provider="openai", status_code=status_code)
         elif status_code == 429:
             raise RateLimitError(message, provider="openai", status_code=status_code)
         elif status_code == 400:
-            raise InvalidRequestError(
-                message, provider="openai", status_code=status_code
-            )
+            raise InvalidRequestError(message, provider="openai", status_code=status_code)
         elif status_code == 500:
-            raise ServiceUnavailableError(
-                message, provider="openai", status_code=status_code
-            )
+            raise ServiceUnavailableError(message, provider="openai", status_code=status_code)
         elif status_code == 502:
             raise BadGatewayError(message, provider="openai", status_code=status_code)
         elif status_code == 504:
@@ -431,7 +440,13 @@ class OpenAIProvider(Provider):
             kwargs.pop("temperature", None)
 
         # Filter out client-side parameters that shouldn't be sent to the API
-        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        client_side_params = [
+            "timeout_seconds",
+            "timeout",
+            "max_retries",
+            "caching",
+            "fallback_model",
+        ]
         for param in client_side_params:
             kwargs.pop(param, None)
 
@@ -512,14 +527,12 @@ class OpenAIProvider(Provider):
                 created=response_data.get("created", int(time.time())),
                 model=response_data.get("model", model),
                 choices=choices,
-                usage=self._normalize_usage(response_data.get("usage")),
+                usage=cast("UsageInfo | None", self._normalize_usage(response_data.get("usage"))),
                 system_fingerprint=response_data.get("system_fingerprint"),
             )
             return response
 
-    def _process_messages_for_vision(
-        self, messages: list[Message], model: str
-    ) -> list[Message]:
+    def _process_messages_for_vision(self, messages: list[Message], model: str) -> list[Message]:
         """
         Process messages to ensure they're compatible with vision models if needed.
 
@@ -565,9 +578,7 @@ class OpenAIProvider(Provider):
         # Extract the base model name for broader matching
         model_base = model.split("-")[0]
         # Check if the model is in our vision models list or has a matching base name
-        model_supports_vision = (
-            any(vm in model for vm in vision_models) or model_base == "gpt4o"
-        )
+        model_supports_vision = any(vm in model for vm in vision_models) or model_base == "gpt4o"
 
         # Raise error if trying to use images with a non-vision model
         if not model_supports_vision:
@@ -576,26 +587,28 @@ class OpenAIProvider(Provider):
                 f"Use a vision-capable model like 'gpt-4-vision-preview' or 'gpt-4o'."
             )
 
-        # Process each message to ensure image_url formats are correct
-        processed_messages = []
+        # Process each message to ensure image_url formats are correct. The
+        # runtime shape is a list of dicts with heterogenous value types; the
+        # Message TypedDict can't express all the variants cleanly, so we do
+        # the work in plain-dict space and narrow at the return boundary.
+        processed_messages: list[dict[str, Any]] = []
         for message in messages:
-            processed_message = dict(message)  # Create a copy
+            processed_message: dict[str, Any] = dict(message)
             content = message.get("content", "")
 
             # Only process if content is a list
             if isinstance(content, list):
-                processed_content = []
+                processed_content: list[Any] = []
                 for item in content:
-                    # Process image_url to ensure correct format
-                    if item.get("type") == "image_url" and isinstance(
-                        item.get("image_url"), dict
-                    ):
-                        image_url = item["image_url"]
+                    # Process image_url to ensure correct format. We
+                    # narrow via a local variable so mypy tracks the dict
+                    # type across the subsequent index operations.
+                    image_url_raw = item.get("image_url") if isinstance(item, dict) else None
+                    if item.get("type") == "image_url" and isinstance(image_url_raw, dict):
+                        image_url = image_url_raw  # narrowed to dict by isinstance
                         # Ensure url field exists
                         if "url" not in image_url:
-                            raise InvalidRequestError(
-                                "Image URL must contain a 'url' field"
-                            )
+                            raise InvalidRequestError("Image URL must contain a 'url' field")
 
                         # Ensure detail field is valid if present
                         if "detail" in image_url and image_url["detail"] not in [
@@ -615,7 +628,7 @@ class OpenAIProvider(Provider):
 
             processed_messages.append(processed_message)
 
-        return processed_messages
+        return cast("list[Message]", processed_messages)
 
     async def create_completion(
         self, prompt: str, model: str, stream: bool = False, **kwargs
@@ -641,7 +654,13 @@ class OpenAIProvider(Provider):
             kwargs.pop("temperature", None)
 
         # Filter out client-side parameters that shouldn't be sent to the API
-        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        client_side_params = [
+            "timeout_seconds",
+            "timeout",
+            "max_retries",
+            "caching",
+            "fallback_model",
+        ]
         for param in client_side_params:
             kwargs.pop(param, None)
 
@@ -680,7 +699,7 @@ class OpenAIProvider(Provider):
                 created=response_data.get("created", int(time.time())),
                 model=response_data.get("model", model),
                 choices=choices,
-                usage=self._normalize_usage(response_data.get("usage")),
+                usage=cast("UsageInfo | None", self._normalize_usage(response_data.get("usage"))),
                 system_fingerprint=response_data.get("system_fingerprint"),
             )
 
@@ -699,7 +718,13 @@ class OpenAIProvider(Provider):
             EmbeddingResponse containing the generated embeddings
         """
         # Filter out client-side parameters that shouldn't be sent to the API
-        client_side_params = ["timeout_seconds", "timeout", "max_retries", "caching", "fallback_model"]
+        client_side_params = [
+            "timeout_seconds",
+            "timeout",
+            "max_retries",
+            "caching",
+            "fallback_model",
+        ]
         for param in client_side_params:
             kwargs.pop(param, None)
 
@@ -726,7 +751,7 @@ class OpenAIProvider(Provider):
             object=response_data.get("object", "list"),
             data=embedding_data,
             model=response_data.get("model", model),
-            usage=self._normalize_usage(response_data.get("usage")),
+            usage=cast("UsageInfo | None", self._normalize_usage(response_data.get("usage"))),
         )
 
     async def upload_file(self, file: Any, purpose: str, **kwargs) -> FileObject:
@@ -757,9 +782,7 @@ class OpenAIProvider(Provider):
             filename = getattr(file, "name", "file.dat")  # Try to get name from object
         else:
             # Invalid input type
-            error_msg = (
-                "Invalid file type. Expected file path, bytes, or file-like object."
-            )
+            error_msg = "Invalid file type. Expected file path, bytes, or file-like object."
             raise InvalidRequestError(error_msg)
 
         # Prepare request data, excluding filename which is handled separately
@@ -819,7 +842,7 @@ class OpenAIProvider(Provider):
             ) as response:
                 # Check for error status codes
                 if response.status != 200:
-                    error_data = await response.json()
+                    error_data = await self._read_response_body(response)
                     self._handle_error_response(response.status, error_data)
 
                 # Return the raw file content
@@ -869,11 +892,7 @@ class OpenAIProvider(Provider):
             data["purpose"] = kwargs["purpose"]
 
         # Make the API request to list files
-        return await self._make_request(
-            method="GET",
-            path="/files",
-            data=data
-        )
+        return await self._make_request(method="GET", path="/files", data=data)
 
     async def delete_file(self, file_id: str, **kwargs) -> dict[str, Any]:
         """
@@ -887,10 +906,7 @@ class OpenAIProvider(Provider):
             Dictionary with deletion status
         """
         # Make the API request to delete the file
-        return await self._make_request(
-            method="DELETE",
-            path=f"/files/{file_id}"
-        )
+        return await self._make_request(method="DELETE", path=f"/files/{file_id}")
 
     async def create_transcription(
         self, file: str | bytes | IO[bytes], model: str = "whisper-1", **kwargs
@@ -934,11 +950,19 @@ class OpenAIProvider(Provider):
             method="POST", path="/audio/transcriptions", data=request_data, files=files
         )
 
-        # Process the response based on the requested format
+        # Process the response based on the requested format.
+        # For non-JSON response_formats (text, srt, vtt) the API returns a
+        # raw string body that our JSON-aware helper wraps into
+        # ``{"error": {"message": <raw>}}``. Extract the raw text back out
+        # so the caller gets a usable ``TranscriptionResult.text``.
         response_format = kwargs.get("response_format", "json")
         if isinstance(response_format, str) and response_format != "json":
-            # For non-JSON formats, return a simplified result with just the text
-            return TranscriptionResult(text=response_data)
+            raw_text = (
+                response_data.get("error", {}).get("message")
+                if isinstance(response_data, dict)
+                else None
+            ) or ""
+            return TranscriptionResult(text=str(raw_text))
 
         # For JSON or default format, parse the structured response
         return TranscriptionResult(
@@ -991,11 +1015,17 @@ class OpenAIProvider(Provider):
             method="POST", path="/audio/translations", data=request_data, files=files
         )
 
-        # Process the response based on the requested format
+        # Process the response based on the requested format. See the
+        # matching note in ``create_transcription`` for why non-JSON bodies
+        # arrive wrapped in the {"error": {"message": <raw>}} shape.
         response_format = kwargs.get("response_format", "json")
         if isinstance(response_format, str) and response_format != "json":
-            # For non-JSON formats, return a simplified result with just the text
-            return TranscriptionResult(text=response_data)
+            raw_text = (
+                response_data.get("error", {}).get("message")
+                if isinstance(response_data, dict)
+                else None
+            ) or ""
+            return TranscriptionResult(text=str(raw_text))
 
         # For JSON or default format, parse the structured response
         # Note: Translations are always to English
@@ -1123,18 +1153,8 @@ class OpenAIProvider(Provider):
                     timeout=timeout,
                 ) as response:
                     if response.status != 200:
-                        # Handle error response as JSON
-                        try:
-                            error_data = await response.json()
-                            self._handle_error_response(response.status, error_data)
-                        except json.JSONDecodeError:
-                            # If not valid JSON, raise a generic error with the status code
-                            error_text = await response.text()
-                            raise APIError(
-                                f"OpenAI API error: {error_text} (status code: {response.status})",
-                                provider="openai",
-                                status_code=response.status,
-                            )
+                        error_data = await self._read_response_body(response)
+                        self._handle_error_response(response.status, error_data)
 
                     # Return the raw binary data
                     return await response.read()
@@ -1181,8 +1201,7 @@ class OpenAIProvider(Provider):
         supported_voices = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
         if voice not in supported_voices:
             raise InvalidRequestError(
-                f"Voice '{voice}' is not supported. "
-                f"Use one of: {', '.join(supported_voices)}"
+                f"Voice '{voice}' is not supported. " f"Use one of: {', '.join(supported_voices)}"
             )
 
         # Check response format if provided
@@ -1208,9 +1227,7 @@ class OpenAIProvider(Provider):
         }
 
         # Make the API request with raw binary response
-        return await self._make_request_raw(
-            method="POST", path="/audio/speech", data=request_data
-        )
+        return await self._make_request_raw(method="POST", path="/audio/speech", data=request_data)
 
     async def create_image(
         self,
@@ -1266,9 +1283,7 @@ class OpenAIProvider(Provider):
         # Check n (number of images)
         # DALL-E 3 only supports n=1
         if model == "dall-e-3" and n > 1:
-            raise InvalidRequestError(
-                "DALL-E 3 only supports generating one image at a time (n=1)"
-            )
+            raise InvalidRequestError("DALL-E 3 only supports generating one image at a time (n=1)")
 
         # For DALL-E 2, n can be between 1 and 10
         if model == "dall-e-2" and (not isinstance(n, int) or n < 1 or n > 10):
@@ -1328,6 +1343,7 @@ class OpenAIProvider(Provider):
             created=response_data.get("created", int(time.time())),
             data=response_data.get("data", []),
         )
+
 
 # Register the OpenAI provider
 register_provider("openai", OpenAIProvider)

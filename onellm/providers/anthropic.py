@@ -243,8 +243,10 @@ class AnthropicProvider(Provider):
         Raises:
             OneLLMError: On API errors
         """
-        # Parse the JSON response
-        response_data = await response.json()
+        # Read response body tolerantly so non-JSON error pages (gateway
+        # HTML, reverse-proxy text/plain) still reach _handle_error_response
+        # instead of crashing with aiohttp.ContentTypeError.
+        response_data = await self._read_response_body(response)
 
         # Check for error status codes
         if response.status != 200:
@@ -269,7 +271,7 @@ class AnthropicProvider(Provider):
         """
         # Check for error status codes
         if response.status != 200:
-            error_data = await response.json()
+            error_data = await self._read_response_body(response)
             self._handle_error_response(response.status, error_data)
 
         # Process the stream line by line
@@ -828,7 +830,7 @@ class AnthropicProvider(Provider):
                 ) as response:
                     # Check for error status codes
                     if response.status != 200:
-                        error_data = await response.json()
+                        error_data = await self._read_response_body(response)
                         self._handle_error_response(response.status, error_data)
 
                     # Return the raw file content
@@ -839,6 +841,7 @@ class AnthropicProvider(Provider):
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)
+
 
 # Register the Anthropic provider
 register_provider("anthropic", AnthropicProvider)

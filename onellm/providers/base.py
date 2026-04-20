@@ -25,9 +25,12 @@ implementations must follow, as well as utility functions for
 working with providers.
 """
 
+import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from typing import Any
+
+import aiohttp
 
 from ..models import (
     ChatCompletionChunk,
@@ -65,6 +68,7 @@ def parse_model_name(model: str) -> tuple[str, str]:
             f"Use format 'provider/model-name' (e.g., 'openai/gpt-4')."
         )
 
+
 class Provider(ABC):
     """
     Base class for all LLM providers.
@@ -75,19 +79,19 @@ class Provider(ABC):
     """
 
     # Provider capability flags
-    json_mode_support = False     # Whether the provider supports JSON mode output
+    json_mode_support = False  # Whether the provider supports JSON mode output
 
     # Multi-modal capabilities
-    vision_support = False        # Image input support
-    audio_input_support = False   # Audio input support
-    video_input_support = False   # Video input support
+    vision_support = False  # Image input support
+    audio_input_support = False  # Audio input support
+    video_input_support = False  # Video input support
 
     # Streaming capabilities
-    streaming_support = False     # Basic streaming support
+    streaming_support = False  # Basic streaming support
     token_by_token_support = False  # Granular streaming
 
     # Realtime capabilities
-    realtime_support = False      # Realtime API support
+    realtime_support = False  # Realtime API support
 
     @classmethod
     def get_provider_name(cls) -> str:
@@ -99,6 +103,45 @@ class Provider(ABC):
         """
         # Extract provider name from class name by removing "Provider" suffix
         return cls.__name__.replace("Provider", "").lower()
+
+    async def _read_response_body(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
+        """Read a response body tolerantly, always returning a dict.
+
+        Happy-path responses from upstream APIs are JSON, but error
+        responses frequently arrive with ``text/plain`` or ``text/html``
+        bodies - reverse proxies, WAF rate-limit pages, auth failures
+        that return plain text, gateway timeouts, etc. Calling
+        :meth:`aiohttp.ClientResponse.json` on such a body raises
+        :class:`aiohttp.ContentTypeError`, which leaks past each
+        provider's error-classification layer and surfaces to the caller
+        as a raw aiohttp exception instead of the proper
+        :class:`AuthenticationError` / :class:`ServiceUnavailableError`
+        / etc.
+
+        Reading via :meth:`~aiohttp.ClientResponse.text` side-steps the
+        content-type check; we parse the body as JSON if possible and
+        fall back to ``{"error": {"message": <raw-text>}}`` otherwise so
+        that each provider's ``_handle_error_response`` has a usable
+        shape. Non-object JSON (e.g. a bare array from a misbehaving
+        proxy) is wrapped the same way so the ``data.get("error", ...)``
+        lookup downstream still works.
+        """
+        try:
+            raw = await response.text()
+        except Exception:  # pragma: no cover - defensive against decode errors
+            raw = ""
+
+        if not raw:
+            return {}
+
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            return {"error": {"message": raw}}
+
+        if not isinstance(data, dict):
+            return {"error": {"message": str(data)}}
+        return data
 
     @abstractmethod
     async def create_chat_completion(
@@ -182,8 +225,10 @@ class Provider(ABC):
         """
         pass
 
+
 # Registry of provider classes - stores mapping of provider names to their implementation classes
 _PROVIDER_REGISTRY: dict[str, type[Provider]] = {}
+
 
 def register_provider(provider_name: str, provider_class: type[Provider]) -> None:
     """
@@ -198,6 +243,7 @@ def register_provider(provider_name: str, provider_class: type[Provider]) -> Non
     """
     # Add the provider class to the registry with the given name as the key
     _PROVIDER_REGISTRY[provider_name] = provider_class
+
 
 def get_provider(provider_name: str, **kwargs) -> Provider:
     """
@@ -222,12 +268,12 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
         # If provider not found, generate a helpful error message with available options
         supported = ", ".join(_PROVIDER_REGISTRY.keys())
         raise ValueError(
-            f"Provider '{provider_name}' is not supported. "
-            f"Supported providers: {supported}"
+            f"Provider '{provider_name}' is not supported. " f"Supported providers: {supported}"
         )
 
     # Instantiate and return the provider class with the provided kwargs
     return provider_class(**kwargs)
+
 
 def list_providers() -> list[str]:
     """
@@ -238,6 +284,7 @@ def list_providers() -> list[str]:
     """
     # Return the keys from the provider registry
     return list(_PROVIDER_REGISTRY.keys())
+
 
 def get_provider_with_fallbacks(
     primary_model: str,

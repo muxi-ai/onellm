@@ -298,7 +298,9 @@ class VertexAIProvider(Provider):
                     headers=headers,
                 ) as response:
                     if response.status != 200:
-                        error_data = await response.json()
+                        # Tolerant read: Google/GCP edges return protobuf or
+                        # text/html error bodies for auth/quota failures.
+                        error_data = await self._read_response_body(response)
                         self._handle_error_response(response.status, error_data)
 
                     if stream:
@@ -693,6 +695,7 @@ class VertexAIProvider(Provider):
         raise InvalidRequestError(
             "File download is not supported by Vertex AI.", provider="vertexai"
         )
+
 
 # Register the provider
 register_provider("vertexai", VertexAIProvider)

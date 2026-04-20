@@ -219,10 +219,10 @@ class CohereProvider(Provider):
                     headers=headers,
                 ) as response:
                     if response.status not in (200, 201):
-                        try:
-                            error_data = await response.json()
-                        except Exception:
-                            error_data = {"message": await response.text()}
+                        # Tolerant read normalizes non-JSON error bodies
+                        # into the ``{"error": {"message": ...}}`` shape
+                        # _handle_error_response expects.
+                        error_data = await self._read_response_body(response)
                         self._handle_error_response(response.status, error_data)
 
                     if stream:
@@ -628,6 +628,7 @@ class CohereProvider(Provider):
             InvalidRequestError: Not supported
         """
         raise InvalidRequestError("File download is not supported by Cohere.", provider="cohere")
+
 
 # Register the provider
 register_provider("cohere", CohereProvider)

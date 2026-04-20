@@ -45,16 +45,60 @@ sense for the chosen model) and task-adaptive prompting via ``task=<str>``
 models that don't use prefix conditioning will simply ignore the extra tokens
 at a small quality cost).
 
+Error contract
+--------------
+
+Failures surface as :class:`onellm.errors.OneLLMError` subclasses so local/
+plays cleanly in fallback chains with cloud providers. The mapping is:
+
+=======================================  =========================================  ==========
+Failure mode                             OneLLMError class                          Retriable?
+=======================================  =========================================  ==========
+``sentence-transformers`` not installed  ``InvalidConfigurationError``              no
+Missing HF repo / invalid id             ``ResourceNotFoundError``     (404)        no
+Gated / private repo, no token           ``AuthenticationError``       (401)        no
+HF returns 403                           ``PermissionDeniedError``     (403)        no
+HF returns 429 (rate limit on download)  ``RateLimitError``            (429)        yes
+HF returns 5xx                           ``ServiceUnavailableError``   (5xx)        yes
+Network / connectivity failure           ``ServiceUnavailableError``                yes
+Network timeout                          ``RequestTimeoutError``                    yes
+``trust_remote_code`` kill-switch block  ``PermissionDeniedError``     (403)        no
+Out of memory (CPU / GPU)                ``ServiceUnavailableError``                yes
+Invalid ``dimensions`` type/value        ``InvalidRequestError``       (400)        no
+Empty input                              ``InvalidRequestError``       (400)        no
+Unsupported method (chat, completion)    ``InvalidRequestError``       (400)        no
+Anything else                            ``APIError``                               no
+=======================================  =========================================  ==========
+
+"Retriable" here means the exception type is in the default
+``FallbackConfig.retriable_errors`` list, so a chain like
+``local/foo -> openai/bar`` reroutes on these failures without the caller
+having to customize the retry set.
+
 Phase 1 uses sentence-transformers (PyTorch) as the inference backend. Phase 2
 will swap in an ONNX Runtime path; the caller-facing API stays unchanged.
 """
 
 import logging
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
+from contextlib import contextmanager
 from typing import Any
 
-from ..errors import InvalidRequestError, OneLLMError
+from huggingface_hub import errors as hf_errors
+
+from ..errors import (
+    APIError,
+    AuthenticationError,
+    InvalidConfigurationError,
+    InvalidRequestError,
+    OneLLMError,
+    PermissionDeniedError,
+    RateLimitError,
+    RequestTimeoutError,
+    ResourceNotFoundError,
+    ServiceUnavailableError,
+)
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -77,6 +121,168 @@ _CACHE_SIZE_ENV = "ONELLM_LOCAL_CACHE_SIZE"
 # (Nomic, Jina v3, etc.) will fail to load from sentence-transformers with
 # its own error; well-behaved plain-transformer models will still work.
 _TRUST_REMOTE_CODE_ENV = "ONELLM_ALLOW_TRUST_REMOTE_CODE"
+
+
+# ---------------------------------------------------------------------------
+# Error normalization
+# ---------------------------------------------------------------------------
+
+# Message patterns used when the underlying library raises a raw OSError or
+# ValueError without preserving the HF-specific exception class. These are
+# stable enough across transformers / sentence-transformers versions that
+# matching on the text is less fragile than taking a transitive-version dep.
+_REPO_NOT_FOUND_PATTERNS = (
+    "is not a local folder",
+    "is not a valid model identifier",
+)
+_TRUST_REMOTE_CODE_PATTERNS = (
+    "trust_remote_code",
+    "requires you to execute",
+)
+_OOM_PATTERNS = (
+    "out of memory",
+    "cannot allocate memory",
+    "memory exhausted",
+)
+
+
+def _hf_http_status(exc: hf_errors.HfHubHTTPError) -> int | None:
+    """Extract the HTTP status code from an HfHubHTTPError, if present."""
+    response = getattr(exc, "response", None)
+    return getattr(response, "status_code", None) if response is not None else None
+
+
+def _map_hf_http_error(exc: hf_errors.HfHubHTTPError, repo: str) -> OneLLMError:
+    """Map an HfHubHTTPError to the appropriate onellm error class."""
+    status = _hf_http_status(exc)
+    msg = f"[local/{repo}] {exc}"
+    if status == 401:
+        return AuthenticationError(msg, provider="local", status_code=status)
+    if status == 403:
+        return PermissionDeniedError(msg, provider="local", status_code=status)
+    if status == 404:
+        return ResourceNotFoundError(msg, provider="local", status_code=status)
+    if status == 408:
+        return RequestTimeoutError(msg, provider="local", status_code=status)
+    if status == 429:
+        return RateLimitError(msg, provider="local", status_code=status)
+    if status is not None and 500 <= status < 600:
+        return ServiceUnavailableError(msg, provider="local", status_code=status)
+    return APIError(msg, provider="local", status_code=status)
+
+
+def _map_local_exception(exc: BaseException, repo: str) -> OneLLMError | None:
+    """Best-effort mapping from raw backend exceptions to onellm error types.
+
+    Returns ``None`` when the exception can't be confidently classified, so
+    the caller can wrap it as a generic :class:`APIError`.
+    """
+    # huggingface_hub: gate + repo-not-found subclasses must be checked
+    # before the HfHubHTTPError base, and gated must be checked before
+    # RepositoryNotFoundError since it's a subclass.
+    if isinstance(exc, hf_errors.GatedRepoError):
+        return AuthenticationError(
+            f"[local/{repo}] Gated HF repo; a read token is required. {exc}",
+            provider="local",
+            status_code=401,
+        )
+    if isinstance(exc, hf_errors.RepositoryNotFoundError):
+        return ResourceNotFoundError(
+            f"[local/{repo}] {exc}",
+            provider="local",
+            status_code=404,
+        )
+    if isinstance(exc, hf_errors.RevisionNotFoundError):
+        return ResourceNotFoundError(
+            f"[local/{repo}] {exc}",
+            provider="local",
+            status_code=404,
+        )
+    if isinstance(exc, hf_errors.LocalEntryNotFoundError):
+        return ResourceNotFoundError(
+            f"[local/{repo}] {exc}",
+            provider="local",
+            status_code=404,
+        )
+    if isinstance(exc, hf_errors.HfHubHTTPError):
+        return _map_hf_http_error(exc, repo)
+    if isinstance(exc, hf_errors.HFValidationError):
+        return InvalidRequestError(
+            f"[local/{repo}] Invalid HuggingFace repo id. {exc}",
+            provider="local",
+            status_code=400,
+        )
+
+    # Timeouts (socket.timeout is an alias of TimeoutError in Python 3.10+,
+    # so this catches both).
+    if isinstance(exc, TimeoutError):
+        return RequestTimeoutError(
+            f"[local/{repo}] Network timeout during model load. {exc}",
+            provider="local",
+        )
+
+    # HF offline mode or any general connectivity failure.
+    if isinstance(exc, hf_errors.OfflineModeIsEnabled | ConnectionError):
+        return ServiceUnavailableError(
+            f"[local/{repo}] Network/connectivity failure. {exc}",
+            provider="local",
+        )
+
+    msg_lower = str(exc).lower()
+
+    # trust_remote_code policy rejection - raised as ValueError by
+    # transformers when the model requires custom code but trust is off.
+    if isinstance(exc, ValueError) and any(p in msg_lower for p in _TRUST_REMOTE_CODE_PATTERNS):
+        return PermissionDeniedError(
+            f"[local/{repo}] {exc}",
+            provider="local",
+            status_code=403,
+        )
+
+    # Out of memory: torch wraps as RuntimeError; the CPython allocator
+    # raises MemoryError. Both are transient-enough to be worth retrying
+    # via a fallback (often a smaller model).
+    if isinstance(exc, MemoryError | RuntimeError) and any(p in msg_lower for p in _OOM_PATTERNS):
+        return ServiceUnavailableError(
+            f"[local/{repo}] Out of memory during model load or inference. {exc}",
+            provider="local",
+        )
+
+    # Some transformers versions still raise plain OSError for missing
+    # repos without wrapping as RepositoryNotFoundError; sniff the message.
+    if isinstance(exc, OSError) and any(p in msg_lower for p in _REPO_NOT_FOUND_PATTERNS):
+        return ResourceNotFoundError(
+            f"[local/{repo}] {exc}",
+            provider="local",
+            status_code=404,
+        )
+
+    return None
+
+
+@contextmanager
+def _normalize_errors(repo: str) -> Generator[None, None, None]:
+    """Convert raw backend exceptions into onellm.errors types.
+
+    - ``OneLLMError`` subclasses pass through unchanged (already normalized).
+    - ``KeyboardInterrupt`` / ``SystemExit`` pass through unchanged (never
+      swallowed).
+    - Everything else is routed through :func:`_map_local_exception`; if
+      nothing matches, we wrap as a generic :class:`APIError` so callers
+      always see a ``OneLLMError`` out of ``local/``.
+    """
+    try:
+        yield
+    except OneLLMError:
+        raise
+    except Exception as exc:
+        mapped = _map_local_exception(exc, repo)
+        if mapped is not None:
+            raise mapped from exc
+        raise APIError(
+            f"[local/{repo}] Unexpected error: {type(exc).__name__}: {exc}",
+            provider="local",
+        ) from exc
 
 
 class LocalProvider(Provider):
@@ -147,11 +353,17 @@ class LocalProvider(Provider):
         return True
 
     def _load_model(self, repo: str, trust_remote_code: bool) -> Any:
-        """Load (or return cached) sentence-transformers model for ``repo``."""
+        """Load (or return cached) sentence-transformers model for ``repo``.
+
+        Wraps the ``SentenceTransformer(...)`` call in
+        :func:`_normalize_errors` so HF / network / OOM failures surface as
+        the appropriate :class:`OneLLMError` subclass (see module docstring
+        for the full mapping).
+        """
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
-            raise OneLLMError(
+            raise InvalidConfigurationError(
                 "Local embeddings require the [cache] extras. "
                 "Install with: pip install 'onellm[cache]'",
                 provider="local",
@@ -171,7 +383,8 @@ class LocalProvider(Provider):
             )
         logger.info("Loading local embedding model %s", repo)
 
-        model = SentenceTransformer(repo, trust_remote_code=trust_remote_code)
+        with _normalize_errors(repo):
+            model = SentenceTransformer(repo, trust_remote_code=trust_remote_code)
 
         # LRU eviction if at capacity.
         if len(self._cache) >= self._cache_max:
@@ -256,7 +469,19 @@ class LocalProvider(Provider):
         # Normalize input shape.
         inputs: list[str] = [input] if isinstance(input, str) else list(input)
         if not inputs or all(not t for t in inputs):
-            raise InvalidRequestError("Input cannot be empty", provider="local")
+            raise InvalidRequestError("Input cannot be empty", provider="local", status_code=400)
+
+        # Validate dimensions up front so a nonsensical value produces a
+        # clear InvalidRequestError instead of an opaque numpy TypeError
+        # deep inside the truncation step.
+        dimensions = kwargs.get("dimensions")
+        if dimensions is not None:
+            if not isinstance(dimensions, int) or isinstance(dimensions, bool) or dimensions < 1:
+                raise InvalidRequestError(
+                    f"dimensions must be a positive integer, got {dimensions!r}",
+                    provider="local",
+                    status_code=400,
+                )
 
         # Apply task prefix (if any) and load the model.
         inputs = self._apply_task_prefix(inputs, kwargs.get("task"))
@@ -267,11 +492,11 @@ class LocalProvider(Provider):
         # synchronous and CPU/GPU bound. We rely on the caller's event-loop
         # tolerance for this; a future enhancement could offload to a thread
         # pool if callers report event-loop blocking.
-        raw = st_model.encode(inputs, normalize_embeddings=True)
+        with _normalize_errors(model):
+            raw = st_model.encode(inputs, normalize_embeddings=True)
         vectors: list[list[float]] = [list(v) for v in raw.tolist()]
 
         # Matryoshka truncation (pass-through; no tier validation).
-        dimensions = kwargs.get("dimensions")
         if dimensions is not None and vectors and dimensions < len(vectors[0]):
             vectors = [self._truncate_and_renorm(v, int(dimensions)) for v in vectors]
 
@@ -298,7 +523,8 @@ class LocalProvider(Provider):
         )
 
     # ------------------------------------------------------------------
-    # Unsupported methods - raise clearly so callers pick an LLM provider.
+    # Unsupported methods - surface as InvalidRequestError so fallback chains
+    # can treat them like any other 400 from a cloud provider.
     # ------------------------------------------------------------------
 
     async def create_chat_completion(
@@ -308,9 +534,11 @@ class LocalProvider(Provider):
         stream: bool = False,
         **kwargs: Any,
     ) -> ChatCompletionResponse | AsyncGenerator[ChatCompletionChunk, None]:
-        raise NotImplementedError(
+        raise InvalidRequestError(
             "LocalProvider does not support chat completions. "
-            "Use an LLM provider (e.g. openai/, anthropic/, ollama/)."
+            "Use an LLM provider (e.g. openai/, anthropic/, ollama/).",
+            provider="local",
+            status_code=400,
         )
 
     async def create_completion(
@@ -320,16 +548,26 @@ class LocalProvider(Provider):
         stream: bool = False,
         **kwargs: Any,
     ) -> CompletionResponse | AsyncGenerator[Any, None]:
-        raise NotImplementedError(
+        raise InvalidRequestError(
             "LocalProvider does not support text completions. "
-            "Use an LLM provider (e.g. openai/, anthropic/, ollama/)."
+            "Use an LLM provider (e.g. openai/, anthropic/, ollama/).",
+            provider="local",
+            status_code=400,
         )
 
     async def upload_file(self, file: Any, purpose: str, **kwargs: Any) -> FileObject:
-        raise NotImplementedError("LocalProvider does not support file uploads.")
+        raise InvalidRequestError(
+            "LocalProvider does not support file uploads.",
+            provider="local",
+            status_code=400,
+        )
 
     async def download_file(self, file_id: str, **kwargs: Any) -> bytes:
-        raise NotImplementedError("LocalProvider does not support file downloads.")
+        raise InvalidRequestError(
+            "LocalProvider does not support file downloads.",
+            provider="local",
+            status_code=400,
+        )
 
 
 # Register the provider class (NOT an instance) - see providers/base.py

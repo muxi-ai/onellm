@@ -31,10 +31,21 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+from huggingface_hub import errors as hf_errors
 
-from onellm.errors import InvalidRequestError, OneLLMError
+from onellm.errors import (
+    APIError,
+    AuthenticationError,
+    InvalidConfigurationError,
+    InvalidRequestError,
+    PermissionDeniedError,
+    RateLimitError,
+    RequestTimeoutError,
+    ResourceNotFoundError,
+    ServiceUnavailableError,
+)
 from onellm.models import EmbeddingResponse
-from onellm.providers.local import LocalProvider
+from onellm.providers.local import LocalProvider, _normalize_errors
 
 
 @pytest.fixture
@@ -205,9 +216,10 @@ class TestMissingExtra:
         """If sentence-transformers can't import, give a clear install hint."""
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
         provider = LocalProvider()
-        with pytest.raises(OneLLMError) as exc:
+        with pytest.raises(InvalidConfigurationError) as exc:
             provider._load_model("foo/bar", trust_remote_code=False)
         assert "[cache]" in str(exc.value) or "cache" in str(exc.value)
+        assert exc.value.provider == "local"
 
 
 # ---------------------------------------------------------------------------
@@ -409,25 +421,31 @@ class TestCreateEmbedding:
 
 
 class TestUnsupportedMethods:
-    async def test_chat_completion_raises(self):
+    async def test_chat_completion_raises_invalid_request(self):
         provider = LocalProvider()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(InvalidRequestError) as exc:
             await provider.create_chat_completion(messages=[], model="foo")
+        assert exc.value.provider == "local"
+        assert exc.value.status_code == 400
 
-    async def test_completion_raises(self):
+    async def test_completion_raises_invalid_request(self):
         provider = LocalProvider()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(InvalidRequestError) as exc:
             await provider.create_completion(prompt="foo", model="bar")
+        assert exc.value.provider == "local"
+        assert exc.value.status_code == 400
 
-    async def test_upload_file_raises(self):
+    async def test_upload_file_raises_invalid_request(self):
         provider = LocalProvider()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(InvalidRequestError) as exc:
             await provider.upload_file(file=b"x", purpose="embed")
+        assert exc.value.provider == "local"
 
-    async def test_download_file_raises(self):
+    async def test_download_file_raises_invalid_request(self):
         provider = LocalProvider()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(InvalidRequestError) as exc:
             await provider.download_file(file_id="x")
+        assert exc.value.provider == "local"
 
 
 # ---------------------------------------------------------------------------
@@ -510,3 +528,333 @@ class TestDownloadLocalModel:
 
         download_local_model("local/nomic-ai/nomic-embed-text-v1.5")
         assert captured["cache_dir"] == "/custom/hf/cache"
+
+
+# ---------------------------------------------------------------------------
+# Error normalization - raw exceptions from backend libs must surface as the
+# correct onellm.errors subclass so fallback chains work without custom
+# retriable_errors overrides.
+# ---------------------------------------------------------------------------
+
+
+def _fake_response(status_code: int) -> MagicMock:
+    """Build a stand-in for an httpx.Response that only exposes status_code.
+
+    huggingface_hub 1.x makes ``response`` a required keyword-only argument
+    on ``HfHubHTTPError`` (typed as ``httpx.Response``). We only read
+    ``.status_code`` in the normalization path, so a MagicMock satisfies the
+    contract without pulling httpx into tests.
+    """
+    resp = MagicMock()
+    resp.status_code = status_code
+    return resp
+
+
+def _make_hf_http_error(
+    status_code: int, msg: str = "boom", cls: type = hf_errors.HfHubHTTPError
+) -> hf_errors.HfHubHTTPError:
+    """Build a (subclass of) HfHubHTTPError with a fake response."""
+    return cls(msg, response=_fake_response(status_code))
+
+
+class TestErrorNormalizationContext:
+    """Unit-level tests of the _normalize_errors context manager."""
+
+    def test_oneellm_errors_pass_through_unchanged(self):
+        original = InvalidRequestError("keep me", provider="local", status_code=400)
+        with pytest.raises(InvalidRequestError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise original
+        assert exc.value is original
+
+    def test_keyboard_interrupt_is_not_swallowed(self):
+        with pytest.raises(KeyboardInterrupt):
+            with _normalize_errors("foo/bar"):
+                raise KeyboardInterrupt
+
+    def test_system_exit_is_not_swallowed(self):
+        with pytest.raises(SystemExit):
+            with _normalize_errors("foo/bar"):
+                raise SystemExit(1)
+
+    def test_unknown_exception_becomes_apierror(self):
+        class WeirdError(Exception):
+            pass
+
+        with pytest.raises(APIError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise WeirdError("something broke")
+        assert "foo/bar" in str(exc.value)
+        assert exc.value.provider == "local"
+        assert exc.value.__cause__ is not None
+
+    def test_repository_not_found_becomes_resource_not_found(self):
+        with pytest.raises(ResourceNotFoundError) as exc:
+            with _normalize_errors("ghost/repo"):
+                raise _make_hf_http_error(
+                    404, "404 at hf.co/ghost/repo", cls=hf_errors.RepositoryNotFoundError
+                )
+        assert exc.value.status_code == 404
+        assert exc.value.provider == "local"
+        assert "ghost/repo" in str(exc.value)
+
+    def test_revision_not_found_becomes_resource_not_found(self):
+        with pytest.raises(ResourceNotFoundError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(
+                    404, "revision missing", cls=hf_errors.RevisionNotFoundError
+                )
+        assert exc.value.status_code == 404
+
+    def test_local_entry_not_found_becomes_resource_not_found(self):
+        with pytest.raises(ResourceNotFoundError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise hf_errors.LocalEntryNotFoundError("no cached entry")
+        assert exc.value.status_code == 404
+
+    def test_gated_repo_becomes_authentication_error(self):
+        # GatedRepoError is a subclass of RepositoryNotFoundError; the
+        # normalizer must catch the gated case first rather than demoting
+        # it to a 404.
+        with pytest.raises(AuthenticationError) as exc:
+            with _normalize_errors("meta-llama/Llama-2-7b"):
+                raise _make_hf_http_error(
+                    401, "gated repo requires login", cls=hf_errors.GatedRepoError
+                )
+        assert exc.value.status_code == 401
+
+    def test_hf_http_401_becomes_authentication_error(self):
+        with pytest.raises(AuthenticationError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(401)
+        assert exc.value.status_code == 401
+
+    def test_hf_http_403_becomes_permission_denied(self):
+        with pytest.raises(PermissionDeniedError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(403)
+        assert exc.value.status_code == 403
+
+    def test_hf_http_429_becomes_rate_limit(self):
+        with pytest.raises(RateLimitError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(429)
+        assert exc.value.status_code == 429
+
+    def test_hf_http_503_becomes_service_unavailable(self):
+        with pytest.raises(ServiceUnavailableError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(503)
+        assert exc.value.status_code == 503
+
+    def test_hf_http_502_becomes_service_unavailable(self):
+        """5xx family should all route to ServiceUnavailableError."""
+        with pytest.raises(ServiceUnavailableError):
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(502)
+
+    def test_hf_http_408_becomes_request_timeout(self):
+        with pytest.raises(RequestTimeoutError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(408)
+        assert exc.value.status_code == 408
+
+    def test_hf_http_418_becomes_generic_apierror(self):
+        """Unmapped HTTP status codes fall through to APIError."""
+        with pytest.raises(APIError) as exc:
+            with _normalize_errors("foo/bar"):
+                raise _make_hf_http_error(418)
+        assert exc.value.status_code == 418
+
+    def test_hf_validation_error_becomes_invalid_request(self):
+        with pytest.raises(InvalidRequestError) as exc:
+            with _normalize_errors("a/b"):
+                raise hf_errors.HFValidationError("Invalid repo id")
+        assert exc.value.status_code == 400
+
+    def test_timeout_becomes_request_timeout(self):
+        with pytest.raises(RequestTimeoutError):
+            with _normalize_errors("foo/bar"):
+                raise TimeoutError("network timeout")
+
+    def test_connection_error_becomes_service_unavailable(self):
+        with pytest.raises(ServiceUnavailableError):
+            with _normalize_errors("foo/bar"):
+                raise ConnectionError("DNS failure")
+
+    def test_offline_mode_becomes_service_unavailable(self):
+        with pytest.raises(ServiceUnavailableError):
+            with _normalize_errors("foo/bar"):
+                raise hf_errors.OfflineModeIsEnabled("offline")
+
+    def test_trust_remote_code_rejection_becomes_permission_denied(self):
+        with pytest.raises(PermissionDeniedError) as exc:
+            with _normalize_errors("nomic-ai/nomic-embed-text-v1.5"):
+                raise ValueError(
+                    "Loading this model requires you to execute the "
+                    "configuration file in that repo. Set trust_remote_code=True."
+                )
+        assert exc.value.status_code == 403
+
+    def test_oom_runtimeerror_becomes_service_unavailable(self):
+        with pytest.raises(ServiceUnavailableError):
+            with _normalize_errors("foo/bar"):
+                raise RuntimeError("CUDA out of memory. Tried to allocate 2 GiB")
+
+    def test_oom_memoryerror_becomes_service_unavailable(self):
+        with pytest.raises(ServiceUnavailableError):
+            with _normalize_errors("foo/bar"):
+                raise MemoryError("Cannot allocate memory")
+
+    def test_raw_oserror_about_invalid_id_becomes_resource_not_found(self):
+        with pytest.raises(ResourceNotFoundError) as exc:
+            with _normalize_errors("ghost/repo"):
+                raise OSError(
+                    "ghost/repo is not a local folder and is not a valid "
+                    "model identifier listed on 'https://huggingface.co/models'"
+                )
+        assert exc.value.status_code == 404
+
+    def test_generic_valueerror_becomes_apierror(self):
+        """A ValueError that doesn't match the trust_remote_code pattern
+        should fall through to the APIError catch-all - we only upgrade to
+        InvalidRequestError at explicit validation edges, not reactively."""
+        with pytest.raises(APIError):
+            with _normalize_errors("foo/bar"):
+                raise ValueError("some other computation problem")
+
+
+class TestErrorNormalizationIntegration:
+    """End-to-end: errors raised by the fake SentenceTransformer surface
+    through _load_model and create_embedding with the right onellm class."""
+
+    def test_load_model_surfaces_repo_not_found(self, monkeypatch):
+        fake_module = types.ModuleType("sentence_transformers")
+
+        def _factory(repo, trust_remote_code=False, **kw):
+            raise _make_hf_http_error(
+                404, f"404 at hf.co/{repo}", cls=hf_errors.RepositoryNotFoundError
+            )
+
+        fake_module.SentenceTransformer = MagicMock(side_effect=_factory)
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        provider = LocalProvider()
+        with pytest.raises(ResourceNotFoundError) as exc:
+            provider._load_model("ghost/repo", trust_remote_code=True)
+        assert exc.value.status_code == 404
+
+    def test_load_model_surfaces_rate_limit(self, monkeypatch):
+        fake_module = types.ModuleType("sentence_transformers")
+
+        def _factory(repo, trust_remote_code=False, **kw):
+            raise _make_hf_http_error(429, "HF rate limit")
+
+        fake_module.SentenceTransformer = MagicMock(side_effect=_factory)
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        provider = LocalProvider()
+        with pytest.raises(RateLimitError) as exc:
+            provider._load_model("foo/bar", trust_remote_code=True)
+        assert exc.value.status_code == 429
+
+    def test_load_model_surfaces_network_failure(self, monkeypatch):
+        fake_module = types.ModuleType("sentence_transformers")
+
+        def _factory(repo, trust_remote_code=False, **kw):
+            raise ConnectionError("could not reach hf.co")
+
+        fake_module.SentenceTransformer = MagicMock(side_effect=_factory)
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        provider = LocalProvider()
+        with pytest.raises(ServiceUnavailableError):
+            provider._load_model("foo/bar", trust_remote_code=True)
+
+    def test_encode_failure_surfaces_as_apierror(self, monkeypatch):
+        fake_module = types.ModuleType("sentence_transformers")
+
+        def _factory(repo, trust_remote_code=False, **kw):
+            m = MagicMock()
+            m.encode.side_effect = RuntimeError("kaboom in forward pass")
+            return m
+
+        fake_module.SentenceTransformer = MagicMock(side_effect=_factory)
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        import asyncio
+
+        provider = LocalProvider()
+        with pytest.raises(APIError):
+            asyncio.run(provider.create_embedding(input="hi", model="foo/bar"))
+
+    def test_encode_oom_surfaces_as_service_unavailable(self, monkeypatch):
+        fake_module = types.ModuleType("sentence_transformers")
+
+        def _factory(repo, trust_remote_code=False, **kw):
+            m = MagicMock()
+            m.encode.side_effect = RuntimeError("CUDA out of memory during encode")
+            return m
+
+        fake_module.SentenceTransformer = MagicMock(side_effect=_factory)
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        import asyncio
+
+        provider = LocalProvider()
+        with pytest.raises(ServiceUnavailableError):
+            asyncio.run(provider.create_embedding(input="hi", model="foo/bar"))
+
+
+class TestDimensionsValidation:
+    async def test_non_integer_dimensions_raises_invalid_request(self, fake_sentence_transformers):
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError) as exc:
+            await provider.create_embedding(input="hi", model="foo/bar", dimensions="not an int")
+        assert exc.value.status_code == 400
+        assert exc.value.provider == "local"
+
+    async def test_zero_dimensions_raises_invalid_request(self, fake_sentence_transformers):
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError):
+            await provider.create_embedding(input="hi", model="foo/bar", dimensions=0)
+
+    async def test_negative_dimensions_raises_invalid_request(self, fake_sentence_transformers):
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError):
+            await provider.create_embedding(input="hi", model="foo/bar", dimensions=-4)
+
+    async def test_bool_dimensions_rejected(self, fake_sentence_transformers):
+        """Python quirk: ``bool`` is a subclass of ``int``, so we must
+        explicitly reject ``dimensions=True`` to catch ``True`` being
+        silently treated as ``1``."""
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError):
+            await provider.create_embedding(input="hi", model="foo/bar", dimensions=True)
+
+
+class TestFallbackRetriableMapping:
+    """The normalized errors should be in FallbackConfig's default
+    retriable_errors list so local/ participates in fallback without the
+    caller having to override the retry set."""
+
+    def test_default_retriable_set_includes_all_retriable_local_errors(self):
+        from onellm.utils.fallback import FallbackConfig
+
+        retriable = tuple(FallbackConfig().retriable_errors)
+        # Errors local/ emits for transient failures must be in this set.
+        assert issubclass(ServiceUnavailableError, retriable)
+        assert issubclass(RateLimitError, retriable)
+        assert issubclass(RequestTimeoutError, retriable)
+
+    def test_default_retriable_set_excludes_non_retriable_local_errors(self):
+        from onellm.utils.fallback import FallbackConfig
+
+        retriable = tuple(FallbackConfig().retriable_errors)
+        # Errors local/ emits for permanent misconfigurations must NOT be
+        # in this set (would cause pointless retries).
+        assert not issubclass(ResourceNotFoundError, retriable)
+        assert not issubclass(AuthenticationError, retriable)
+        assert not issubclass(PermissionDeniedError, retriable)
+        assert not issubclass(InvalidRequestError, retriable)
+        assert not issubclass(InvalidConfigurationError, retriable)

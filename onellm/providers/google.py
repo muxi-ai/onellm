@@ -233,7 +233,9 @@ class GoogleProvider(Provider):
                     headers=headers,
                 ) as response:
                     if response.status != 200:
-                        error_data = await response.json()
+                        # Tolerant read: Google edge can return text/html or
+                        # protobuf-encoded error bodies for auth/quota failures.
+                        error_data = await self._read_response_body(response)
                         self._handle_error_response(response.status, error_data)
 
                     if stream:
@@ -612,6 +614,7 @@ class GoogleProvider(Provider):
         raise InvalidRequestError(
             "File download is not supported for Google AI Studio.", provider="google"
         )
+
 
 # Register the provider
 register_provider("google", GoogleProvider)

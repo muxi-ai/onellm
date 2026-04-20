@@ -275,17 +275,24 @@ class TestAzureProvider:
 
     @pytest.mark.asyncio
     async def test_error_handling(self, azure_provider):
-        """Test error response handling."""
+        """Test error response handling.
+
+        The base-class ``_read_response_body`` now routes through
+        ``response.text()`` so non-JSON error bodies still reach the
+        taxonomy mapper; the mock exposes ``text()`` accordingly.
+        """
         error_response = MagicMock()
         error_response.status = 401
-        error_response.json = AsyncMock(
-            return_value={
-                "error": {
-                    "message": "Invalid API key",
-                    "type": "authentication_error",
-                    "code": "invalid_api_key",
+        error_response.text = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "error": {
+                        "message": "Invalid API key",
+                        "type": "authentication_error",
+                        "code": "invalid_api_key",
+                    }
                 }
-            }
+            )
         )
 
         with pytest.raises(AuthenticationError) as exc_info:
