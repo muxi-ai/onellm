@@ -67,6 +67,13 @@ onellm download --repo-id "TheBloke/Llama-2-7B-GGUF" --filename "llama-2-7b.Q4_K
 onellm download -r "microsoft/Phi-3-mini-4k-instruct-gguf" -f "Phi-3-mini-4k-instruct-q4.gguf" -o /path/to/models
 ```
 
+For the in-process `local/` embedding provider (HuggingFace sentence-transformers), pass the full repo id to pre-download a snapshot into the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`):
+
+```bash
+onellm download local/nomic-ai/nomic-embed-text-v1.5
+onellm download local/sentence-transformers/all-MiniLM-L6-v2
+```
+
 ### Quick Win: Your First LLM Call
 
 ```python
@@ -409,6 +416,32 @@ response = Embedding.create(
     input="The quick brown fox jumps over the lazy dog"
 )
 ```
+
+#### Local embeddings (`local/` provider)
+
+Any HuggingFace sentence-transformers model works — the id after `local/` is passed straight to HuggingFace. No registry, no curation. Install the extra once with `pip install "onellm[cache]"`, then call through the same `Embedding.create()` surface as cloud providers:
+
+```python
+from onellm import Embedding
+
+# Nomic v1.5: Apache 2.0, 768-dim, Matryoshka-trained (64/128/256/512/768)
+response = Embedding.create(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input="search_document: The quick brown fox jumps over the lazy dog",
+    dimensions=768,             # Matryoshka truncation (symmetric with OpenAI text-embedding-3-*)
+    task="search_document",      # prepended as "search_document: " to each input
+)
+vec = response.data[0].embedding
+```
+
+Knobs:
+
+- `dimensions=<int>` — truncate and L2-renormalize (pass-through; caller owns whether the size makes sense for the chosen model).
+- `task=<str>` — prepend `f"{task}: "` to every input. Matches the Nomic prefix convention; other models ignore the extra tokens.
+- `trust_remote_code=<bool>` — defaults to `True` (models like Nomic ship custom pooling code). Set `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` as a global kill switch that overrides per-call kwargs.
+- `ONELLM_LOCAL_CACHE_SIZE=<int>` — LRU size for the in-memory `SentenceTransformer` cache (default 2).
+
+Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`), so downloads are shared with every other HF-using tool in the environment.
 
 ---
 

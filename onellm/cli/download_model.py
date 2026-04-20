@@ -18,7 +18,25 @@
 # limitations under the License.
 
 """
-CLI utility for downloading GGUF models from HuggingFace.
+CLI utility for downloading models from HuggingFace.
+
+Two download modes are supported:
+
+1. **GGUF single-file** (for the ``llama_cpp/`` provider)
+
+   ``onellm download --repo-id <repo> --filename <gguf>``
+
+2. **Full HuggingFace snapshot** (for the ``local/`` embedding provider)
+
+   ``onellm download local/<hf-repo-id>``
+   ``onellm download local/nomic-ai/nomic-embed-text-v1.5``
+   ``onellm download local/sentence-transformers/all-MiniLM-L6-v2``
+
+The ``local/`` mode uses :func:`huggingface_hub.snapshot_download` to pull the
+entire repository (config, tokenizer, weights) into the standard HF cache
+(``HF_HOME`` or ``~/.cache/huggingface/hub``), matching sentence-transformers'
+expected load location. The model id after ``local/`` is passed straight
+through to HuggingFace - there is no alias table.
 """
 
 import argparse
@@ -27,7 +45,7 @@ import sys
 from pathlib import Path
 
 
-def download_gguf(repo_id: str, filename: str, output_dir: str = None):
+def download_gguf(repo_id: str, filename: str, output_dir: str | None = None):
     """
     Download a GGUF model from HuggingFace.
 
@@ -58,12 +76,15 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
     print(f"Destination: {output_dir}")
 
     try:
-        # Download with progress bar
+        # Download with progress bar.
+        # Note: `local_dir_use_symlinks` was removed in huggingface_hub>=1.0 -
+        # the pin in pyproject.toml (>=1.3.4) always uses the new layout,
+        # which writes plain files into `local_dir` without the legacy cache
+        # symlink indirection.
         file_path = hf_hub_download(
             repo_id=repo_id,
             filename=filename,
             local_dir=output_dir,
-            local_dir_use_symlinks=False
         )
         print("\n✓ Downloaded successfully!")
         print(f"  File: {file_path}")
@@ -83,48 +104,135 @@ def download_gguf(repo_id: str, filename: str, output_dir: str = None):
             print(f"  - Visit https://huggingface.co/{repo_id} to see available files")
         sys.exit(1)
 
+
+def download_local_model(slug: str, output_dir: str | None = None) -> str:
+    """
+    Download a full HuggingFace snapshot for use with the ``local/`` provider.
+
+    Args:
+        slug: Either a full model id (``local/<org>/<repo>`` or
+            ``<org>/<repo>``) or, in rare cases, an unqualified HF repo id.
+            Whatever follows ``local/`` is passed directly to HuggingFace
+            as the repo id.
+        output_dir: Optional explicit cache directory. When omitted,
+            ``HF_HOME`` is respected, then ``~/.cache/huggingface/hub``.
+
+    Returns:
+        The local filesystem path to the downloaded snapshot.
+    """
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError:
+        print("Error: huggingface-hub is required but not installed")
+        print("This should have been installed with onellm. Try:")
+        print("  pip install --upgrade onellm")
+        sys.exit(1)
+
+    # Strip "local/" prefix if present - what's left is the HF repo id.
+    repo_id = slug[len("local/") :] if slug.startswith("local/") else slug
+
+    cache_dir = (
+        output_dir or os.environ.get("HF_HOME") or os.path.expanduser("~/.cache/huggingface/hub")
+    )
+
+    print(f"Downloading HuggingFace snapshot: {repo_id}")
+    print(f"Destination: {cache_dir}")
+
+    try:
+        path = snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
+    except Exception as exc:  # noqa: BLE001 - surface provider errors verbatim
+        print(f"\n✗ Error downloading snapshot: {exc}")
+        if "404" in str(exc):
+            print("\nPossible issues:")
+            print("  - Check the repository ID is correct")
+            print(f"  - Visit https://huggingface.co/{repo_id} to confirm access")
+        sys.exit(1)
+
+    print("\n✓ Downloaded successfully!")
+    print(f"  Path: {path}")
+    print("\nTo use this model with OneLLM:")
+    print(f'  await onellm.Embedding.acreate(model="local/{repo_id}", input="...")')
+
+    return path
+
+
+def _is_local_slug(candidate: str | None) -> bool:
+    """Return True if the argument looks like a ``local/...`` slug."""
+    if not candidate:
+        return False
+    return candidate.startswith("local/")
+
+
 def main():
     """Main entry point for the download command."""
     parser = argparse.ArgumentParser(
-        description="Download GGUF models for use with OneLLM's llama.cpp provider",
+        description="Download models from HuggingFace for use with OneLLM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Download Llama 3 8B model
+  # Download full snapshot for the local/ embedding provider
+  onellm download local/nomic-ai/nomic-embed-text-v1.5
+  onellm download local/nomic-ai/nomic-embed-text-v2-moe
+  onellm download local/sentence-transformers/all-MiniLM-L6-v2
+
+  # Download a single GGUF file for the llama_cpp/ provider
   onellm download -r shinkeonkim/Meta-Llama-3-8B-Instruct-Q4_K_M-GGUF \\
                   -f meta-llama-3-8b-instruct-q4_k_m.gguf
 
-  # Download to custom directory
+  # Download to a custom directory
   onellm download -r TheBloke/Mistral-7B-Instruct-v0.2-GGUF \\
                   -f mistral-7b-instruct-v0.2.Q4_K_M.gguf \\
                   -o /path/to/models
 
-Popular repositories:
+Popular GGUF repositories:
   - TheBloke/* (e.g., TheBloke/Llama-2-7B-GGUF)
   - microsoft/Phi-3-mini-4k-instruct-gguf
   - mistralai/Mistral-7B-Instruct-v0.2-GGUF
-        """
+        """,
     )
 
     parser.add_argument(
-        "--repo-id", "-r",
-        required=True,
-        help="HuggingFace repository ID (e.g., 'TheBloke/Llama-2-7B-GGUF')"
+        "slug",
+        nargs="?",
+        help="Model slug (e.g. 'local/nomic-ai/nomic-embed-text-v1.5') for full snapshot downloads",
     )
     parser.add_argument(
-        "--filename", "-f",
-        required=True,
-        help="Model filename (e.g., 'llama-2-7b.Q4_K_M.gguf')"
+        "--repo-id",
+        "-r",
+        help="HuggingFace repository ID (e.g., 'TheBloke/Llama-2-7B-GGUF')",
     )
     parser.add_argument(
-        "--output", "-o",
-        help="Output directory (default: ~/llama_models)"
+        "--filename",
+        "-f",
+        help="Model filename for GGUF single-file download (e.g., 'llama-2-7b.Q4_K_M.gguf')",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        help="Output directory (default: ~/llama_models for GGUF, HF cache for local/)",
     )
 
     args = parser.parse_args()
 
-    # Download the model
+    # Route to the correct backend based on which arguments were supplied.
+    if _is_local_slug(args.slug):
+        download_local_model(args.slug, args.output)
+        return
+
+    # Treat an unprefixed positional arg as a raw HF repo slug snapshot too -
+    # lets callers write `onellm download sentence-transformers/all-MiniLM-L6-v2`.
+    if args.slug and not args.repo_id:
+        download_local_model(args.slug, args.output)
+        return
+
+    if not args.repo_id or not args.filename:
+        parser.error(
+            "Provide either a slug (e.g. 'local/nomic-ai/nomic-embed-text-v1.5') "
+            "or both --repo-id and --filename for GGUF downloads."
+        )
+
     download_gguf(args.repo_id, args.filename, args.output)
+
 
 if __name__ == "__main__":
     main()

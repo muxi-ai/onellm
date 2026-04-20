@@ -1,5 +1,85 @@
 # CHANGELOG
 
+## 0.20260420.0 - Local Embedding Provider (Phase 1)
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New Features
+
+#### `local/` embedding provider
+
+Added a first-class in-process embedding provider so callers can run HuggingFace
+sentence-transformers models through the standard `Embedding.create()` /
+`Embedding.acreate()` surface. Cloud, Ollama, and local embeddings now flow
+through the same unified API.
+
+```python
+import onellm
+
+resp = await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input="search_document: Hello world",
+    dimensions=768,              # Matryoshka truncation (symmetric with OpenAI)
+    task="search_document",       # prepend "<task>: " to each input
+)
+vec = resp.data[0].embedding
+```
+
+**Key features**:
+- **Full HF repo ids, no alias table**: whatever follows `local/` is passed
+  directly to HuggingFace as the repo id. `local/nomic-ai/nomic-embed-text-v1.5`,
+  `local/sentence-transformers/all-MiniLM-L6-v2`, `local/BAAI/bge-small-en-v1.5`
+  all work identically - no curation decisions, no maintained registry.
+- **Matryoshka-style truncation**: `dimensions=<int>` slices and
+  L2-renormalizes the output vector. No tier validation - caller owns whether
+  the chosen size is meaningful for the picked model.
+- **Task-adaptive prompting**: `task="search_document"` (or any string)
+  prepends `"<task>: "` to every input. No validation whitelist - the prefix
+  is a simple convention (Nomic-style); models that don't use prefix
+  conditioning quietly ignore the extra tokens.
+- **LRU model cache**: in-memory, keyed by HF repo id (default size 2,
+  configurable via `ONELLM_LOCAL_CACHE_SIZE`) so repeated requests don't pay
+  the `SentenceTransformer` load cost.
+- **`trust_remote_code` default `True`** (trust the caller who typed the repo
+  id); `trust_remote_code=False` kwarg opts out per-call;
+  `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` is a global kill switch that wins
+  over caller kwargs.
+- **Graceful missing-extras error**: raises a clear `pip install 'onellm[cache]'`
+  hint when `sentence-transformers` isn't installed.
+- **Uses the standard HF cache** (`$HF_HOME` or `~/.cache/huggingface/hub/`)
+  so downloads are shared with every other HF-using tool in the environment.
+
+#### `onellm download` snapshot mode
+
+The `onellm download` CLI now supports HuggingFace full-snapshot downloads for
+the `local/` provider:
+
+```bash
+onellm download local/nomic-ai/nomic-embed-text-v1.5
+onellm download local/sentence-transformers/all-MiniLM-L6-v2
+```
+
+Whatever follows `local/` is passed directly to `huggingface_hub.snapshot_download`
+as the repo id. Respects `HF_HOME` for the cache directory, falling back to
+`~/.cache/huggingface/hub/`. The GGUF single-file mode
+(`--repo-id`/`--filename`) is unchanged.
+
+### Infrastructure
+
+- Registered `slow` and `integration` pytest markers in `pyproject.toml` so
+  runs with `-m "not slow"` and `-m integration` work without warnings.
+- Renamed `CLAUDE.md` to `AGENTS.md` as the agent-agnostic convention for AI
+  coding agents (Factory Droid, Claude Code, Codex, Cursor, etc.).
+
+### Non-goals (deferred to Phase 2)
+
+- ONNX Runtime backend (replaces PyTorch for ~2-5x inference speedup and
+  ~800 MB smaller install footprint).
+- `cache.py` migration to use `LocalProvider` internally.
+- Dropping `sentence-transformers` / `torch` from the `[cache]` extra.
+
+---
+
 ## 0.20260415.0 - Ollama Model Discovery Fixes
 
 **Status**: Development Status :: 5 - Production/Stable

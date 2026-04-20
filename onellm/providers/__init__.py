@@ -52,6 +52,9 @@ from .google import GoogleProvider
 from .groq import GroqProvider
 from .llama_cpp import LlamaCppProvider
 
+# Local embedding provider (sentence-transformers backend)
+from .local import LocalProvider
+
 # Anthropic-compatible providers
 from .minimax import MinimaxProvider
 from .mistral import MistralProvider
@@ -111,6 +114,7 @@ if _has_vertexai:
 # Local providers
 register_provider("ollama", OllamaProvider)
 register_provider("llama_cpp", LlamaCppProvider)
+register_provider("local", LocalProvider)
 
 # Cloud provider integrations
 if _has_bedrock:

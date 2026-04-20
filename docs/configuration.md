@@ -325,12 +325,12 @@ Many providers allow restricting keys by:
 
 ## Configuration Files
 
-### CLAUDE.md
+### AGENTS.md
 
-For Claude.ai Code assistant, create `CLAUDE.md`:
+For AI coding agents (Factory Droid, Claude Code, Codex, Cursor, etc.), create `AGENTS.md`:
 
 ```markdown
-# CLAUDE.md
+# AGENTS.md
 
 This project uses OneLLM for LLM interactions.
 

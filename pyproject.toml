@@ -106,6 +106,10 @@ ignore = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (real model downloads, cold starts); deselect with '-m \"not slow\"'",
+    "integration: marks tests that require real external services or API keys",
+]
 
 [tool.black]
 line-length = 100
