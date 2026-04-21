@@ -400,7 +400,28 @@ class LocalProvider(Provider):
     def _cache_insert(self, repo: str, model: Any) -> None:
         """Insert ``model`` under ``repo`` with LRU eviction if at
         capacity. Fast dict/list ops; safe to call on the event loop.
+
+        Guards against a concurrent-winner race: if two coroutines both
+        observe a cache miss for ``repo`` before either resolves, both
+        end up calling ``_cache_insert``. Without the early-return guard
+        the second call would leave a duplicate entry in
+        ``_cache_order`` (``len(self._cache) < _cache_max`` still holds
+        because the key is already present, so eviction is skipped but
+        the key is appended again). Later, when a third distinct repo
+        triggers eviction, ``pop(0)`` removes one copy and the ghost
+        entry perpetually floats in ``_cache_order``, causing premature
+        eviction of real entries on every subsequent insert.
+
+        The first winner's model is kept; the second is dropped. Clients
+        who cared about which specific instance they got would already
+        have called ``_cache_lookup`` to identify cache hits.
         """
+        if repo in self._cache:
+            # Second concurrent winner - discard to avoid corrupting the
+            # LRU order list. The caller still gets the model they just
+            # constructed (via the return value of _instantiate_model);
+            # only the cache state is protected.
+            return
         if len(self._cache) >= self._cache_max:
             oldest = self._cache_order.pop(0)
             evicted = self._cache.pop(oldest, None)

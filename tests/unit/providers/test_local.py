@@ -187,6 +187,34 @@ class TestLRUCache:
         provider = LocalProvider()
         assert provider._cache_max == 2
 
+    def test_concurrent_winner_does_not_corrupt_cache_order(self, fake_sentence_transformers):
+        """Regression: two coroutines observing a cache miss for the same
+        repo at the same time both race through ``_instantiate_model`` and
+        end up calling ``_cache_insert``. Without the early-return guard
+        the second insert would leave a duplicate entry in
+        ``_cache_order``; a later eviction would then remove the key from
+        ``_cache`` while leaving a ghost in ``_cache_order``, causing
+        premature eviction of real entries on every subsequent insert.
+        Simulating the race via back-to-back inserts is deterministic and
+        exercises the exact code path.
+        """
+        provider = LocalProvider(cache_size=2)
+        provider._cache_insert("a", object())
+        provider._cache_insert("a", object())  # second concurrent winner
+
+        assert provider._cache_order == ["a"], "duplicate appended -> race corruption"
+
+        # Fill to capacity, then evict via a third repo; the ghost entry
+        # would cause 'a' to look absent from _cache but still present in
+        # _cache_order, which corrupts the next eviction.
+        provider._cache_insert("b", object())
+        provider._cache_insert("c", object())  # triggers eviction of 'a'
+
+        assert "a" not in provider._cache
+        assert "a" not in provider._cache_order
+        assert set(provider._cache) == {"b", "c"}
+        assert provider._cache_order == ["b", "c"]
+
 
 # ---------------------------------------------------------------------------
 # Model loading: trust_remote_code flow
