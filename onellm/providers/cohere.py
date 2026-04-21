@@ -267,7 +267,17 @@ class CohereProvider(Provider):
         Raises:
             Appropriate error based on status code
         """
-        message = response_data.get("message", "Unknown error")
+        # Cohere's native error shape is ``{"message": "..."}`` at the top
+        # level, but non-JSON error bodies normalized by
+        # ``Provider._read_response_body`` arrive wrapped as
+        # ``{"error": {"message": <raw>}}``. Accept both so users still see
+        # the upstream error text for HTML/plain-text WAF pages and gateway
+        # timeouts instead of a generic "Unknown error" fallback.
+        message = (
+            response_data.get("message")
+            or response_data.get("error", {}).get("message")
+            or "Unknown error"
+        )
 
         if status_code == 401:
             raise AuthenticationError(message, provider="cohere", status_code=status_code)
