@@ -411,6 +411,45 @@ class _OnnxBackend:
         # onnxruntime, so we filter the tokenizer's output.
         self._expected_inputs: set[str] = {i.name for i in session.get_inputs()}
 
+    def _build_session_inputs(self, tokens: Any) -> dict[str, Any]:
+        """Align tokenizer output with the model's declared input schema.
+
+        Three cases have to be handled:
+
+        * Tokenizer emits a name the session doesn't declare -> drop it,
+          otherwise ``onnxruntime`` raises ``InvalidArgument``.
+        * Session declares a name the tokenizer didn't emit. In practice
+          this happens with ``token_type_ids`` on ONNX exports of
+          RoBERTa/XLM-R-family models that were emitted via the BERT
+          template (e.g. sentence-transformers/paraphrase-multilingual-
+          MiniLM-L12-v2). Synthesize zeros of the same shape as
+          ``input_ids`` - that's the "single-sentence" value every
+          token-type-aware model expects.
+        * Both agree -> pass through unchanged.
+        """
+        import numpy as np
+
+        session_inputs: dict[str, Any] = {}
+        for name in self._expected_inputs:
+            value = tokens.get(name) if hasattr(tokens, "get") else None
+            if value is None and name in tokens:
+                # Some tokenizer-output wrappers (BatchEncoding) don't
+                # implement Mapping.get the same way a dict does.
+                value = tokens[name]
+            if value is not None:
+                session_inputs[name] = value
+                continue
+            if name == "token_type_ids" and "input_ids" in tokens:
+                session_inputs[name] = np.zeros(tokens["input_ids"].shape, dtype=np.int64)
+                continue
+            raise APIError(
+                f"[local/{self.repo}] ONNX session requires input {name!r} but the "
+                "tokenizer produced no matching tensor. This usually means the "
+                "model's ONNX export is mismatched with its tokenizer config.",
+                provider="local",
+            )
+        return session_inputs
+
     def encode(self, texts: list[str], *, pooling: str = _DEFAULT_POOLING) -> Any:
         if pooling not in _POOLING_STRATEGIES:
             raise InvalidRequestError(
@@ -425,7 +464,7 @@ class _OnnxBackend:
             max_length=self.max_length,
             return_tensors="np",
         )
-        session_inputs = {k: v for k, v in tokens.items() if k in self._expected_inputs}
+        session_inputs = self._build_session_inputs(tokens)
         outputs = self.session.run(None, session_inputs)
         # Embedding models conventionally emit ``last_hidden_state`` as the
         # first output (3D: batch, seq, hidden), but some ONNX exports
@@ -579,6 +618,15 @@ class LocalProvider(Provider):
     The provider maintains a tiny LRU cache of loaded backends so repeated
     requests against the same repo don't pay the (~500 MB, multi-second)
     model load cost each time. Cache key is the HF repo id.
+
+    The cache is held at the **class level**, not the instance level, because
+    ``providers.base.get_provider("local")`` instantiates a fresh
+    ``LocalProvider`` on every ``Embedding.acreate`` call. With per-instance
+    caches, every request would reload the model - defeating the whole
+    point. Class-level storage keeps the LRU alive across dispatcher calls
+    while still allowing unit tests to instantiate the provider directly.
+    Tests that exercise the cache should call
+    :meth:`_reset_cache_for_tests` in a fixture to avoid cross-test leakage.
     """
 
     # Embedding-only provider - no LLM capabilities.
@@ -590,6 +638,13 @@ class LocalProvider(Provider):
     token_by_token_support = False
     realtime_support = False
 
+    # Class-level LRU state. Shared across every LocalProvider instance so
+    # the cache survives get_provider()'s "new instance per request" pattern.
+    # See class docstring for rationale.
+    _cache: dict[str, Any] = {}
+    _cache_order: list[str] = []
+    _cache_max: int = _DEFAULT_CACHE_SIZE
+
     def __init__(self, **kwargs: Any) -> None:
         """Initialize the LocalProvider.
 
@@ -597,6 +652,9 @@ class LocalProvider(Provider):
             cache_size: Maximum number of models kept in the LRU cache at
                 once. Defaults to the value of ``ONELLM_LOCAL_CACHE_SIZE``
                 (falling back to ``2``). A value <=0 is treated as ``1``.
+                Since the cache is class-level, later instances with a
+                different ``cache_size`` update the shared ceiling rather
+                than getting their own.
             **kwargs: Forward-compatible; no other options today.
         """
         try:
@@ -611,9 +669,24 @@ class LocalProvider(Provider):
             env_cache_size = _DEFAULT_CACHE_SIZE
 
         cache_size = kwargs.get("cache_size", env_cache_size)
-        self._cache: dict[str, Any] = {}
-        self._cache_order: list[str] = []
-        self._cache_max: int = max(1, int(cache_size))
+        # Update the shared cache ceiling. Don't reset the dict/list - they
+        # are class attributes already and their contents survive across
+        # dispatcher-driven reinstantiations.
+        type(self)._cache_max = max(1, int(cache_size))
+
+    @classmethod
+    def _reset_cache_for_tests(cls) -> None:
+        """Clear the class-level LRU state.
+
+        Unit tests that exercise cache behavior should call this in a
+        fixture (e.g. ``autouse`` in the local-provider test module) so
+        tests don't inherit state from previous tests. Production code
+        must not call this; it would silently invalidate in-flight
+        request caches.
+        """
+        cls._cache.clear()
+        cls._cache_order.clear()
+        cls._cache_max = _DEFAULT_CACHE_SIZE
 
     # ------------------------------------------------------------------
     # Resolution + loading

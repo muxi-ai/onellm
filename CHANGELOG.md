@@ -8,14 +8,38 @@
 
 **If you install `onellm[cache]` today and call `local/...` embedding models, read
 this.** The `[cache]` extra no longer pulls `sentence-transformers` (or, transitively,
-`torch`). It now pulls `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`
-for a roughly 60 MB install footprint, down from ~1 GB.
+`torch`). It now pulls `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`.
+
+Measured install footprint (macOS ARM64, Python 3.10, fresh venv):
+
+| Package | Size |
+|---|---|
+| transformers | 78 MB |
+| onnxruntime | 66 MB |
+| sympy (transformers transitive) | 55 MB |
+| numpy | 29 MB |
+| faiss-cpu | 13 MB |
+| onellm + cloud-provider deps (openai, pydantic, etc.) | ~100 MB |
+| **Total `pip install 'onellm[cache]'`** | **~345 MB** |
+
+Down from roughly 500 MB - 1.5 GB for the old `[cache]` + `torch` combo
+(varies a lot by platform; Linux-with-NVIDIA pulled the full CUDA wheels
+even for CPU users). The big wins: no torch, no scikit-learn, no scipy.
+
+Measured performance (same platform, `sentence-transformers/all-MiniLM-L6-v2`,
+ONNX CPU execution provider, batch of 2 short strings):
+
+| | Phase 2 (ONNX) |
+|---|---|
+| Cold start (session construction + first encode) | ~3.5 s |
+| Warm encode (cached backend, 1 input) | ~150 ms |
+| Pooling override (`pooling="cls"`) | ~60 ms |
 
 Concretely:
 
 | Scenario | Old behaviour | New behaviour |
 |---|---|---|
-| Repo ships `onnx/model.onnx` (or `model.onnx`) | Loaded via sentence-transformers/PyTorch | Loaded via ONNX Runtime (2-5x faster CPU inference, 10x smaller install) |
+| Repo ships `onnx/model.onnx` (or `model.onnx`) | Loaded via sentence-transformers/PyTorch | Loaded via ONNX Runtime |
 | Repo ships only PyTorch weights, `[cache]` installed alone | Worked (sentence-transformers did the conversion behind the scenes) | Raises `InvalidConfigurationError` with a remediation hint |
 | Repo ships only PyTorch weights, `[cache]` + `[local-pytorch]` installed | n/a | Emits a one-shot warning and falls back to sentence-transformers |
 | CUDA acceleration | n/a in `[cache]` (sentence-transformers auto-picked the device) | Install `onellm[local-gpu]` instead of `[cache]`; picks up `onnxruntime-gpu` automatically |
@@ -87,6 +111,29 @@ exactly one code path that knows how to load local embedding models. The
 cache benefits automatically from whichever backend is installed (ONNX by
 default, PyTorch fallback if only `[local-pytorch]` is present). No changes
 to the semantic cache's public API.
+
+### Related fixes
+
+These were discovered during the Phase 2 end-to-end smoke test and are
+rolled into the same release:
+
+- **`LocalProvider` LRU cache is now class-level** (fixes a Phase 1 latent
+  bug). `providers.base.get_provider("local")` returns a fresh
+  `LocalProvider()` on every `Embedding.acreate` call. With instance-level
+  caches, every request reloaded the model from the HF cache directory -
+  turning a promised 150 ms warm call into a 2 s "warm" call. Class-level
+  storage keeps the LRU alive across dispatcher calls while unit tests can
+  still instantiate the provider directly (see
+  `LocalProvider._reset_cache_for_tests`).
+- **ONNX `token_type_ids` synthesis** (fixes semantic cache on the default
+  multilingual model). XLM-R-family repos (including
+  `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, the cache's
+  default embedder) ship ONNX exports that *declare* `token_type_ids` as an
+  input but whose RoBERTa tokenizer doesn't *emit* it. `_OnnxBackend` now
+  synthesizes an all-zeros tensor in that case (the standard
+  single-sentence value every token-type-aware model expects), so the
+  session.run call succeeds. Without this fix, the semantic cache would
+  silently fail at embedding time on a clean `[cache]` install.
 
 ### Migration guide
 

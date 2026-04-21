@@ -51,6 +51,20 @@ from onellm.models import EmbeddingResponse
 from onellm.providers.local import LocalProvider, _normalize_errors
 
 
+@pytest.fixture(autouse=True)
+def _reset_local_provider_cache():
+    """Clear ``LocalProvider``'s class-level LRU state between tests.
+
+    Phase 2 moved the cache from instance-level to class-level so it
+    survives ``get_provider("local")``'s "new instance per request"
+    pattern. The tradeoff is that tests would otherwise inherit state
+    from previous tests, so we reset before AND after each test.
+    """
+    LocalProvider._reset_cache_for_tests()
+    yield
+    LocalProvider._reset_cache_for_tests()
+
+
 @pytest.fixture
 def fake_sentence_transformers(monkeypatch):
     """Install a fake ``sentence_transformers`` module and force the
@@ -303,6 +317,23 @@ class TestLRUCache:
         monkeypatch.setenv("ONELLM_LOCAL_CACHE_SIZE", "not-an-int")
         provider = LocalProvider()
         assert provider._cache_max == 2
+
+    def test_cache_is_shared_across_instances(self, fake_sentence_transformers):
+        """Regression: providers.base.get_provider('local') creates a new
+        LocalProvider on every Embedding.acreate call. Without class-level
+        storage, each request would see an empty cache and reload the
+        model from HF - defeating the whole point. Two distinct instances
+        must observe each other's cache contents.
+        """
+        first = LocalProvider()
+        first._load_model("shared-repo/x", trust_remote_code=False)
+        second = LocalProvider()  # simulates a fresh dispatcher call
+        assert "shared-repo/x" in second._cache
+        # And a cache-hit through the second instance must not trigger
+        # a new _instantiate_model call.
+        before_count = fake_sentence_transformers.call_count
+        second._load_model("shared-repo/x", trust_remote_code=False)
+        assert fake_sentence_transformers.call_count == before_count
 
     def test_concurrent_winner_does_not_corrupt_cache_order(self, fake_sentence_transformers):
         """Regression: two coroutines observing a cache miss for the same
@@ -1160,6 +1191,58 @@ class TestOnnxBackend:
         # max_length is capped at 512 even if the tokenizer advertises
         # something higher.
         assert last["max_length"] <= 512
+
+    async def test_session_requires_token_type_ids_but_tokenizer_omits_it(self, fake_onnx_backend):
+        """Regression: XLM-R-family models (e.g. paraphrase-multilingual-
+        MiniLM-L12-v2) ship ONNX exports that declare token_type_ids as
+        an input, but their RoBERTa-based tokenizer doesn't emit it.
+        Without synthesis the session would raise InvalidArgument and
+        the semantic cache would silently fail on add.
+        """
+
+        def xlmr_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = 512
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                lens = [max(1, len(t.split())) for t in texts]
+                max_len = max(lens)
+                # Note: no token_type_ids key - matches XLM-R tokenizer behavior.
+                return {
+                    "input_ids": np.ones((len(texts), max_len), dtype=np.int64),
+                    "attention_mask": np.ones((len(texts), max_len), dtype=np.int64),
+                }
+
+            tok.side_effect = _tok
+            return tok
+
+        def xlmr_session(_path, providers=None):
+            sess = MagicMock()
+            input_ids = MagicMock()
+            input_ids.name = "input_ids"
+            attn = MagicMock()
+            attn.name = "attention_mask"
+            tt = MagicMock()
+            tt.name = "token_type_ids"
+            sess.get_inputs.return_value = [input_ids, attn, tt]
+
+            def _run(_names, inputs):
+                # Assert token_type_ids was synthesized.
+                assert "token_type_ids" in inputs
+                assert (inputs["token_type_ids"] == 0).all()
+                assert inputs["token_type_ids"].shape == inputs["input_ids"].shape
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["tokenizer_factory"] = xlmr_tokenizer
+        fake_onnx_backend["session_factory"] = xlmr_session
+
+        provider = LocalProvider()
+        resp = await provider.create_embedding(input=["hi there"], model="xlmr/repo")
+        assert len(resp.data) == 1
 
     async def test_only_declared_session_inputs_are_passed(self, fake_onnx_backend):
         """If a model declares only input_ids (no attention_mask), we must
