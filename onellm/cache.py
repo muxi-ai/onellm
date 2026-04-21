@@ -144,9 +144,7 @@ class SimpleCache:
             )
             self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
             self.np = np
-            logger.info(
-                "Cache initialized with multilingual support (50+ languages)"
-            )
+            logger.info("Cache initialized with multilingual support (50+ languages)")
 
         except ImportError as e:
             warnings.warn(
@@ -408,7 +406,9 @@ class SimpleCache:
 
                     logger.debug(f"Encoding text for cache (length: {len(text)} chars)")
                     embedding = self.embedder.encode([text])
-                    logger.debug(f"Generated embedding (shape: {embedding.shape}, dtype: {embedding.dtype})")
+                    logger.debug(
+                        f"Generated embedding (shape: {embedding.shape}, dtype: {embedding.dtype})"
+                    )
 
                     # Extract first embedding (encode with list returns batch)
                     if len(embedding.shape) == 2:
@@ -540,7 +540,9 @@ class SimpleCache:
             # Rejoin punctuation with sentences
             sentence_list = []
             for i in range(0, len(sentences) - 1, 2):
-                sentence_list.append(sentences[i] + (sentences[i + 1] if i + 1 < len(sentences) else ""))
+                sentence_list.append(
+                    sentences[i] + (sentences[i + 1] if i + 1 < len(sentences) else "")
+                )
             if len(sentences) % 2 == 1:  # Last item if odd number
                 sentence_list.append(sentences[-1])
 

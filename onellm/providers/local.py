@@ -501,8 +501,11 @@ def _try_download_onnx_weights(repo: str) -> str | None:
 def _instantiate_onnx_backend(repo: str, onnx_path: str) -> _OnnxBackend:
     """Build an ``_OnnxBackend`` from a downloaded ``.onnx`` file."""
     try:
-        import onnxruntime as ort
-        from transformers import AutoTokenizer
+        # onnxruntime and transformers are optional (shipped via the
+        # [cache] extra). Silence the mypy import-not-found check since
+        # we guard the import behind ImportError.
+        import onnxruntime as ort  # type: ignore[import-not-found]
+        from transformers import AutoTokenizer  # type: ignore[import-not-found]
     except ImportError as exc:
         raise InvalidConfigurationError(
             "Local embeddings via ONNX Runtime require onellm[cache]. "
@@ -854,9 +857,7 @@ class LocalProvider(Provider):
         # hardware.
         loop = asyncio.get_running_loop()
         with _normalize_errors(model):
-            raw = await loop.run_in_executor(
-                None, lambda: backend.encode(inputs, pooling=pooling)
-            )
+            raw = await loop.run_in_executor(None, lambda: backend.encode(inputs, pooling=pooling))
         vectors: list[list[float]] = [list(v) for v in raw.tolist()]
 
         # Matryoshka truncation (pass-through; no tier validation).
