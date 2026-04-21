@@ -21,7 +21,7 @@
 Local embedding provider implementation for OneLLM.
 
 This module implements the in-process local embedding provider, allowing
-callers to run HuggingFace sentence-transformers models through the standard
+callers to run HuggingFace embedding models through the standard
 ``Embedding.create()`` / ``Embedding.acreate()`` interface.
 
 Model naming format: ``local/<hf-repo-id>``
@@ -38,12 +38,35 @@ loaded. Examples::
 Weights live in the standard HuggingFace cache (``$HF_HOME`` or
 ``~/.cache/huggingface/hub/``) and are downloaded lazily on first use.
 
+Inference backend
+-----------------
+
+The default backend is ONNX Runtime (lean: ``onnxruntime`` + ``transformers``,
+~60 MB install). Backend selection happens per-repo on cache miss:
+
+  1. Look for ONNX weights in the HF repo (``onnx/model.onnx``,
+     ``model.onnx``, or ``onnx/model_quantized.onnx`` in that order).
+     If present, construct an ``_OnnxBackend`` that tokenizes via
+     ``transformers.AutoTokenizer``, runs ``onnxruntime.InferenceSession``,
+     pools token embeddings (mean-pooling by default, overridable via the
+     ``pooling`` kwarg), and L2-normalizes.
+  2. If the repo has no ONNX weights, fall back to
+     ``sentence-transformers`` *if it is already installed* (via the
+     ``onellm[local-pytorch]`` extra) and emit a warning suggesting the
+     caller either switch to an ONNX-ready repo or pin the PyTorch extra.
+  3. If neither is possible, raise ``InvalidConfigurationError`` with
+     concrete remediation steps.
+
+GPU users: install ``onellm[local-gpu]`` to pick up the ``onnxruntime-gpu``
+wheel. The CUDA execution provider is selected automatically when present.
+
 The provider supports Matryoshka truncation via ``dimensions=<int>`` (slice +
 L2-renormalize, with no validation - the caller owns whether that makes
-sense for the chosen model) and task-adaptive prompting via ``task=<str>``
-(prepends ``f"{task}: "`` to every input, which is the Nomic-style convention;
-models that don't use prefix conditioning will simply ignore the extra tokens
-at a small quality cost).
+sense for the chosen model), task-adaptive prompting via ``task=<str>``
+(prepends ``f"{task}: "`` to every input, Nomic-style convention), and
+pooling override via ``pooling=<"mean"|"cls"|"max">`` (ONNX backend only;
+the PyTorch fallback uses whatever pooling the source model was trained
+with and emits a warning if a different strategy is requested).
 
 Error contract
 --------------
@@ -54,7 +77,8 @@ plays cleanly in fallback chains with cloud providers. The mapping is:
 =======================================  =========================================  ==========
 Failure mode                             OneLLMError class                          Retriable?
 =======================================  =========================================  ==========
-``sentence-transformers`` not installed  ``InvalidConfigurationError``              no
+``onnxruntime`` / ``transformers`` missing  ``InvalidConfigurationError``           no
+No ONNX weights + ``[local-pytorch]`` off   ``InvalidConfigurationError``           no
 Missing HF repo / invalid id             ``ResourceNotFoundError``     (404)        no
 Gated / private repo, no token           ``AuthenticationError``       (401)        no
 HF returns 403                           ``PermissionDeniedError``     (403)        no
@@ -65,6 +89,7 @@ Network timeout                          ``RequestTimeoutError``                
 ``trust_remote_code`` kill-switch block  ``PermissionDeniedError``     (403)        no
 Out of memory (CPU / GPU)                ``ServiceUnavailableError``                yes
 Invalid ``dimensions`` type/value        ``InvalidRequestError``       (400)        no
+Invalid ``pooling`` value                ``InvalidRequestError``       (400)        no
 Empty input                              ``InvalidRequestError``       (400)        no
 Unsupported method (chat, completion)    ``InvalidRequestError``       (400)        no
 Anything else                            ``APIError``                               no
@@ -74,9 +99,6 @@ Anything else                            ``APIError``                           
 ``FallbackConfig.retriable_errors`` list, so a chain like
 ``local/foo -> openai/bar`` reroutes on these failures without the caller
 having to customize the retry set.
-
-Phase 1 uses sentence-transformers (PyTorch) as the inference backend. Phase 2
-will swap in an ONNX Runtime path; the caller-facing API stays unchanged.
 """
 
 import asyncio
@@ -122,6 +144,24 @@ _CACHE_SIZE_ENV = "ONELLM_LOCAL_CACHE_SIZE"
 # (Nomic, Jina v3, etc.) will fail to load from sentence-transformers with
 # its own error; well-behaved plain-transformer models will still work.
 _TRUST_REMOTE_CODE_ENV = "ONELLM_ALLOW_TRUST_REMOTE_CODE"
+
+# Pooling strategies the ONNX backend can apply to token-level embeddings.
+_POOLING_STRATEGIES: tuple[str, ...] = ("mean", "cls", "max")
+_DEFAULT_POOLING = "mean"
+
+# ONNX weight files we look for (in order). HuggingFace repos that ship
+# ONNX export artifacts commonly place them at one of these paths. The
+# quantized variant is checked last so full-precision wins when both exist.
+_ONNX_WEIGHT_CANDIDATES: tuple[str, ...] = (
+    "onnx/model.onnx",
+    "model.onnx",
+    "onnx/model_quantized.onnx",
+)
+
+# Hard cap on sequence length. Some tokenizer configs advertise absurd
+# ``model_max_length`` values (10^30) that would blow out memory if we
+# honored them; 512 covers every popular embedding model we know of.
+_MAX_TOKEN_LENGTH = 512
 
 
 # ---------------------------------------------------------------------------
@@ -286,16 +326,241 @@ def _normalize_errors(repo: str) -> Generator[None, None, None]:
         ) from exc
 
 
+# ---------------------------------------------------------------------------
+# Pooling helpers
+# ---------------------------------------------------------------------------
+
+
+def _pool_embeddings(
+    token_embeddings: Any,  # np.ndarray (batch, seq_len, hidden)
+    attention_mask: Any,  # np.ndarray (batch, seq_len)
+    strategy: str,
+) -> Any:
+    """Collapse token-level embeddings into a single vector per sequence.
+
+    The ONNX backend returns ``last_hidden_state`` which is a
+    per-token tensor; downstream callers expect one vector per input.
+    ``strategy`` picks the reduction:
+
+    * ``"mean"`` - attention-mask-weighted mean (ignores padding tokens)
+    * ``"cls"`` - the first token's embedding (BERT-style [CLS] pooling)
+    * ``"max"`` - element-wise max over non-padding tokens
+
+    No strategy validation here: ``_OnnxBackend.encode`` and
+    ``LocalProvider.create_embedding`` handle that (raising
+    ``InvalidRequestError`` on invalid values) so every entry point uses
+    the same error class.
+    """
+    import numpy as np
+
+    if strategy == "cls":
+        return token_embeddings[:, 0, :]
+
+    if strategy == "max":
+        # Replace padding positions with -inf so they don't win the max.
+        mask = attention_mask[..., np.newaxis].astype(bool)
+        masked = np.where(mask, token_embeddings, -np.inf)
+        return masked.max(axis=1)
+
+    # Default: attention-mask-weighted mean. Dividing by the number of real
+    # tokens (not the padded seq_len) keeps zero-padded positions from
+    # diluting the mean of short inputs in a batch.
+    mask = attention_mask[..., np.newaxis].astype(token_embeddings.dtype)
+    summed = (token_embeddings * mask).sum(axis=1)
+    counts = mask.sum(axis=1).clip(min=1e-9)
+    return summed / counts
+
+
+def _l2_normalize(vectors: Any) -> Any:
+    """Row-wise L2 normalization with a safe zero-norm fallback."""
+    import numpy as np
+
+    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1.0, norms)
+    return vectors / norms
+
+
+# ---------------------------------------------------------------------------
+# Inference backends
+# ---------------------------------------------------------------------------
+
+
+class _OnnxBackend:
+    """ONNX Runtime embedding backend.
+
+    Installed via ``onellm[cache]`` (``onnxruntime`` + ``transformers``).
+    Prefer this over the PyTorch fallback - it is an order of magnitude
+    smaller to install and typically 2-5x faster on CPU.
+    """
+
+    def __init__(
+        self,
+        repo: str,
+        tokenizer: Any,  # transformers.PreTrainedTokenizerBase
+        session: Any,  # onnxruntime.InferenceSession
+        max_length: int,
+    ) -> None:
+        self.repo = repo
+        self.tokenizer = tokenizer
+        self.session = session
+        self.max_length = max_length
+        # Cache the set of input names the model declares. Some repos
+        # ship ONNX exports that only take ``input_ids`` + ``attention_mask``
+        # (e.g. MiniLM); others also take ``token_type_ids`` (BERT-family).
+        # Passing unexpected inputs would raise ``InvalidArgument`` from
+        # onnxruntime, so we filter the tokenizer's output.
+        self._expected_inputs: set[str] = {i.name for i in session.get_inputs()}
+
+    def encode(self, texts: list[str], *, pooling: str = _DEFAULT_POOLING) -> Any:
+        if pooling not in _POOLING_STRATEGIES:
+            raise InvalidRequestError(
+                f"pooling must be one of {_POOLING_STRATEGIES}, got {pooling!r}",
+                provider="local",
+                status_code=400,
+            )
+        tokens = self.tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="np",
+        )
+        session_inputs = {k: v for k, v in tokens.items() if k in self._expected_inputs}
+        outputs = self.session.run(None, session_inputs)
+        # Embedding models conventionally emit ``last_hidden_state`` as the
+        # first (and often only) output. If a model emits a pooled vector
+        # directly we'd still want pooling=strategy to apply, so we always
+        # treat the first output as a (batch, seq, hidden) tensor.
+        token_embeddings = outputs[0]
+        attention_mask = tokens["attention_mask"]
+        pooled = _pool_embeddings(token_embeddings, attention_mask, pooling)
+        return _l2_normalize(pooled)
+
+
+class _PyTorchBackend:
+    """Fallback backend using ``sentence-transformers``.
+
+    Installed via ``onellm[local-pytorch]``. Only selected when a repo has
+    no ONNX weights. ``SentenceTransformer`` bakes pooling into its module
+    pipeline at load time, so we can't honor a different ``pooling`` kwarg
+    at runtime - we emit a one-shot warning if the caller requests one.
+    """
+
+    def __init__(self, repo: str, st_model: Any) -> None:
+        self.repo = repo
+        self.st_model = st_model
+        self._warned_pooling = False
+
+    def encode(self, texts: list[str], *, pooling: str = _DEFAULT_POOLING) -> Any:
+        if pooling not in _POOLING_STRATEGIES:
+            raise InvalidRequestError(
+                f"pooling must be one of {_POOLING_STRATEGIES}, got {pooling!r}",
+                provider="local",
+                status_code=400,
+            )
+        if pooling != _DEFAULT_POOLING and not self._warned_pooling:
+            logger.warning(
+                "pooling=%r requested but %s uses the PyTorch/sentence-transformers "
+                "fallback, which bakes pooling into the model at load time. "
+                "Using the model's configured pooling. Switch to an ONNX-ready "
+                "repo (e.g. one that ships onnx/model.onnx) for runtime pooling "
+                "control.",
+                pooling,
+                self.repo,
+            )
+            self._warned_pooling = True
+        return self.st_model.encode(texts, normalize_embeddings=True)
+
+
+# ---------------------------------------------------------------------------
+# Backend selection
+# ---------------------------------------------------------------------------
+
+
+def _try_download_onnx_weights(repo: str) -> str | None:
+    """Return the local path to ONNX weights for ``repo``, or ``None``.
+
+    Walks ``_ONNX_WEIGHT_CANDIDATES`` in order and returns the first file
+    that resolves via ``hf_hub_download``. Returns ``None`` only when
+    every candidate 404s (i.e. the repo genuinely has no ONNX export).
+    Other errors (auth, rate-limit, network) propagate so the surrounding
+    ``_normalize_errors`` context translates them to the right
+    ``OneLLMError`` subclass.
+    """
+    from huggingface_hub import hf_hub_download
+    from huggingface_hub.errors import EntryNotFoundError
+
+    for candidate in _ONNX_WEIGHT_CANDIDATES:
+        try:
+            return hf_hub_download(repo_id=repo, filename=candidate)
+        except EntryNotFoundError:
+            continue
+    return None
+
+
+def _instantiate_onnx_backend(repo: str, onnx_path: str) -> _OnnxBackend:
+    """Build an ``_OnnxBackend`` from a downloaded ``.onnx`` file."""
+    try:
+        import onnxruntime as ort
+        from transformers import AutoTokenizer
+    except ImportError as exc:
+        raise InvalidConfigurationError(
+            "Local embeddings via ONNX Runtime require onellm[cache]. "
+            "Install with: pip install 'onellm[cache]'",
+            provider="local",
+        ) from exc
+
+    with _normalize_errors(repo):
+        tokenizer = AutoTokenizer.from_pretrained(repo)
+        # ``get_available_providers`` lets onnxruntime-gpu (via
+        # onellm[local-gpu]) pick up the CUDA EP automatically while
+        # falling back to CPUExecutionProvider when no GPU wheel is
+        # installed. The default CPU wheel reports only CPU.
+        session = ort.InferenceSession(onnx_path, providers=ort.get_available_providers())
+
+    raw_max = getattr(tokenizer, "model_max_length", _MAX_TOKEN_LENGTH) or _MAX_TOKEN_LENGTH
+    max_length = min(int(raw_max), _MAX_TOKEN_LENGTH)
+    return _OnnxBackend(repo=repo, tokenizer=tokenizer, session=session, max_length=max_length)
+
+
+def _instantiate_pytorch_backend(repo: str, trust_remote_code: bool) -> _PyTorchBackend:
+    """Build a ``_PyTorchBackend`` for ``repo``.
+
+    Only called when ``repo`` has no ONNX weights. Emits a warning so
+    callers notice the slow install + slow inference path.
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise InvalidConfigurationError(
+            f"[local/{repo}] Repo has no ONNX weights and sentence-transformers "
+            "is not installed. Either pick a model that ships ONNX weights "
+            "(e.g. local/nomic-ai/nomic-embed-text-v1.5) or install the PyTorch "
+            "fallback: pip install 'onellm[local-pytorch]'",
+            provider="local",
+        ) from exc
+
+    logger.warning(
+        "[local/%s] Repo has no ONNX weights; using sentence-transformers/PyTorch "
+        "fallback. Expect slower cold start and a ~1 GB larger install footprint. "
+        "Consider a repo that ships ONNX weights for lean deployments.",
+        repo,
+    )
+    with _normalize_errors(repo):
+        model = SentenceTransformer(repo, trust_remote_code=trust_remote_code)
+    return _PyTorchBackend(repo=repo, st_model=model)
+
+
 class LocalProvider(Provider):
-    """In-process local embedding provider via sentence-transformers.
+    """In-process local embedding provider.
 
     Only :meth:`create_embedding` is implemented. Chat / completion / file
-    methods raise :class:`NotImplementedError` because local embedding models
-    don't serve those surfaces.
+    methods raise :class:`InvalidRequestError` because local embedding
+    models don't serve those surfaces.
 
-    The provider maintains a tiny LRU cache of loaded models so repeated
-    requests against the same repo don't pay the (~500MB, multi-second)
-    ``SentenceTransformer`` load cost each time. Cache key is the HF repo id.
+    The provider maintains a tiny LRU cache of loaded backends so repeated
+    requests against the same repo don't pay the (~500 MB, multi-second)
+    model load cost each time. Cache key is the HF repo id.
     """
 
     # Embedding-only provider - no LLM capabilities.
@@ -354,7 +619,7 @@ class LocalProvider(Provider):
         return True
 
     def _instantiate_model(self, repo: str, trust_remote_code: bool) -> Any:
-        """Construct a ``SentenceTransformer`` for ``repo``.
+        """Construct an embedding backend for ``repo``.
 
         This is the *expensive* part of loading - on a cache miss the call
         downloads model weights from HuggingFace (hundreds of MBs to a few
@@ -363,18 +628,19 @@ class LocalProvider(Provider):
         it onto a thread-pool executor while cache bookkeeping stays on
         the event loop.
 
-        Wraps the call in :func:`_normalize_errors` so HF / network / OOM
-        failures surface as the appropriate :class:`OneLLMError` subclass.
-        """
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as exc:
-            raise InvalidConfigurationError(
-                "Local embeddings require the [cache] extras. "
-                "Install with: pip install 'onellm[cache]'",
-                provider="local",
-            ) from exc
+        Backend selection (first match wins):
 
+        1. ONNX Runtime - preferred lean path. Requires ``onellm[cache]``
+           (onnxruntime + transformers) and an ONNX-exported repo.
+        2. ``sentence-transformers`` - fallback. Requires
+           ``onellm[local-pytorch]``. Emits a warning on use.
+        3. Neither available -> ``InvalidConfigurationError`` with
+           remediation.
+
+        Wraps backend construction in :func:`_normalize_errors` so HF /
+        network / OOM failures surface as the appropriate
+        :class:`OneLLMError` subclass.
+        """
         if trust_remote_code:
             logger.warning(
                 "Loading %s with trust_remote_code=True. Disable via %s=false.",
@@ -383,8 +649,14 @@ class LocalProvider(Provider):
             )
         logger.info("Loading local embedding model %s", repo)
 
+        # Phase 2: try ONNX first, fall back to PyTorch only if the repo
+        # has no ONNX weights *and* sentence-transformers is already
+        # installed. Otherwise raise a clear InvalidConfigurationError.
         with _normalize_errors(repo):
-            return SentenceTransformer(repo, trust_remote_code=trust_remote_code)
+            onnx_path = _try_download_onnx_weights(repo)
+        if onnx_path is not None:
+            return _instantiate_onnx_backend(repo, onnx_path)
+        return _instantiate_pytorch_backend(repo, trust_remote_code)
 
     def _cache_lookup(self, repo: str) -> Any | None:
         """Return the cached model for ``repo`` and mark it MRU, or
@@ -525,6 +797,10 @@ class LocalProvider(Provider):
                 * ``task`` (str): if set, prepend ``f"{task}: "`` to every
                   input before encoding. No validation; useful for Nomic-
                   style models that were trained with that prefix idiom.
+                * ``pooling`` (``"mean"`` | ``"cls"`` | ``"max"``): override
+                  the ONNX backend's default token-embedding reduction.
+                  Defaults to ``"mean"``. Ignored (with a one-shot warning)
+                  on the PyTorch fallback backend.
                 * ``trust_remote_code`` (bool): override the default (True).
                   The ``ONELLM_ALLOW_TRUST_REMOTE_CODE=false`` kill switch
                   always wins over caller kwargs.
@@ -550,25 +826,36 @@ class LocalProvider(Provider):
                     status_code=400,
                 )
 
-        # Apply task prefix (if any) and load the model.
+        # Validate pooling up front with the same pattern - the backends
+        # also validate, but catching it here gives us a consistent
+        # error surface regardless of which backend gets selected.
+        pooling = kwargs.get("pooling", _DEFAULT_POOLING)
+        if pooling not in _POOLING_STRATEGIES:
+            raise InvalidRequestError(
+                f"pooling must be one of {_POOLING_STRATEGIES}, got {pooling!r}",
+                provider="local",
+                status_code=400,
+            )
+
+        # Apply task prefix (if any) and load the backend.
         inputs = self._apply_task_prefix(inputs, kwargs.get("task"))
         trust_flag = self._resolve_trust_remote_code(**kwargs)
 
-        # Use the async loader so the *cold-start* download +
-        # SentenceTransformer construction runs off the event loop on
-        # cache miss. The cache-hit fast path is a single dict lookup
-        # and stays on the loop.
-        st_model = await self._load_model_async(model, trust_flag)
+        # Use the async loader so the *cold-start* download + backend
+        # construction runs off the event loop on cache miss. The
+        # cache-hit fast path is a single dict lookup and stays on the
+        # loop.
+        backend = await self._load_model_async(model, trust_flag)
 
-        # sentence-transformers has no native async API; ``encode`` is a
-        # synchronous CPU/GPU-bound call that would stall every coroutine
-        # on the event loop for the duration of inference. Offload it to
-        # the default executor so the event loop stays responsive for
-        # long batches or slow hardware.
+        # Both backends expose a synchronous ``encode`` that is CPU/GPU-
+        # bound and would stall every coroutine on the event loop for
+        # the duration of inference. Offload to the default executor so
+        # the event loop stays responsive for long batches or slow
+        # hardware.
         loop = asyncio.get_running_loop()
         with _normalize_errors(model):
             raw = await loop.run_in_executor(
-                None, lambda: st_model.encode(inputs, normalize_embeddings=True)
+                None, lambda: backend.encode(inputs, pooling=pooling)
             )
         vectors: list[list[float]] = [list(v) for v in raw.tolist()]
 
