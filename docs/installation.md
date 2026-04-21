@@ -47,6 +47,15 @@ pip install "onellm[bedrock]"
 # For Google Vertex AI support
 pip install "onellm[vertexai]"
 
+# For semantic caching + local/ embeddings (ONNX Runtime + transformers + faiss-cpu)
+pip install "onellm[cache]"
+
+# ONNX Runtime GPU wheel for local/ embeddings (CUDA)
+pip install "onellm[local-gpu]"
+
+# PyTorch fallback for repos that don't ship ONNX weights
+pip install "onellm[local-pytorch]"
+
 # Combine multiple extras
 pip install "onellm[llama,bedrock,vertexai]"
 ```
@@ -100,6 +109,14 @@ onellm download -r "TheBloke/Mistral-7B-Instruct-v0.2-GGUF" -f "mistral-7b-instr
 
 This command is particularly useful when working with the llama.cpp provider, which requires local GGUF model files.
 
+For the in-process `local/` embedding provider, pass the full HuggingFace repo id to pre-download a snapshot into the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`):
+
+```bash
+onellm download local/nomic-ai/nomic-embed-text-v1.5
+onellm download local/sentence-transformers/all-MiniLM-L6-v2
+onellm download local/BAAI/bge-small-en-v1.5
+```
+
 ## Dependencies
 
 ### Core Dependencies
@@ -128,6 +145,21 @@ These providers work with just the core installation:
 #### Google Vertex AI Support (`onellm[vertexai]`)
 - `google-auth>=2.16.0` - Google Cloud authentication
 - `google-cloud-aiplatform>=1.38.0` - Vertex AI client library
+
+#### Semantic Cache + `local/` Embeddings (`onellm[cache]`)
+- `onnxruntime` - CPU ONNX Runtime (inference for `local/` embedding repos that ship ONNX weights)
+- `transformers` - HuggingFace tokenizer + model loading
+- `numpy` - Pooling and L2 normalization
+- `faiss-cpu` - Semantic cache similarity index
+- Total install footprint: ~345 MB on a fresh venv (no torch)
+
+#### CUDA for `local/` Embeddings (`onellm[local-gpu]`)
+- `onnxruntime-gpu` - CUDA `CUDAExecutionProvider` auto-detected at session construction
+- Includes `transformers`, `numpy`, and `faiss-cpu`
+
+#### PyTorch Fallback for `local/` Embeddings (`onellm[local-pytorch]`)
+- `sentence-transformers` (transitively `torch`) - Used as fallback when a repo does not ship ONNX weights
+- Emits a one-shot warning when the fallback path is taken
 
 #### All Providers (`onellm[all]`)
 Includes all optional dependencies for maximum compatibility

@@ -231,6 +231,18 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 
 ### 💻 Local Providers
 
+#### `local/` - In-Process Embeddings (HuggingFace)
+- **Models**: Any HuggingFace embedding model by repo id
+  - `local/nomic-ai/nomic-embed-text-v1.5` (Apache 2.0, Matryoshka 64/128/256/512/768)
+  - `local/sentence-transformers/all-MiniLM-L6-v2` (384-dim, fast English)
+  - `local/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (50+ languages)
+  - `local/BAAI/bge-small-en-v1.5`
+  - Use `onellm download local/<repo-id>` to pre-download weights
+- **Features**: ONNX Runtime backend (default, lean); PyTorch fallback via `onellm[local-pytorch]`; `dimensions`, `task`, and `pooling` kwargs; class-level LRU shared across `get_provider("local")` calls
+- **Install**: `pip install "onellm[cache]"` (~345 MB) for CPU, `onellm[local-gpu]` for CUDA
+- **Pricing**: Free (self-hosted)
+- **Best for**: In-process embeddings without an extra service; drop-in embedding for the semantic cache
+
 #### Ollama
 - **Models**:
   - Popular: `llama3`, `llama3.1`, `mistral`, `mixtral`, `gemma2`, `qwen2.5`
@@ -284,7 +296,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
 - **Vision**: OpenAI, Anthropic, Google, Vertex AI, Moonshot
 - **Web Search**: Perplexity
 - **JSON Mode**: OpenAI, Google, Mistral, Groq, Moonshot
-- **Embeddings**: OpenAI, Cohere, Google, Bedrock
+- **Embeddings**: OpenAI, Cohere, Google, Bedrock, HuggingFace via `local/` (ONNX-first, with PyTorch fallback)
 
 ## Model Naming Convention
 

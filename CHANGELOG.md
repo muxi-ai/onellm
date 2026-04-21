@@ -1,287 +1,84 @@
 # CHANGELOG
 
-## 0.20260421.0 - Local Provider Phase 2: ONNX Runtime backend
+## 0.20260421.0 - Local Embedding Provider
 
 **Status**: Development Status :: 5 - Production/Stable
 
-### HARD BREAK on the `[cache]` extra
+### `local/` embedding provider
 
-**If you install `onellm[cache]` today and call `local/...` embedding models, read
-this.** The `[cache]` extra no longer pulls `sentence-transformers` (or, transitively,
-`torch`). It now pulls `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`.
-
-Measured install footprint (macOS ARM64, Python 3.10, fresh venv):
-
-| Package | Size |
-|---|---|
-| transformers | 78 MB |
-| onnxruntime | 66 MB |
-| sympy (transformers transitive) | 55 MB |
-| numpy | 29 MB |
-| faiss-cpu | 13 MB |
-| onellm + cloud-provider deps (openai, pydantic, etc.) | ~100 MB |
-| **Total `pip install 'onellm[cache]'`** | **~345 MB** |
-
-Down from roughly 500 MB - 1.5 GB for the old `[cache]` + `torch` combo
-(varies a lot by platform; Linux-with-NVIDIA pulled the full CUDA wheels
-even for CPU users). The big wins: no torch, no scikit-learn, no scipy.
-
-Measured performance (same platform, `sentence-transformers/all-MiniLM-L6-v2`,
-ONNX CPU execution provider, batch of 2 short strings):
-
-| | Phase 2 (ONNX) |
-|---|---|
-| Cold start (session construction + first encode) | ~3.5 s |
-| Warm encode (cached backend, 1 input) | ~150 ms |
-| Pooling override (`pooling="cls"`) | ~60 ms |
-
-Concretely:
-
-| Scenario | Old behaviour | New behaviour |
-|---|---|---|
-| Repo ships `onnx/model.onnx` (or `model.onnx`) | Loaded via sentence-transformers/PyTorch | Loaded via ONNX Runtime |
-| Repo ships only PyTorch weights, `[cache]` installed alone | Worked (sentence-transformers did the conversion behind the scenes) | Raises `InvalidConfigurationError` with a remediation hint |
-| Repo ships only PyTorch weights, `[cache]` + `[local-pytorch]` installed | n/a | Emits a one-shot warning and falls back to sentence-transformers |
-| CUDA acceleration | n/a in `[cache]` (sentence-transformers auto-picked the device) | Install `onellm[local-gpu]` instead of `[cache]`; picks up `onnxruntime-gpu` automatically |
-
-**What to do on upgrade:**
-
-1. If you only use ONNX-ready embedding models (e.g. `nomic-ai/nomic-embed-text-v1.5`,
-   `sentence-transformers/all-MiniLM-L6-v2`, `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`,
-   `BAAI/bge-small-en-v1.5`), no action needed - they all ship ONNX weights.
-2. If you pin a PyTorch-only repo, run `pip install 'onellm[cache,local-pytorch]'`
-   to keep the PyTorch fallback available. The error message raised on
-   mismatched installs points at this exact remediation.
-3. If you want CUDA acceleration, install `onellm[local-gpu]` instead of (or in
-   addition to) `[cache]`. ONNX Runtime picks the `CUDAExecutionProvider` up
-   automatically when the GPU wheel is present.
-
-### New features
-
-#### ONNX Runtime backend for the `local/` provider
-
-`LocalProvider` now selects its inference backend per-repo on cache miss:
-
-1. Look for ONNX weights in the repo (`onnx/model.onnx`, `model.onnx`, or
-   `onnx/model_quantized.onnx`). If present, construct an `_OnnxBackend` that
-   tokenizes via `transformers.AutoTokenizer`, runs
-   `onnxruntime.InferenceSession`, pools token-level embeddings (mean-pooling
-   by default), and L2-normalizes.
-2. Fall back to `sentence-transformers` only if it is already installed (via
-   `onellm[local-pytorch]`); emits a warning so you notice the slow path.
-3. Raise `InvalidConfigurationError` with concrete remediation text when
-   neither backend is available.
-
-The public API shape is unchanged. `Embedding.acreate(model="local/...")`,
-`dimensions=N`, `task="search_document"`, and the `trust_remote_code` kill
-switch keep their old semantics.
-
-#### `pooling` kwarg on `create_embedding`
-
-A new optional kwarg lets callers override the token-embedding reduction
-strategy on the ONNX backend: `"mean"` (default, attention-mask-weighted
-mean), `"cls"` (first-token / BERT-style), or `"max"` (element-wise max over
-non-padding tokens). The PyTorch fallback backend bakes pooling into its
-module pipeline at load time; requesting a non-default strategy there emits a
-one-shot warning and uses the model's configured pooling.
+In-process embedding provider routing HuggingFace repos through the standard `Embedding.create()` / `Embedding.acreate()` surface. The `local/` prefix strips to an HF repo id; no alias table.
 
 ```python
-resp = await onellm.Embedding.acreate(
-    model="local/sentence-transformers/all-MiniLM-L6-v2",
-    input="hello world",
-    pooling="cls",  # override default mean pooling
-)
-```
-
-#### `onellm[local-gpu]` extra
-
-Replaces the CPU `onnxruntime` wheel with `onnxruntime-gpu`. ONNX Runtime's
-`CUDAExecutionProvider` is picked up automatically at session construction
-when the GPU wheel is present.
-
-#### `onellm[local-pytorch]` extra
-
-Installs `sentence-transformers` (which transitively installs `torch`) for
-fallback coverage of repos that ship only PyTorch weights. Opt-in.
-
-#### Semantic cache routes through `LocalProvider`
-
-`cache.py` now constructs its embedder through `LocalProvider` so there is
-exactly one code path that knows how to load local embedding models. The
-cache benefits automatically from whichever backend is installed (ONNX by
-default, PyTorch fallback if only `[local-pytorch]` is present). No changes
-to the semantic cache's public API.
-
-### Related fixes
-
-These were discovered during the Phase 2 end-to-end smoke test and are
-rolled into the same release:
-
-- **`LocalProvider` LRU cache is now class-level** (fixes a Phase 1 latent
-  bug). `providers.base.get_provider("local")` returns a fresh
-  `LocalProvider()` on every `Embedding.acreate` call. With instance-level
-  caches, every request reloaded the model from the HF cache directory -
-  turning a promised 150 ms warm call into a 2 s "warm" call. Class-level
-  storage keeps the LRU alive across dispatcher calls while unit tests can
-  still instantiate the provider directly (see
-  `LocalProvider._reset_cache_for_tests`).
-- **ONNX `token_type_ids` synthesis** (fixes semantic cache on the default
-  multilingual model). XLM-R-family repos (including
-  `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, the cache's
-  default embedder) ship ONNX exports that *declare* `token_type_ids` as an
-  input but whose RoBERTa tokenizer doesn't *emit* it. `_OnnxBackend` now
-  synthesizes an all-zeros tensor in that case (the standard
-  single-sentence value every token-type-aware model expects), so the
-  session.run call succeeds. Without this fix, the semantic cache would
-  silently fail at embedding time on a clean `[cache]` install.
-
-### Migration guide
-
-```diff
-- pip install 'onellm[cache]'          # used to pull sentence-transformers + torch
-+ pip install 'onellm[cache]'          # pulls onnxruntime + transformers (lean)
-
-# If you pin PyTorch-only repos, add the fallback extra:
-+ pip install 'onellm[cache,local-pytorch]'
-
-# For CUDA:
-+ pip install 'onellm[local-gpu]'      # replaces [cache]
-```
-
-
-## 0.20260420.0 - Local Embedding Provider (Phase 1) + Provider Error Normalization
-
-**Status**: Development Status :: 5 - Production/Stable
-
-### New Features
-
-#### `local/` embedding provider
-
-Added a first-class in-process embedding provider so callers can run HuggingFace
-sentence-transformers models through the standard `Embedding.create()` /
-`Embedding.acreate()` surface. Cloud, Ollama, and local embeddings now flow
-through the same unified API.
-
-```python
-import onellm
-
 resp = await onellm.Embedding.acreate(
     model="local/nomic-ai/nomic-embed-text-v1.5",
-    input="search_document: Hello world",
-    dimensions=768,              # Matryoshka truncation (symmetric with OpenAI)
-    task="search_document",       # prepend "<task>: " to each input
+    input="search_document: hello",
+    dimensions=768,          # Matryoshka truncate + L2 renormalize
+    task="search_document",  # prepend "<task>: " to every input
+    pooling="mean",          # "mean" | "cls" | "max" (ONNX only)
 )
-vec = resp.data[0].embedding
 ```
 
-**Key features**:
-- **Full HF repo ids, no alias table**: whatever follows `local/` is passed
-  directly to HuggingFace as the repo id. `local/nomic-ai/nomic-embed-text-v1.5`,
-  `local/sentence-transformers/all-MiniLM-L6-v2`, `local/BAAI/bge-small-en-v1.5`
-  all work identically - no curation decisions, no maintained registry.
-- **Matryoshka-style truncation**: `dimensions=<int>` slices and
-  L2-renormalizes the output vector. No tier validation - caller owns whether
-  the chosen size is meaningful for the picked model.
-- **Task-adaptive prompting**: `task="search_document"` (or any string)
-  prepends `"<task>: "` to every input. No validation whitelist - the prefix
-  is a simple convention (Nomic-style); models that don't use prefix
-  conditioning quietly ignore the extra tokens.
-- **LRU model cache**: in-memory, keyed by HF repo id (default size 2,
-  configurable via `ONELLM_LOCAL_CACHE_SIZE`) so repeated requests don't pay
-  the `SentenceTransformer` load cost.
-- **`trust_remote_code` default `True`** (trust the caller who typed the repo
-  id); `trust_remote_code=False` kwarg opts out per-call;
-  `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` is a global kill switch that wins
-  over caller kwargs.
-- **Graceful missing-extras error**: raises a clear `pip install 'onellm[cache]'`
-  hint when `sentence-transformers` isn't installed.
-- **Uses the standard HF cache** (`$HF_HOME` or `~/.cache/huggingface/hub/`)
-  so downloads are shared with every other HF-using tool in the environment.
-- **Cloud-shaped error taxonomy**: failures from the HuggingFace backend are
-  normalized to the same `onellm.errors` classes the cloud providers use so
-  `fallback_models=["local/...", "openai/..."]` works out of the box with the
-  default `FallbackConfig.retriable_errors` list. Mapping:
-  - missing HF repo / invalid id -> `ResourceNotFoundError` (404)
-  - gated or private repo without token -> `AuthenticationError` (401)
-  - HF rate limit on download -> `RateLimitError` (429, retriable)
-  - HF 5xx / network failure -> `ServiceUnavailableError` (retriable)
-  - network timeout -> `RequestTimeoutError` (retriable)
-  - out of memory (CPU/GPU) -> `ServiceUnavailableError` (retriable)
-  - `trust_remote_code` kill-switch rejection -> `PermissionDeniedError` (403)
-  - invalid `dimensions` -> `InvalidRequestError` (400)
-  - `sentence-transformers` missing -> `InvalidConfigurationError`
-  - unsupported method (chat/completion/upload/download) -> `InvalidRequestError` (400)
+Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`). An LRU keyed by repo id (default size 2, `ONELLM_LOCAL_CACHE_SIZE`) is held at class level so repeated calls reuse the loaded backend. `trust_remote_code` defaults to `True`; `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` is a kill switch.
 
-#### `onellm download` snapshot mode
+### Two backends: ONNX first, PyTorch fallback
 
-The `onellm download` CLI now supports HuggingFace full-snapshot downloads for
-the `local/` provider:
+Per-repo selection on cache miss:
+
+1. If the repo ships ONNX weights (`onnx/model.onnx`, `model.onnx`, `onnx/model_quantized.onnx`), load via `onnxruntime.InferenceSession` + `transformers.AutoTokenizer`. Pooling is applied in-process (mask-aware mean, cls at position 0, max over non-padding). Output is L2-normalized.
+2. Else, if `sentence-transformers` is importable, fall back with a warning.
+3. Else, raise `InvalidConfigurationError` with remediation text.
+
+### Extras (HARD BREAK on `[cache]`)
+
+| Extra | Pulls | Notes |
+|---|---|---|
+| `[cache]` | onnxruntime + transformers + numpy + faiss-cpu | lean default (~345 MB) |
+| `[local-gpu]` | onnxruntime-gpu + transformers + numpy + faiss-cpu | CUDA EP auto-detected |
+| `[local-pytorch]` | sentence-transformers | fallback for non-ONNX repos |
+
+The old `[cache]` pulled `sentence-transformers` (transitively torch, 500 MB - 1.5 GB depending on platform). Callers pinned to PyTorch-only repos must add `pip install 'onellm[cache,local-pytorch]'`; the error message raised on mismatched installs points at the fix.
+
+### Error taxonomy
+
+Failures from the HuggingFace backend normalize to `onellm.errors` classes, so `fallback_models=["local/...", "openai/..."]` works with the default retriable set.
+
+| Failure | Class |
+|---|---|
+| Missing / invalid repo id | `ResourceNotFoundError` (404) |
+| Gated / private repo, no token | `AuthenticationError` (401) |
+| HF 429 | `RateLimitError` |
+| HF 5xx / network / OOM | `ServiceUnavailableError` |
+| Network timeout | `RequestTimeoutError` |
+| `trust_remote_code` kill switch | `PermissionDeniedError` (403) |
+| Invalid `dimensions` / `pooling` / empty input | `InvalidRequestError` (400) |
+| Extras missing | `InvalidConfigurationError` |
+| Unsupported method (chat / completion / file) | `InvalidRequestError` (400) |
+
+### `onellm download` snapshot mode
 
 ```bash
 onellm download local/nomic-ai/nomic-embed-text-v1.5
-onellm download local/sentence-transformers/all-MiniLM-L6-v2
 ```
 
-Whatever follows `local/` is passed directly to `huggingface_hub.snapshot_download`
-as the repo id. Respects `HF_HOME` for the cache directory, falling back to
-`~/.cache/huggingface/hub/`. The GGUF single-file mode
-(`--repo-id`/`--filename`) is unchanged.
+The id after `local/` is passed directly to `huggingface_hub.snapshot_download`. Respects `HF_HOME`. GGUF mode (`--repo-id` / `--filename`) unchanged.
 
-### Bug Fixes
+### Semantic cache routes through `LocalProvider`
 
-#### Non-JSON error bodies no longer crash the error mapper (all aiohttp providers)
+`cache.py` constructs its embedder via `LocalProvider` so there is one code path that knows how to load embedding models. Public cache API unchanged.
 
-Upstream APIs (OpenAI, Anthropic, Azure OpenAI, Cohere, Google, Mistral,
-Vertex AI) occasionally return error bodies with `text/plain` or `text/html`
-content types instead of JSON - reverse-proxy WAF pages, gateway timeouts,
-rate-limit HTML pages, or bare-text 401s at the edge. The previous
-implementation called `response.json()` unconditionally before the
-status-code check, which raised `aiohttp.ContentTypeError` and leaked past
-each provider's error-classification layer. Callers saw the raw aiohttp
-exception instead of the proper `AuthenticationError` /
-`ServiceUnavailableError` / etc., and the default
-`FallbackConfig.retriable_errors` list did not catch it, so cross-provider
-fallback chains broke silently.
+### Bug fixes
 
-Fixed by adding a shared `Provider._read_response_body()` helper that reads
-the body via `response.text()`, parses JSON with a tolerant fallback to
-`{"error": {"message": <raw>}}`, and is now used at every error-handling
-call site across the 7 aiohttp-based providers plus OpenAI's streaming,
-upload, and download paths. Non-object JSON (e.g. bare arrays from a
-misbehaving proxy) is wrapped identically so the downstream
-`data.get("error", ...)` lookup still works.
-
-#### OpenAI audio transcription/translation non-JSON formats
-
-`response_format="text"` / `"srt"` / `"vtt"` now correctly returns the raw
-text body in `TranscriptionResult.text` instead of an opaque dict. The path
-was latently broken since the old `response.json()` would have raised
-`ContentTypeError` on the non-JSON success body.
-
-### Type hygiene
-
-- Added `@overload` variants on `OpenAIProvider._make_request` so mypy can
-  narrow the return type based on `stream: Literal[True|False]`; eliminated
-  all 56 pre-existing mypy errors in `onellm/providers/openai.py`
-  (project-wide: 342 -> 288).
-- Imported and `cast()`-tagged `UsageInfo` conversions at response-construction
-  sites in the OpenAI provider.
+- **Non-JSON error bodies across aiohttp providers**: new `Provider._read_response_body()` reads bodies as text and parses JSON with a tolerant fallback to `{"error": {"message": <raw>}}`. Applied to OpenAI, Anthropic, Azure OpenAI, Cohere, Google, Mistral, Vertex AI. Fixes `ContentTypeError` leaking when upstream returns non-JSON (WAF pages, gateway timeouts, bare-text 401s).
+- **OpenAI audio `response_format="text"|"srt"|"vtt"`** now returns the raw text body in `TranscriptionResult.text`.
+- **LRU cache moved to class level on `LocalProvider`**: `get_provider("local")` returns a fresh instance per request, so instance-level caches were rebuilt every call. Warm encode drops from ~2 s -> ~150 ms on cached backends.
+- **ONNX `token_type_ids` synthesis**: XLM-R repos (incl. `paraphrase-multilingual-MiniLM-L12-v2`, the cache's default) ship ONNX exports that declare `token_type_ids` even though their RoBERTa tokenizer doesn't emit it. Synthesized as zeros matching `input_ids` shape.
 
 ### Infrastructure
 
-- Registered `slow` and `integration` pytest markers in `pyproject.toml` so
-  runs with `-m "not slow"` and `-m integration` work without warnings.
-- Renamed `CLAUDE.md` to `AGENTS.md` as the agent-agnostic convention for AI
-  coding agents (Factory Droid, Claude Code, Codex, Cursor, etc.).
+- `@overload` on `OpenAIProvider._make_request` narrows the return type on `stream: Literal[True|False]` (clears 56 mypy errors).
+- Registered `slow` and `integration` pytest markers.
+- Renamed `CLAUDE.md` to `AGENTS.md` (agent-agnostic convention).
 
-### Non-goals (deferred to Phase 2)
-
-- ONNX Runtime backend (replaces PyTorch for ~2-5x inference speedup and
-  ~800 MB smaller install footprint).
-- `cache.py` migration to use `LocalProvider` internally.
-- Dropping `sentence-transformers` / `torch` from the `[cache]` extra.
-
----
 
 ## 0.20260415.0 - Ollama Model Discovery Fixes
 

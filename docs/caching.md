@@ -116,12 +116,14 @@ response = ChatCompletion.create(
 
 ### Embedding Model
 
-OneLLM uses `paraphrase-multilingual-MiniLM-L12-v2`:
-- **Size:** 118MB (one-time download)
+OneLLM uses `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`:
+- **Size:** 118MB model weights (one-time download into the standard HF cache)
 - **Languages:** 50+ (English, Spanish, French, German, Chinese, etc.)
 - **Dimensions:** 384D
 - **Speed:** ~18ms per query on CPU
 - **Quality:** 95% default similarity threshold
+
+The cache routes its embedder through `LocalProvider`, so there is one code path that knows how to load local embedding models. With `onellm[cache]` installed, the model runs on ONNX Runtime (CPU, ~345 MB total install footprint). If you need the PyTorch fallback path, add `onellm[local-pytorch]`.
 
 ## Configuration
 

@@ -144,8 +144,9 @@ OneLLM currently supports **22 providers** with more on the way:
 - **X.AI** - Grok models
 - **MiniMax** - M2 model series with advanced reasoning
 
-### Local Providers (2)
-- **Ollama** - Run models locally with easy management
+### Local Providers (3)
+- **`local/`** - In-process HuggingFace embeddings (ONNX Runtime by default, PyTorch fallback)
+- **Ollama** - Run chat / completion models locally with easy management
 - **llama.cpp** - Direct GGUF model execution
 
 ### Notable Models Available
@@ -182,7 +183,7 @@ Through these providers, you gain access to hundreds of models, including:
   </tr>
   <tr>
     <td><strong>Embeddings</strong></td>
-    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings</td>
+    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings, HuggingFace via <code>local/</code> (ONNX-first)</td>
   </tr>
   <tr>
     <td><strong>Multimodal</strong></td>
@@ -419,7 +420,7 @@ response = Embedding.create(
 
 #### Local embeddings (`local/` provider)
 
-Any HuggingFace embedding model works — the id after `local/` is passed straight to HuggingFace. No registry, no curation. Install the extra once with `pip install "onellm[cache]"` (lean ONNX Runtime path, ~60 MB), then call through the same `Embedding.create()` surface as cloud providers:
+Any HuggingFace embedding model works — the id after `local/` is passed straight to HuggingFace. No registry, no curation. Install `pip install "onellm[cache]"` (lean ONNX Runtime path, ~345 MB on a fresh venv with cloud-provider deps), then call through the same `Embedding.create()` surface as cloud providers:
 
 ```python
 from onellm import Embedding
@@ -435,13 +436,15 @@ response = Embedding.create(
 vec = response.data[0].embedding
 ```
 
-**Backend selection**: on first load of a repo, OneLLM looks for ONNX weights (`onnx/model.onnx`, `model.onnx`, or `onnx/model_quantized.onnx`). If present, the repo runs on ONNX Runtime (fast, lean). If absent, OneLLM falls back to `sentence-transformers` *only if it's already installed* (via `onellm[local-pytorch]`); otherwise raises a clear error with remediation.
+**Backend selection**: on first load of a repo, OneLLM looks for ONNX weights (`onnx/model.onnx`, `model.onnx`, or `onnx/model_quantized.onnx`). If present, the repo runs on ONNX Runtime (fast, lean). If absent, OneLLM falls back to `sentence-transformers` *only if it's already installed* (via `onellm[local-pytorch]`); otherwise raises `InvalidConfigurationError` with remediation.
 
 **Extras reference**:
 
-- `onellm[cache]` — lean default: `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`. ~60 MB.
-- `onellm[local-gpu]` — CUDA acceleration: replaces the CPU wheel with `onnxruntime-gpu`. Picks up `CUDAExecutionProvider` automatically.
-- `onellm[local-pytorch]` — PyTorch fallback: pulls `sentence-transformers` (transitively `torch`, ~1 GB) for repos that don't ship ONNX weights.
+| Extra | Pulls | Notes |
+|---|---|---|
+| `onellm[cache]` | onnxruntime + transformers + numpy + faiss-cpu | Lean default (~345 MB), no torch |
+| `onellm[local-gpu]` | onnxruntime-gpu + transformers + numpy + faiss-cpu | CUDA `CUDAExecutionProvider` auto-detected |
+| `onellm[local-pytorch]` | sentence-transformers (+ torch) | Fallback for repos without ONNX weights |
 
 Knobs:
 
@@ -449,9 +452,9 @@ Knobs:
 - `task=<str>` — prepend `f"{task}: "` to every input. Matches the Nomic prefix convention; other models ignore the extra tokens.
 - `pooling=<"mean"|"cls"|"max">` — override the token-embedding reduction on the ONNX backend (default `"mean"`). The PyTorch fallback bakes pooling into the model at load time; requesting a non-default strategy there emits a one-shot warning.
 - `trust_remote_code=<bool>` — defaults to `True` (models like Nomic ship custom pooling code). Set `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` as a global kill switch that overrides per-call kwargs.
-- `ONELLM_LOCAL_CACHE_SIZE=<int>` — LRU size for the in-memory backend cache (default 2).
+- `ONELLM_LOCAL_CACHE_SIZE=<int>` — class-level LRU size for the in-memory backend cache (default 2). Shared across `LocalProvider` instances so repeated `Embedding.acreate()` calls don't reload the backend.
 
-Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`), so downloads are shared with every other HF-using tool in the environment.
+Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`), so downloads are shared with every other HF-using tool in the environment. Failures from the HuggingFace backend (missing repo, gated access, 429, 5xx, timeout, OOM, kill-switch) normalize to the same `onellm.errors` classes the cloud providers use, so `fallback_models=["local/...", "openai/..."]` chains work out of the box.
 
 ---
 

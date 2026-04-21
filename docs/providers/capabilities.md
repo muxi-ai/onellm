@@ -71,7 +71,7 @@ Through these providers, you gain access to hundreds of models across different 
   </tr>
   <tr>
     <td><strong>Embeddings</strong></td>
-    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings</td>
+    <td>Ada-002, text-embedding-3-small/large, Cohere embeddings, HuggingFace via <code>local/</code> (ONNX-first)</td>
   </tr>
   <tr>
     <td><strong>Multimodal</strong></td>
@@ -137,6 +137,7 @@ Generate text embeddings:
 - **Azure**: OpenAI embeddings
 - **Bedrock**: Titan, Cohere embeddings
 - **Vertex AI**: text-embedding models
+- **`local/`**: Any HuggingFace embedding repo id, in-process via ONNX Runtime (`onellm[cache]`) with optional PyTorch fallback (`onellm[local-pytorch]`)
 
 ### Web Search
 Real-time internet access:
@@ -144,6 +145,7 @@ Real-time internet access:
 
 ### Local Execution
 Run models on your hardware:
+- **`local/`**: In-process HuggingFace embeddings, ONNX Runtime default, PyTorch fallback
 - **Ollama**: Model management included
 - **llama.cpp**: Direct GGUF execution
 

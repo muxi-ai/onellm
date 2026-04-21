@@ -77,6 +77,7 @@ Welcome to the OneLLM documentation! OneLLM is a unified interface for 300+ LLMs
 - **18+ Providers**: OpenAI, Anthropic, Google, Mistral, and more
 - **300+ Models**: Access to a vast ecosystem of LLMs
 - **Semantic Caching**: Reduce API costs by 50-80% with intelligent multilingual caching
+- **Local Embeddings**: In-process HuggingFace embeddings via the `local/` provider (ONNX Runtime default, PyTorch fallback)
 - **Unified Interface**: Same code works with all providers
 - **Type Safety**: Full type hints and IDE support
 - **Async Support**: Both sync and async operations
