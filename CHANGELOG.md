@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased - Local Provider Phase 2: ONNX Runtime backend
+## 0.20260421.0 - Local Provider Phase 2: ONNX Runtime backend
 
 **Status**: Development Status :: 5 - Production/Stable
 
