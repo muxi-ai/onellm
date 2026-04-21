@@ -41,9 +41,30 @@ classifiers = [
 "Issues" = "https://github.com/muxi-ai/onellm/issues"
 
 [project.optional-dependencies]
+# Lean local-embedding backend: onnxruntime (CPU) + transformers tokenizer.
+# Does NOT pull torch. Repos that ship only PyTorch weights need the
+# [local-pytorch] extra in addition. This is a HARD BREAK from the v0.20260415
+# shape of [cache] which pulled sentence-transformers; see CHANGELOG.
 cache = [
-    "sentence-transformers>=5.2.2",
+    "onnxruntime>=1.20.0",
+    "transformers>=4.44.0",
+    "numpy>=1.26.0",
     "faiss-cpu>=1.13.2",
+]
+# CUDA acceleration for local embeddings. Replaces the CPU onnxruntime wheel
+# with the GPU build; onnxruntime's CUDAExecutionProvider is picked up
+# automatically at session construction.
+local-gpu = [
+    "onnxruntime-gpu>=1.20.0",
+    "transformers>=4.44.0",
+    "numpy>=1.26.0",
+    "faiss-cpu>=1.13.2",
+]
+# Fallback backend for repos that don't ship ONNX weights. Pulls torch +
+# sentence-transformers (~1 GB install). Use only when you're pinned to a
+# PyTorch-only repo; prefer ONNX-ready repos (e.g. nomic-ai/*) otherwise.
+local-pytorch = [
+    "sentence-transformers>=5.2.2",
 ]
 all = [
     "anthropic>=0.76.0",
@@ -52,7 +73,10 @@ all = [
     "llama-cpp-python>=0.3.16",
     "google-auth>=2.48.0",
     "google-cloud-aiplatform>=1.134.0",
+    "onnxruntime>=1.20.0",
+    "transformers>=4.44.0",
     "sentence-transformers>=5.2.2",
+    "numpy>=1.26.0",
     "faiss-cpu>=1.13.2",
 ]
 bedrock = [
