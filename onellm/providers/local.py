@@ -79,6 +79,7 @@ Phase 1 uses sentence-transformers (PyTorch) as the inference backend. Phase 2
 will swap in an ONNX Runtime path; the caller-facing API stays unchanged.
 """
 
+import asyncio
 import logging
 import os
 from collections.abc import AsyncGenerator, Generator
@@ -488,12 +489,16 @@ class LocalProvider(Provider):
         trust_flag = self._resolve_trust_remote_code(**kwargs)
         st_model = self._load_model(model, trust_flag)
 
-        # sentence-transformers has no native async API; the encode call is
-        # synchronous and CPU/GPU bound. We rely on the caller's event-loop
-        # tolerance for this; a future enhancement could offload to a thread
-        # pool if callers report event-loop blocking.
+        # sentence-transformers has no native async API; ``encode`` is a
+        # synchronous CPU/GPU-bound call that would stall every coroutine
+        # on the event loop for the duration of inference. Offload it to
+        # the default executor so the event loop stays responsive for
+        # long batches or slow hardware.
+        loop = asyncio.get_running_loop()
         with _normalize_errors(model):
-            raw = st_model.encode(inputs, normalize_embeddings=True)
+            raw = await loop.run_in_executor(
+                None, lambda: st_model.encode(inputs, normalize_embeddings=True)
+            )
         vectors: list[list[float]] = [list(v) for v in raw.tolist()]
 
         # Matryoshka truncation (pass-through; no tier validation).

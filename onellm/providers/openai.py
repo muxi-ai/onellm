@@ -955,8 +955,10 @@ class OpenAIProvider(Provider):
         # raw string body that our JSON-aware helper wraps into
         # ``{"error": {"message": <raw>}}``. Extract the raw text back out
         # so the caller gets a usable ``TranscriptionResult.text``.
+        # ``verbose_json`` is a structured JSON body and must fall through
+        # to the structured-parse path, not the raw-text extraction path.
         response_format = kwargs.get("response_format", "json")
-        if isinstance(response_format, str) and response_format != "json":
+        if isinstance(response_format, str) and response_format not in ("json", "verbose_json"):
             raw_text = (
                 response_data.get("error", {}).get("message")
                 if isinstance(response_data, dict)
@@ -1018,8 +1020,10 @@ class OpenAIProvider(Provider):
         # Process the response based on the requested format. See the
         # matching note in ``create_transcription`` for why non-JSON bodies
         # arrive wrapped in the {"error": {"message": <raw>}} shape.
+        # ``verbose_json`` is a structured JSON body and belongs on the
+        # structured-parse path below.
         response_format = kwargs.get("response_format", "json")
-        if isinstance(response_format, str) and response_format != "json":
+        if isinstance(response_format, str) and response_format not in ("json", "verbose_json"):
             raw_text = (
                 response_data.get("error", {}).get("message")
                 if isinstance(response_data, dict)
