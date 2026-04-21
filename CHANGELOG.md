@@ -6,7 +6,7 @@
 
 ### `local/` embedding provider
 
-In-process embedding provider routing HuggingFace repos through the standard `Embedding.create()` / `Embedding.acreate()` surface. The `local/` prefix strips to an HF repo id; no alias table.
+In-process embedding provider. The `local/` prefix strips to an HF repo id (no alias table) and routes through the standard `Embedding.create()` / `Embedding.acreate()` surface.
 
 ```python
 resp = await onellm.Embedding.acreate(
@@ -18,15 +18,7 @@ resp = await onellm.Embedding.acreate(
 )
 ```
 
-Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`). An LRU keyed by repo id (default size 2, `ONELLM_LOCAL_CACHE_SIZE`) is held at class level so repeated calls reuse the loaded backend. `trust_remote_code` defaults to `True`; `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` is a kill switch.
-
-### Two backends: ONNX first, PyTorch fallback
-
-Per-repo selection on cache miss:
-
-1. If the repo ships ONNX weights (`onnx/model.onnx`, `model.onnx`, `onnx/model_quantized.onnx`), load via `onnxruntime.InferenceSession` + `transformers.AutoTokenizer`. Pooling is applied in-process (mask-aware mean, cls at position 0, max over non-padding). Output is L2-normalized.
-2. Else, if `sentence-transformers` is importable, fall back with a warning.
-3. Else, raise `InvalidConfigurationError` with remediation text.
+Per-repo backend selection on cache miss: ONNX Runtime if the repo ships ONNX weights, else `sentence-transformers` (if importable) with a warning, else `InvalidConfigurationError`. An LRU (default size 2, `ONELLM_LOCAL_CACHE_SIZE`) is held at class level so repeated calls reuse the loaded backend. `trust_remote_code` defaults to `True`; `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` is a kill switch. HuggingFace failures normalize to the standard `onellm.errors` classes so cross-provider `fallback_models` chains work.
 
 ### Extras (HARD BREAK on `[cache]`)
 
@@ -36,23 +28,7 @@ Per-repo selection on cache miss:
 | `[local-gpu]` | onnxruntime-gpu + transformers + numpy + faiss-cpu | CUDA EP auto-detected |
 | `[local-pytorch]` | sentence-transformers | fallback for non-ONNX repos |
 
-The old `[cache]` pulled `sentence-transformers` (transitively torch, 500 MB - 1.5 GB depending on platform). Callers pinned to PyTorch-only repos must add `pip install 'onellm[cache,local-pytorch]'`; the error message raised on mismatched installs points at the fix.
-
-### Error taxonomy
-
-Failures from the HuggingFace backend normalize to `onellm.errors` classes, so `fallback_models=["local/...", "openai/..."]` works with the default retriable set.
-
-| Failure | Class |
-|---|---|
-| Missing / invalid repo id | `ResourceNotFoundError` (404) |
-| Gated / private repo, no token | `AuthenticationError` (401) |
-| HF 429 | `RateLimitError` |
-| HF 5xx / network / OOM | `ServiceUnavailableError` |
-| Network timeout | `RequestTimeoutError` |
-| `trust_remote_code` kill switch | `PermissionDeniedError` (403) |
-| Invalid `dimensions` / `pooling` / empty input | `InvalidRequestError` (400) |
-| Extras missing | `InvalidConfigurationError` |
-| Unsupported method (chat / completion / file) | `InvalidRequestError` (400) |
+The old `[cache]` pulled `sentence-transformers` (transitively torch, 500 MB - 1.5 GB). PyTorch-only repos now need `pip install 'onellm[cache,local-pytorch]'`; the mismatch error message points at the fix.
 
 ### `onellm download` snapshot mode
 
@@ -60,24 +36,24 @@ Failures from the HuggingFace backend normalize to `onellm.errors` classes, so `
 onellm download local/nomic-ai/nomic-embed-text-v1.5
 ```
 
-The id after `local/` is passed directly to `huggingface_hub.snapshot_download`. Respects `HF_HOME`. GGUF mode (`--repo-id` / `--filename`) unchanged.
+Passes the id straight to `huggingface_hub.snapshot_download`. Respects `HF_HOME`. GGUF mode (`--repo-id` / `--filename`) unchanged.
 
 ### Semantic cache routes through `LocalProvider`
 
-`cache.py` constructs its embedder via `LocalProvider` so there is one code path that knows how to load embedding models. Public cache API unchanged.
+`cache.py` constructs its embedder via `LocalProvider` so there is one code path for loading local embedding models. Public cache API unchanged.
 
 ### Bug fixes
 
-- **Non-JSON error bodies across aiohttp providers**: new `Provider._read_response_body()` reads bodies as text and parses JSON with a tolerant fallback to `{"error": {"message": <raw>}}`. Applied to OpenAI, Anthropic, Azure OpenAI, Cohere, Google, Mistral, Vertex AI. Fixes `ContentTypeError` leaking when upstream returns non-JSON (WAF pages, gateway timeouts, bare-text 401s).
-- **OpenAI audio `response_format="text"|"srt"|"vtt"`** now returns the raw text body in `TranscriptionResult.text`.
-- **LRU cache moved to class level on `LocalProvider`**: `get_provider("local")` returns a fresh instance per request, so instance-level caches were rebuilt every call. Warm encode drops from ~2 s -> ~150 ms on cached backends.
-- **ONNX `token_type_ids` synthesis**: XLM-R repos (incl. `paraphrase-multilingual-MiniLM-L12-v2`, the cache's default) ship ONNX exports that declare `token_type_ids` even though their RoBERTa tokenizer doesn't emit it. Synthesized as zeros matching `input_ids` shape.
+- **Non-JSON error bodies across aiohttp providers** (OpenAI, Anthropic, Azure OpenAI, Cohere, Google, Mistral, Vertex AI): new `Provider._read_response_body()` parses bodies tolerantly, fixing `ContentTypeError` leaks on WAF pages, gateway timeouts, and bare-text 401s.
+- **OpenAI audio `response_format="text"|"srt"|"vtt"`** now returns the raw text body.
+- **`LocalProvider` LRU moved to class level**: warm encode drops from ~2 s to ~150 ms.
+- **ONNX `token_type_ids` synthesis**: XLM-R repos (incl. the cache's default `paraphrase-multilingual-MiniLM-L12-v2`) declare `token_type_ids` but their tokenizer doesn't emit it; synthesized as zeros.
 
 ### Infrastructure
 
-- `@overload` on `OpenAIProvider._make_request` narrows the return type on `stream: Literal[True|False]` (clears 56 mypy errors).
+- `@overload` on `OpenAIProvider._make_request` narrows return type on `stream: Literal[True|False]` (clears 56 mypy errors).
 - Registered `slow` and `integration` pytest markers.
-- Renamed `CLAUDE.md` to `AGENTS.md` (agent-agnostic convention).
+- Renamed `CLAUDE.md` to `AGENTS.md`.
 
 
 ## 0.20260415.0 - Ollama Model Discovery Fixes
