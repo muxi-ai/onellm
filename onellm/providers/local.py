@@ -353,13 +353,18 @@ class LocalProvider(Provider):
             return bool(caller_value)
         return True
 
-    def _load_model(self, repo: str, trust_remote_code: bool) -> Any:
-        """Load (or return cached) sentence-transformers model for ``repo``.
+    def _instantiate_model(self, repo: str, trust_remote_code: bool) -> Any:
+        """Construct a ``SentenceTransformer`` for ``repo``.
 
-        Wraps the ``SentenceTransformer(...)`` call in
-        :func:`_normalize_errors` so HF / network / OOM failures surface as
-        the appropriate :class:`OneLLMError` subclass (see module docstring
-        for the full mapping).
+        This is the *expensive* part of loading - on a cache miss the call
+        downloads model weights from HuggingFace (hundreds of MBs to a few
+        GBs) and loads them into memory, which can take multiple seconds.
+        Pulled out as its own method so :meth:`_load_model_async` can push
+        it onto a thread-pool executor while cache bookkeeping stays on
+        the event loop.
+
+        Wraps the call in :func:`_normalize_errors` so HF / network / OOM
+        failures surface as the appropriate :class:`OneLLMError` subclass.
         """
         try:
             from sentence_transformers import SentenceTransformer
@@ -370,12 +375,6 @@ class LocalProvider(Provider):
                 provider="local",
             ) from exc
 
-        if repo in self._cache:
-            # Mark as most-recently-used
-            self._cache_order.remove(repo)
-            self._cache_order.append(repo)
-            return self._cache[repo]
-
         if trust_remote_code:
             logger.warning(
                 "Loading %s with trust_remote_code=True. Disable via %s=false.",
@@ -385,17 +384,63 @@ class LocalProvider(Provider):
         logger.info("Loading local embedding model %s", repo)
 
         with _normalize_errors(repo):
-            model = SentenceTransformer(repo, trust_remote_code=trust_remote_code)
+            return SentenceTransformer(repo, trust_remote_code=trust_remote_code)
 
-        # LRU eviction if at capacity.
+    def _cache_lookup(self, repo: str) -> Any | None:
+        """Return the cached model for ``repo`` and mark it MRU, or
+        ``None`` on miss. Plain dict/list ops - fast, safe to call on the
+        event loop thread.
+        """
+        if repo in self._cache:
+            self._cache_order.remove(repo)
+            self._cache_order.append(repo)
+            return self._cache[repo]
+        return None
+
+    def _cache_insert(self, repo: str, model: Any) -> None:
+        """Insert ``model`` under ``repo`` with LRU eviction if at
+        capacity. Fast dict/list ops; safe to call on the event loop.
+        """
         if len(self._cache) >= self._cache_max:
             oldest = self._cache_order.pop(0)
             evicted = self._cache.pop(oldest, None)
             del evicted
             logger.debug("Evicted %s from local provider cache", oldest)
-
         self._cache[repo] = model
         self._cache_order.append(repo)
+
+    def _load_model(self, repo: str, trust_remote_code: bool) -> Any:
+        """Synchronous load (or return cached) for ``repo``.
+
+        Kept as the supported test/helper entry point. Async callers
+        (:meth:`create_embedding`) should use :meth:`_load_model_async`
+        to avoid blocking the event loop on cache miss.
+        """
+        cached = self._cache_lookup(repo)
+        if cached is not None:
+            return cached
+        model = self._instantiate_model(repo, trust_remote_code)
+        self._cache_insert(repo, model)
+        return model
+
+    async def _load_model_async(self, repo: str, trust_remote_code: bool) -> Any:
+        """Async load (or return cached) for ``repo``.
+
+        On cache miss, offloads the multi-second
+        ``SentenceTransformer(...)`` construction to the default executor
+        so the event loop stays responsive. Cache lookup and bookkeeping
+        run on the event loop (dict/list ops are microseconds and are
+        serialized by the single-threaded loop).
+        """
+        cached = self._cache_lookup(repo)
+        if cached is not None:
+            return cached
+
+        loop = asyncio.get_running_loop()
+        model = await loop.run_in_executor(
+            None, lambda: self._instantiate_model(repo, trust_remote_code)
+        )
+        self._cache_insert(repo, model)
         return model
 
     # ------------------------------------------------------------------
@@ -487,7 +532,12 @@ class LocalProvider(Provider):
         # Apply task prefix (if any) and load the model.
         inputs = self._apply_task_prefix(inputs, kwargs.get("task"))
         trust_flag = self._resolve_trust_remote_code(**kwargs)
-        st_model = self._load_model(model, trust_flag)
+
+        # Use the async loader so the *cold-start* download +
+        # SentenceTransformer construction runs off the event loop on
+        # cache miss. The cache-hit fast path is a single dict lookup
+        # and stays on the loop.
+        st_model = await self._load_model_async(model, trust_flag)
 
         # sentence-transformers has no native async API; ``encode`` is a
         # synchronous CPU/GPU-bound call that would stall every coroutine

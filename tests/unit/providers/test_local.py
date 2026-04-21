@@ -27,6 +27,7 @@ downloads or inference happen. Real model load tests live in
 
 import sys
 import types
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -512,8 +513,16 @@ class TestDownloadLocalModel:
         download_local_model("sentence-transformers/all-MiniLM-L6-v2", output_dir=str(tmp_path))
         assert calls["repo_id"] == "sentence-transformers/all-MiniLM-L6-v2"
 
-    def test_hf_home_env_var_respected(self, monkeypatch):
-        captured: dict[str, str] = {}
+    def test_no_explicit_cache_dir_defers_to_hf_hub_default(self, monkeypatch):
+        """Without ``--output`` we must not pass ``cache_dir`` - we let
+        ``huggingface_hub`` resolve it to ``$HUGGINGFACE_HUB_CACHE``
+        (which falls back to ``$HF_HOME/hub``), matching the path
+        ``SentenceTransformer`` consults at load time. Passing
+        ``$HF_HOME`` directly would place the snapshot at
+        ``$HF_HOME/models--*`` while the runtime looks at
+        ``$HF_HOME/hub/models--*`` - the "cached" model would be invisible.
+        """
+        captured: dict[str, Any] = {}
 
         def fake_snapshot_download(repo_id, cache_dir):
             captured["cache_dir"] = cache_dir
@@ -527,7 +536,7 @@ class TestDownloadLocalModel:
         from onellm.cli.download_model import download_local_model
 
         download_local_model("local/nomic-ai/nomic-embed-text-v1.5")
-        assert captured["cache_dir"] == "/custom/hf/cache"
+        assert captured["cache_dir"] is None
 
 
 # ---------------------------------------------------------------------------

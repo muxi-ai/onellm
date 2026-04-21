@@ -131,12 +131,22 @@ def download_local_model(slug: str, output_dir: str | None = None) -> str:
     # Strip "local/" prefix if present - what's left is the HF repo id.
     repo_id = slug[len("local/") :] if slug.startswith("local/") else slug
 
-    cache_dir = (
-        output_dir or os.environ.get("HF_HOME") or os.path.expanduser("~/.cache/huggingface/hub")
-    )
+    # Only override ``cache_dir`` when the user explicitly supplied
+    # ``--output``. Otherwise let huggingface_hub pick its own default,
+    # which resolves to ``$HUGGINGFACE_HUB_CACHE`` (falling back to
+    # ``$HF_HOME/hub`` / ``~/.cache/huggingface/hub``) - the same path
+    # ``SentenceTransformer`` consults at load time. Passing ``$HF_HOME``
+    # directly as ``cache_dir`` places the snapshot at
+    # ``$HF_HOME/models--*`` but ``SentenceTransformer`` looks at
+    # ``$HF_HOME/hub/models--*``, so the "cached" model is invisible at
+    # runtime and inference silently falls back to a fresh download.
+    cache_dir = output_dir if output_dir else None
 
     print(f"Downloading HuggingFace snapshot: {repo_id}")
-    print(f"Destination: {cache_dir}")
+    if cache_dir:
+        print(f"Destination: {cache_dir}")
+    else:
+        print("Destination: huggingface_hub default cache")
 
     try:
         path = snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
