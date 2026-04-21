@@ -34,6 +34,14 @@ from collections import OrderedDict
 logger = logging.getLogger("onellm.cache")
 
 
+# HF repo that backs the semantic cache. Ships ONNX weights under
+# onnx/model.onnx, so the default lean [cache] extras (onnxruntime +
+# transformers) handle it; no PyTorch required. Dimension below must
+# match this model's embedding size.
+_CACHE_MODEL_REPO = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+_CACHE_MODEL_DIM = 384
+
+
 class CacheConfig:
     """Configuration for cache behavior."""
 
@@ -112,22 +120,49 @@ class SimpleCache:
             self._init_semantic()
 
     def _init_semantic(self):
-        """Lazy load semantic search components."""
+        """Lazy load semantic search components via LocalProvider.
+
+        Routes the embedder construction through ``LocalProvider`` so the
+        cache gets whichever backend the user installed (ONNX Runtime by
+        default, PyTorch fallback if only the legacy extra is present).
+        That way we have exactly one code path that knows how to load
+        embedding models - no drift between cache.py and the provider.
+        """
         try:
             import faiss
             import numpy as np
-            from sentence_transformers import SentenceTransformer
 
-            logger.info("Loading cache embedding model (one-time, ~13s)...")
-            self.embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-            self.semantic_index = faiss.IndexFlatIP(384)  # Inner product for similarity
-            self.np = np  # Store numpy reference
-            logger.info("✅ Cache initialized with multilingual support (50+ languages)")
+            from .providers.local import LocalProvider
+
+            logger.info("Loading cache embedding backend (one-time)...")
+            # Small LRU (size=1) since we only ever load the cache model.
+            self._local_provider = LocalProvider(cache_size=1)
+            # Sync load is fine here: this is called from __init__ at
+            # app startup, not from a running event loop.
+            self.embedder = self._local_provider._load_model(
+                _CACHE_MODEL_REPO, trust_remote_code=False
+            )
+            self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
+            self.np = np
+            logger.info("Cache initialized with multilingual support (50+ languages)")
 
         except ImportError as e:
             warnings.warn(
                 f"Semantic cache disabled due to missing dependencies: {e}. "
-                f"Install with: pip install 'onellm[cache]'. "
+                f"Install with: pip install 'onellm[cache]' "
+                f"(ONNX Runtime, ~60 MB) or pip install 'onellm[local-pytorch]' "
+                f"(PyTorch fallback, ~1 GB, for non-ONNX repos). "
+                f"Falling back to hash-only mode (exact matches only).",
+                UserWarning,
+                stacklevel=2,
+            )
+            self.config.hash_only = True
+        except Exception as e:
+            # Backend construction can fail with InvalidConfigurationError
+            # (no ONNX weights + no sentence-transformers) or normalized
+            # HF errors. Degrade to hash-only rather than break the app.
+            warnings.warn(
+                f"Semantic cache disabled: {e}. "
                 f"Falling back to hash-only mode (exact matches only).",
                 UserWarning,
                 stacklevel=2,
@@ -229,8 +264,10 @@ class SimpleCache:
         if self.embedder is None or self.semantic_index.ntotal == 0:
             return None
 
-        # Generate embedding for query (pass as list for batch processing)
-        embedding = self.embedder.encode([text], convert_to_numpy=True)
+        # Generate embedding for query. Both backends (ONNX and PyTorch)
+        # return L2-normalized numpy arrays; no convert_to_numpy kwarg
+        # is needed.
+        embedding = self.embedder.encode([text])
 
         # Extract first embedding from batch
         if len(embedding.shape) == 2:
@@ -368,8 +405,10 @@ class SimpleCache:
                         return
 
                     logger.debug(f"Encoding text for cache (length: {len(text)} chars)")
-                    embedding = self.embedder.encode([text], convert_to_numpy=True)
-                    logger.debug(f"Generated embedding (shape: {embedding.shape}, dtype: {embedding.dtype})")
+                    embedding = self.embedder.encode([text])
+                    logger.debug(
+                        f"Generated embedding (shape: {embedding.shape}, dtype: {embedding.dtype})"
+                    )
 
                     # Extract first embedding (encode with list returns batch)
                     if len(embedding.shape) == 2:
@@ -416,7 +455,7 @@ class SimpleCache:
         import numpy as np
 
         # Create new index with correct dimension
-        self.semantic_index = faiss.IndexFlatIP(384)
+        self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
 
         # Re-add all remaining embeddings in order
         if self.semantic_data:
@@ -442,7 +481,7 @@ class SimpleCache:
         if self.semantic_index is not None:
             import faiss
 
-            self.semantic_index = faiss.IndexFlatIP(384)
+            self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
 
         logger.info("Cache cleared")
 
@@ -501,7 +540,9 @@ class SimpleCache:
             # Rejoin punctuation with sentences
             sentence_list = []
             for i in range(0, len(sentences) - 1, 2):
-                sentence_list.append(sentences[i] + (sentences[i + 1] if i + 1 < len(sentences) else ""))
+                sentence_list.append(
+                    sentences[i] + (sentences[i + 1] if i + 1 < len(sentences) else "")
+                )
             if len(sentences) % 2 == 1:  # Last item if odd number
                 sentence_list.append(sentences[-1])
 

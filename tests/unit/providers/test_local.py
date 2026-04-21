@@ -20,9 +20,11 @@
 """
 Unit tests for the local embedding provider.
 
-All tests mock ``sentence_transformers.SentenceTransformer`` so no model
-downloads or inference happen. Real model load tests live in
-``tests/integration/test_local_provider.py`` behind a slow marker.
+Tests mock one of two backends - ``onnxruntime.InferenceSession`` +
+``transformers.AutoTokenizer`` for the default ONNX path, or
+``sentence_transformers.SentenceTransformer`` for the PyTorch fallback -
+so no model downloads or inference happen. Real model load tests live
+in ``tests/integration/test_local_provider.py`` behind a slow marker.
 """
 
 import sys
@@ -49,15 +51,40 @@ from onellm.models import EmbeddingResponse
 from onellm.providers.local import LocalProvider, _normalize_errors
 
 
+@pytest.fixture(autouse=True)
+def _reset_local_provider_cache():
+    """Clear ``LocalProvider``'s class-level LRU state between tests.
+
+    Phase 2 moved the cache from instance-level to class-level so it
+    survives ``get_provider("local")``'s "new instance per request"
+    pattern. The tradeoff is that tests would otherwise inherit state
+    from previous tests, so we reset before AND after each test.
+    """
+    LocalProvider._reset_cache_for_tests()
+    yield
+    LocalProvider._reset_cache_for_tests()
+
+
 @pytest.fixture
 def fake_sentence_transformers(monkeypatch):
-    """Install a fake ``sentence_transformers`` module in ``sys.modules``.
+    """Install a fake ``sentence_transformers`` module and force the
+    PyTorch fallback path by reporting no ONNX weights.
 
     Each call to ``SentenceTransformer(repo, trust_remote_code=...)`` returns
     a fresh :class:`MagicMock` whose ``.encode`` method returns an 8-dim
     vector per input. Tests that need a specific shape override
     ``SentenceTransformer.side_effect`` to build their own mocks.
+
+    This fixture is intentionally narrow: it only exercises the PyTorch
+    fallback branch. The ONNX backend has its own fixture
+    (:func:`fake_onnx_backend`). Tests that need to verify cross-backend
+    behavior (e.g. error normalization) can use either.
     """
+    # Force the ONNX discovery step to miss, so _instantiate_model falls
+    # through to _instantiate_pytorch_backend. Without this, the backend
+    # selector would try hf_hub_download against the live HF hub.
+    monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
+
     fake_module = types.ModuleType("sentence_transformers")
 
     def _factory(repo, trust_remote_code=False, **kwargs):
@@ -75,6 +102,110 @@ def fake_sentence_transformers(monkeypatch):
     fake_module.SentenceTransformer = fake_st_class
     monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
     return fake_st_class
+
+
+@pytest.fixture
+def fake_onnx_backend(monkeypatch):
+    """Install fake ``onnxruntime`` + ``transformers`` modules and route
+    ``_try_download_onnx_weights`` to a non-None path so the ONNX backend
+    is selected.
+
+    Returns a dict with ``tokenizer_factory``, ``session_factory``, and
+    ``inputs_record`` handles so tests can customize behavior (output
+    shape, declared input names, captured tokenizer calls) without
+    rebuilding the fixture.
+    """
+    # Force the ONNX selector to return a sentinel path; the value itself
+    # is opaque since the fake InferenceSession below ignores it.
+    monkeypatch.setattr(
+        "onellm.providers.local._try_download_onnx_weights",
+        lambda repo: "/fake/onnx/model.onnx",
+    )
+
+    tokenizer_calls: list[dict[str, Any]] = []
+    session_calls: list[dict[str, Any]] = []
+
+    def _default_tokenizer(repo):
+        tok = MagicMock(name=f"AutoTokenizer({repo!r})")
+        tok.model_max_length = 512
+
+        def _tokenize(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+            # Store the call for inspection in tests.
+            tokenizer_calls.append(
+                {
+                    "texts": list(texts),
+                    "padding": padding,
+                    "truncation": truncation,
+                    "max_length": max_length,
+                    "return_tensors": return_tensors,
+                }
+            )
+            # Return padded token ids + attention mask. Vary lengths so
+            # attention-mask-aware pooling is actually tested.
+            lens = [max(1, len(t.split())) for t in texts]
+            max_len = max(lens)
+            input_ids = np.zeros((len(texts), max_len), dtype=np.int64)
+            attention_mask = np.zeros((len(texts), max_len), dtype=np.int64)
+            for i, ln in enumerate(lens):
+                input_ids[i, :ln] = np.arange(1, ln + 1)
+                attention_mask[i, :ln] = 1
+            return {"input_ids": input_ids, "attention_mask": attention_mask}
+
+        tok.side_effect = _tokenize
+        return tok
+
+    def _default_session(_onnx_path, providers=None):
+        sess = MagicMock(name="InferenceSession")
+        # Declare both input_ids and attention_mask; tests for the
+        # "filter unexpected inputs" branch override this.
+        input1 = MagicMock()
+        input1.name = "input_ids"
+        input2 = MagicMock()
+        input2.name = "attention_mask"
+        sess.get_inputs.return_value = [input1, input2]
+
+        def _run(_out_names, inputs):
+            session_calls.append({"inputs": {k: v.copy() for k, v in inputs.items()}})
+            # Return token-level embeddings of shape (batch, seq, hidden=4).
+            # Values vary along BOTH the seq and hidden axes so mean/cls/max
+            # pooling each produce distinct (and distinct-after-L2) outputs.
+            batch, seq = inputs["input_ids"].shape
+            positions = np.arange(1, seq + 1, dtype=np.float32)[:, None]  # (seq, 1)
+            dims = np.arange(4, dtype=np.float32)  # (hidden,)
+            token_emb = positions + dims * 0.1  # (seq, hidden) via broadcasting
+            token_emb = np.broadcast_to(token_emb, (batch, seq, 4)).copy()
+            return [token_emb]
+
+        sess.run.side_effect = _run
+        return sess
+
+    state: dict[str, Any] = {
+        "tokenizer_factory": _default_tokenizer,
+        "session_factory": _default_session,
+        "tokenizer_calls": tokenizer_calls,
+        "session_calls": session_calls,
+    }
+
+    def _tokenizer_factory_wrapper(repo, **_kwargs):
+        return state["tokenizer_factory"](repo)
+
+    def _session_factory_wrapper(onnx_path, providers=None):
+        return state["session_factory"](onnx_path, providers)
+
+    fake_ort = types.ModuleType("onnxruntime")
+    fake_ort.InferenceSession = MagicMock(side_effect=_session_factory_wrapper)
+    fake_ort.get_available_providers = MagicMock(return_value=["CPUExecutionProvider"])
+
+    fake_transformers = types.ModuleType("transformers")
+    fake_transformers.AutoTokenizer = MagicMock()
+    fake_transformers.AutoTokenizer.from_pretrained = MagicMock(
+        side_effect=_tokenizer_factory_wrapper
+    )
+
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+    return state
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +318,23 @@ class TestLRUCache:
         provider = LocalProvider()
         assert provider._cache_max == 2
 
+    def test_cache_is_shared_across_instances(self, fake_sentence_transformers):
+        """Regression: providers.base.get_provider('local') creates a new
+        LocalProvider on every Embedding.acreate call. Without class-level
+        storage, each request would see an empty cache and reload the
+        model from HF - defeating the whole point. Two distinct instances
+        must observe each other's cache contents.
+        """
+        first = LocalProvider()
+        first._load_model("shared-repo/x", trust_remote_code=False)
+        second = LocalProvider()  # simulates a fresh dispatcher call
+        assert "shared-repo/x" in second._cache
+        # And a cache-hit through the second instance must not trigger
+        # a new _instantiate_model call.
+        before_count = fake_sentence_transformers.call_count
+        second._load_model("shared-repo/x", trust_remote_code=False)
+        assert fake_sentence_transformers.call_count == before_count
+
     def test_concurrent_winner_does_not_corrupt_cache_order(self, fake_sentence_transformers):
         """Regression: two coroutines observing a cache miss for the same
         repo at the same time both race through ``_instantiate_model`` and
@@ -222,33 +370,57 @@ class TestLRUCache:
 
 
 class TestLoadModel:
-    def test_load_passes_trust_flag_through_to_sentence_transformers(
+    def test_pytorch_fallback_passes_trust_flag_through(self, fake_sentence_transformers):
+        provider = LocalProvider()
+        backend = provider._load_model("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
+        # Backend unwrap: _PyTorchBackend.st_model is the MagicMock.
+        assert backend.st_model._trust_remote_code is True
+
+    def test_pytorch_fallback_can_refuse_trust_when_caller_passes_false(
         self, fake_sentence_transformers
     ):
         provider = LocalProvider()
-        model = provider._load_model("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
-        assert model._trust_remote_code is True
-
-    def test_load_can_refuse_trust_when_caller_passes_false(self, fake_sentence_transformers):
-        provider = LocalProvider()
-        model = provider._load_model("foo/bar", trust_remote_code=False)
-        assert model._trust_remote_code is False
+        backend = provider._load_model("foo/bar", trust_remote_code=False)
+        assert backend.st_model._trust_remote_code is False
 
 
 # ---------------------------------------------------------------------------
-# Missing [cache] extra
+# Missing backends
 # ---------------------------------------------------------------------------
 
 
 class TestMissingExtra:
-    def test_load_model_raises_when_sentence_transformers_missing(self, monkeypatch):
-        """If sentence-transformers can't import, give a clear install hint."""
+    def test_load_model_raises_when_no_onnx_and_no_sentence_transformers(self, monkeypatch):
+        """Hard break: no ONNX weights + no [local-pytorch] = clear install hint
+        pointing to both remediation paths.
+        """
+        # Force ONNX discovery to miss.
+        monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
+        # Block sentence_transformers import.
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
         provider = LocalProvider()
         with pytest.raises(InvalidConfigurationError) as exc:
             provider._load_model("foo/bar", trust_remote_code=False)
-        assert "[cache]" in str(exc.value) or "cache" in str(exc.value)
+        msg = str(exc.value)
+        # Remediation must mention both the ONNX-ready path and the
+        # PyTorch fallback extra.
+        assert "ONNX" in msg or "onnx" in msg or "local-pytorch" in msg
         assert exc.value.provider == "local"
+
+    def test_load_model_raises_when_onnx_extra_missing(self, monkeypatch):
+        """ONNX weights found but onnxruntime/transformers not installed -
+        raise with [cache] install hint rather than falling through.
+        """
+        monkeypatch.setattr(
+            "onellm.providers.local._try_download_onnx_weights",
+            lambda repo: "/fake/onnx/model.onnx",
+        )
+        monkeypatch.setitem(sys.modules, "onnxruntime", None)
+        monkeypatch.setitem(sys.modules, "transformers", None)
+        provider = LocalProvider()
+        with pytest.raises(InvalidConfigurationError) as exc:
+            provider._load_model("foo/bar", trust_remote_code=False)
+        assert "onellm[cache]" in str(exc.value)
 
 
 # ---------------------------------------------------------------------------
@@ -762,10 +934,21 @@ class TestErrorNormalizationContext:
 
 
 class TestErrorNormalizationIntegration:
-    """End-to-end: errors raised by the fake SentenceTransformer surface
-    through _load_model and create_embedding with the right onellm class."""
+    """End-to-end: errors raised by the fake backend surface through
+    _load_model and create_embedding with the right onellm class.
+
+    These tests exercise the PyTorch fallback path (simpler to fake
+    exhaustively than onnxruntime); the normalization context wraps
+    both backends identically so the PyTorch path is representative.
+    """
+
+    @staticmethod
+    def _force_pytorch_path(monkeypatch):
+        """Skip ONNX discovery so errors come from the pytorch backend."""
+        monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
 
     def test_load_model_surfaces_repo_not_found(self, monkeypatch):
+        self._force_pytorch_path(monkeypatch)
         fake_module = types.ModuleType("sentence_transformers")
 
         def _factory(repo, trust_remote_code=False, **kw):
@@ -782,6 +965,7 @@ class TestErrorNormalizationIntegration:
         assert exc.value.status_code == 404
 
     def test_load_model_surfaces_rate_limit(self, monkeypatch):
+        self._force_pytorch_path(monkeypatch)
         fake_module = types.ModuleType("sentence_transformers")
 
         def _factory(repo, trust_remote_code=False, **kw):
@@ -796,6 +980,7 @@ class TestErrorNormalizationIntegration:
         assert exc.value.status_code == 429
 
     def test_load_model_surfaces_network_failure(self, monkeypatch):
+        self._force_pytorch_path(monkeypatch)
         fake_module = types.ModuleType("sentence_transformers")
 
         def _factory(repo, trust_remote_code=False, **kw):
@@ -809,6 +994,7 @@ class TestErrorNormalizationIntegration:
             provider._load_model("foo/bar", trust_remote_code=True)
 
     def test_encode_failure_surfaces_as_apierror(self, monkeypatch):
+        self._force_pytorch_path(monkeypatch)
         fake_module = types.ModuleType("sentence_transformers")
 
         def _factory(repo, trust_remote_code=False, **kw):
@@ -826,6 +1012,7 @@ class TestErrorNormalizationIntegration:
             asyncio.run(provider.create_embedding(input="hi", model="foo/bar"))
 
     def test_encode_oom_surfaces_as_service_unavailable(self, monkeypatch):
+        self._force_pytorch_path(monkeypatch)
         fake_module = types.ModuleType("sentence_transformers")
 
         def _factory(repo, trust_remote_code=False, **kw):
@@ -895,3 +1082,393 @@ class TestFallbackRetriableMapping:
         assert not issubclass(PermissionDeniedError, retriable)
         assert not issubclass(InvalidRequestError, retriable)
         assert not issubclass(InvalidConfigurationError, retriable)
+
+
+# ---------------------------------------------------------------------------
+# Backend selection
+# ---------------------------------------------------------------------------
+
+
+class TestBackendSelection:
+    def test_prefers_onnx_when_available(self, fake_onnx_backend):
+        from onellm.providers.local import _OnnxBackend
+
+        provider = LocalProvider()
+        backend = provider._load_model("any/repo", trust_remote_code=False)
+        assert isinstance(backend, _OnnxBackend)
+
+    def test_falls_back_to_pytorch_when_no_onnx_weights(self, fake_sentence_transformers):
+        """fake_sentence_transformers forces _try_download_onnx_weights to
+        return None; we should land on _PyTorchBackend."""
+        from onellm.providers.local import _PyTorchBackend
+
+        provider = LocalProvider()
+        backend = provider._load_model("any/repo", trust_remote_code=False)
+        assert isinstance(backend, _PyTorchBackend)
+
+    def test_pytorch_fallback_emits_warning(self, fake_sentence_transformers, caplog):
+        import logging
+
+        caplog.set_level(logging.WARNING, logger="onellm.providers.local")
+        provider = LocalProvider()
+        provider._load_model("any/repo", trust_remote_code=False)
+        # One of the warnings should flag the ONNX-preferred path.
+        assert any(
+            "no ONNX weights" in rec.message or "ONNX" in rec.message for rec in caplog.records
+        )
+
+    def test_try_download_onnx_weights_walks_candidates(self, monkeypatch):
+        """The selector must try all three weight paths before giving up."""
+        from huggingface_hub.errors import EntryNotFoundError
+
+        from onellm.providers.local import _ONNX_WEIGHT_CANDIDATES, _try_download_onnx_weights
+
+        attempted: list[str] = []
+
+        def fake_download(repo_id, filename):
+            attempted.append(filename)
+            raise EntryNotFoundError(f"no {filename}")
+
+        fake_hf = types.ModuleType("huggingface_hub")
+        fake_hf.hf_hub_download = fake_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_hf)
+        # Re-export EntryNotFoundError into the huggingface_hub.errors
+        # namespace our callee imports from.
+        fake_hf_errors = types.ModuleType("huggingface_hub.errors")
+        fake_hf_errors.EntryNotFoundError = EntryNotFoundError
+        monkeypatch.setitem(sys.modules, "huggingface_hub.errors", fake_hf_errors)
+
+        result = _try_download_onnx_weights("foo/bar")
+        assert result is None
+        assert attempted == list(_ONNX_WEIGHT_CANDIDATES)
+
+    def test_try_download_onnx_weights_returns_first_hit(self, monkeypatch):
+        from huggingface_hub.errors import EntryNotFoundError
+
+        from onellm.providers.local import _try_download_onnx_weights
+
+        def fake_download(repo_id, filename):
+            if filename == "onnx/model.onnx":
+                return "/cached/onnx/model.onnx"
+            raise EntryNotFoundError(f"no {filename}")
+
+        fake_hf = types.ModuleType("huggingface_hub")
+        fake_hf.hf_hub_download = fake_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_hf)
+        fake_hf_errors = types.ModuleType("huggingface_hub.errors")
+        fake_hf_errors.EntryNotFoundError = EntryNotFoundError
+        monkeypatch.setitem(sys.modules, "huggingface_hub.errors", fake_hf_errors)
+
+        assert _try_download_onnx_weights("foo/bar") == "/cached/onnx/model.onnx"
+
+
+# ---------------------------------------------------------------------------
+# ONNX backend behavior
+# ---------------------------------------------------------------------------
+
+
+class TestOnnxBackend:
+    async def test_encode_returns_l2_normalized_batch(self, fake_onnx_backend):
+        provider = LocalProvider()
+        resp = await provider.create_embedding(
+            input=["hello world", "short"],
+            model="any/repo",
+        )
+        assert len(resp.data) == 2
+        # Each row must be unit-norm (L2 normalization in the backend).
+        for item in resp.data:
+            assert abs(float(np.linalg.norm(item.embedding)) - 1.0) < 1e-5
+
+    async def test_tokenizer_called_with_padding_and_truncation(self, fake_onnx_backend):
+        provider = LocalProvider()
+        await provider.create_embedding(input="hello world", model="any/repo")
+        calls = fake_onnx_backend["tokenizer_calls"]
+        assert calls, "tokenizer was never called"
+        last = calls[-1]
+        assert last["padding"] is True
+        assert last["truncation"] is True
+        assert last["return_tensors"] == "np"
+        # max_length is capped at 512 even if the tokenizer advertises
+        # something higher.
+        assert last["max_length"] <= 512
+
+    async def test_session_requires_token_type_ids_but_tokenizer_omits_it(self, fake_onnx_backend):
+        """Regression: XLM-R-family models (e.g. paraphrase-multilingual-
+        MiniLM-L12-v2) ship ONNX exports that declare token_type_ids as
+        an input, but their RoBERTa-based tokenizer doesn't emit it.
+        Without synthesis the session would raise InvalidArgument and
+        the semantic cache would silently fail on add.
+        """
+
+        def xlmr_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = 512
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                lens = [max(1, len(t.split())) for t in texts]
+                max_len = max(lens)
+                # Note: no token_type_ids key - matches XLM-R tokenizer behavior.
+                return {
+                    "input_ids": np.ones((len(texts), max_len), dtype=np.int64),
+                    "attention_mask": np.ones((len(texts), max_len), dtype=np.int64),
+                }
+
+            tok.side_effect = _tok
+            return tok
+
+        def xlmr_session(_path, providers=None):
+            sess = MagicMock()
+            input_ids = MagicMock()
+            input_ids.name = "input_ids"
+            attn = MagicMock()
+            attn.name = "attention_mask"
+            tt = MagicMock()
+            tt.name = "token_type_ids"
+            sess.get_inputs.return_value = [input_ids, attn, tt]
+
+            def _run(_names, inputs):
+                # Assert token_type_ids was synthesized.
+                assert "token_type_ids" in inputs
+                assert (inputs["token_type_ids"] == 0).all()
+                assert inputs["token_type_ids"].shape == inputs["input_ids"].shape
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["tokenizer_factory"] = xlmr_tokenizer
+        fake_onnx_backend["session_factory"] = xlmr_session
+
+        provider = LocalProvider()
+        resp = await provider.create_embedding(input=["hi there"], model="xlmr/repo")
+        assert len(resp.data) == 1
+
+    async def test_only_declared_session_inputs_are_passed(self, fake_onnx_backend):
+        """If a model declares only input_ids (no attention_mask), we must
+        not pass attention_mask (would raise InvalidArgument in real ort)."""
+
+        # Reconfigure the session to declare only input_ids.
+        def one_input_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            sess.get_inputs.return_value = [inp]
+
+            def _run(_names, inputs):
+                # Assert only input_ids was passed.
+                assert list(inputs.keys()) == ["input_ids"]
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = one_input_session
+        provider = LocalProvider()
+        resp = await provider.create_embedding(input=["hi"], model="any/repo")
+        assert len(resp.data) == 1
+
+    async def test_max_length_hard_capped_at_512(self, fake_onnx_backend):
+        """Some tokenizer configs advertise absurd model_max_length; we
+        cap at 512 to avoid OOM."""
+
+        # Override the tokenizer to report a huge model_max_length.
+        def big_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = int(1e30)
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                fake_onnx_backend["tokenizer_calls"].append({"max_length": max_length})
+                ids = np.ones((len(texts), 2), dtype=np.int64)
+                mask = np.ones((len(texts), 2), dtype=np.int64)
+                return {"input_ids": ids, "attention_mask": mask}
+
+            tok.side_effect = _tok
+            return tok
+
+        fake_onnx_backend["tokenizer_factory"] = big_tokenizer
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="any/repo")
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 512
+
+    async def test_pre_pooled_2d_output_skips_pooling(self, fake_onnx_backend):
+        """Some ONNX exports (Optimum with fused pooling head, SBERT
+        ONNX exports) emit an already-pooled (batch, hidden) tensor as
+        outputs[0]. The backend must detect that shape and skip
+        _pool_embeddings; otherwise cls pooling would IndexError on the
+        2D slice and mean/max would produce nonsense.
+        """
+
+        def pre_pooled_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            sess.get_inputs.return_value = [inp, inp2]
+
+            def _run(_names, inputs):
+                batch = inputs["input_ids"].shape[0]
+                # Already pooled: (batch, hidden=4)
+                return [np.array([[1.0, 2.0, 2.0, 1.0]] * batch, dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = pre_pooled_session
+        provider = LocalProvider()
+        resp = await provider.create_embedding(input=["hi"], model="any/repo", pooling="cls")
+        # Should not crash; result must still be L2-normalized.
+        assert abs(float(np.linalg.norm(resp.data[0].embedding)) - 1.0) < 1e-5
+
+    async def test_trust_remote_code_forwarded_to_onnx_tokenizer(
+        self, fake_onnx_backend, monkeypatch
+    ):
+        """Regression: the ONNX path used to drop trust_remote_code on
+        the floor (AutoTokenizer.from_pretrained was called without it),
+        so repos whose tokenizer ships custom Python code (Jina v3,
+        Nomic variants) would blow up with no hint. The flag must now
+        be threaded through to AutoTokenizer.from_pretrained.
+        """
+        import transformers  # type: ignore[import-not-found]
+
+        monkeypatch.delenv("ONELLM_ALLOW_TRUST_REMOTE_CODE", raising=False)
+        # Use cache_size=1 + distinct repos so each call forces a fresh
+        # tokenizer load - otherwise the LRU would serve the second call
+        # from cache and the trust_remote_code flag would never propagate.
+        provider = LocalProvider(cache_size=1)
+
+        # Default: trust_remote_code=True.
+        await provider.create_embedding(input="hi", model="repo-a/default")
+        first = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert first.kwargs.get("trust_remote_code") is True
+
+        # Explicit False from the caller must propagate.
+        await provider.create_embedding(
+            input="hi", model="repo-b/opts-out", trust_remote_code=False
+        )
+        second = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert second.kwargs.get("trust_remote_code") is False
+
+
+# ---------------------------------------------------------------------------
+# Pooling
+# ---------------------------------------------------------------------------
+
+
+class TestPooling:
+    async def test_default_pooling_is_mean(self, fake_onnx_backend):
+        """Calling without a pooling kwarg should produce the same result
+        as passing pooling='mean'."""
+        provider = LocalProvider()
+        default = await provider.create_embedding(input=["hello world"], model="any/repo")
+        explicit = await provider.create_embedding(
+            input=["hello world"], model="any/repo", pooling="mean"
+        )
+        np.testing.assert_allclose(default.data[0].embedding, explicit.data[0].embedding, atol=1e-6)
+
+    async def test_cls_pooling_differs_from_mean(self, fake_onnx_backend):
+        """CLS pooling picks position 0; mean averages across all positions.
+        The fake backend emits distinct per-position values so the outputs
+        must differ."""
+        provider = LocalProvider()
+        mean = await provider.create_embedding(
+            input=["hello world"], model="any/repo", pooling="mean"
+        )
+        cls = await provider.create_embedding(
+            input=["hello world"], model="any/repo", pooling="cls"
+        )
+        # Both unit-norm, but vectors should not be identical.
+        assert not np.allclose(mean.data[0].embedding, cls.data[0].embedding)
+
+    async def test_max_pooling_differs_from_mean(self, fake_onnx_backend):
+        provider = LocalProvider()
+        mean = await provider.create_embedding(
+            input=["hello world"], model="any/repo", pooling="mean"
+        )
+        mx = await provider.create_embedding(input=["hello world"], model="any/repo", pooling="max")
+        assert not np.allclose(mean.data[0].embedding, mx.data[0].embedding)
+
+    async def test_invalid_pooling_rejected_before_load(self, monkeypatch):
+        """Validation happens before the backend is touched, so this must
+        not require any backend fixture."""
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError) as exc:
+            await provider.create_embedding(input="hi", model="foo/bar", pooling="weighted")
+        assert exc.value.status_code == 400
+        assert exc.value.provider == "local"
+
+    async def test_pytorch_backend_warns_on_pooling_override(
+        self, fake_sentence_transformers, caplog
+    ):
+        import logging
+
+        caplog.set_level(logging.WARNING, logger="onellm.providers.local")
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="pytorch-only/repo", pooling="cls")
+        # Backend should log a warning about the override being ignored.
+        assert any("pooling" in rec.message and "PyTorch" in rec.message for rec in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# Pooling helpers (unit-level)
+# ---------------------------------------------------------------------------
+
+
+class TestPoolingHelpers:
+    def test_mean_pool_respects_attention_mask(self):
+        """Padding positions (mask=0) must not dilute the mean of short
+        inputs in a batch."""
+        from onellm.providers.local import _pool_embeddings
+
+        # Batch of 2 with different real lengths (2 and 3).
+        tokens = np.array(
+            [
+                [[1.0, 1.0], [1.0, 1.0], [999.0, 999.0]],  # last is padding
+                [[2.0, 2.0], [2.0, 2.0], [2.0, 2.0]],
+            ],
+            dtype=np.float32,
+        )
+        mask = np.array([[1, 1, 0], [1, 1, 1]], dtype=np.int64)
+        out = _pool_embeddings(tokens, mask, "mean")
+        # Row 0 averages only the first two tokens -> [1.0, 1.0]
+        np.testing.assert_allclose(out[0], [1.0, 1.0], atol=1e-6)
+        np.testing.assert_allclose(out[1], [2.0, 2.0], atol=1e-6)
+
+    def test_cls_pool_picks_first_token(self):
+        from onellm.providers.local import _pool_embeddings
+
+        tokens = np.array(
+            [
+                [[7.0, 7.0], [1.0, 1.0], [1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        mask = np.ones((1, 3), dtype=np.int64)
+        out = _pool_embeddings(tokens, mask, "cls")
+        np.testing.assert_allclose(out[0], [7.0, 7.0])
+
+    def test_max_pool_ignores_padding(self):
+        """Padding positions must be masked with -inf so they don't win."""
+        from onellm.providers.local import _pool_embeddings
+
+        tokens = np.array(
+            [
+                [[1.0, 1.0], [2.0, 2.0], [1e9, 1e9]],  # last is padding
+            ],
+            dtype=np.float32,
+        )
+        mask = np.array([[1, 1, 0]], dtype=np.int64)
+        out = _pool_embeddings(tokens, mask, "max")
+        np.testing.assert_allclose(out[0], [2.0, 2.0])
+
+    def test_l2_normalize_handles_zero_vector(self):
+        from onellm.providers.local import _l2_normalize
+
+        vectors = np.array([[0.0, 0.0], [3.0, 4.0]], dtype=np.float32)
+        out = _l2_normalize(vectors)
+        # Zero row stays zero (safe division), non-zero row becomes unit.
+        np.testing.assert_allclose(out[0], [0.0, 0.0])
+        np.testing.assert_allclose(out[1], [0.6, 0.8], atol=1e-6)
