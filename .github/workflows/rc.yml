@@ -25,7 +25,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --require-hashes -r requirements/pip.txt
-          pip install -e ".[dev]"
+          # [dev] for test tooling + [cache] for numpy, onnxruntime, and
+          # transformers (needed by tests/unit/providers/test_local.py
+          # even though the actual onnxruntime/transformers classes are
+          # mocked; numpy is used directly in test fixtures and
+          # pool/normalize helpers).
+          pip install -e ".[dev,cache]"
 
       - name: Lint with ruff
         run: ruff check onellm tests
