@@ -67,7 +67,7 @@ onellm download --repo-id "TheBloke/Llama-2-7B-GGUF" --filename "llama-2-7b.Q4_K
 onellm download -r "microsoft/Phi-3-mini-4k-instruct-gguf" -f "Phi-3-mini-4k-instruct-q4.gguf" -o /path/to/models
 ```
 
-For the in-process `local/` embedding provider (HuggingFace sentence-transformers), pass the full repo id to pre-download a snapshot into the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`):
+For the in-process `local/` embedding provider (HuggingFace embedding models, ONNX-first), pass the full repo id to pre-download a snapshot into the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`):
 
 ```bash
 onellm download local/nomic-ai/nomic-embed-text-v1.5
@@ -419,7 +419,7 @@ response = Embedding.create(
 
 #### Local embeddings (`local/` provider)
 
-Any HuggingFace sentence-transformers model works — the id after `local/` is passed straight to HuggingFace. No registry, no curation. Install the extra once with `pip install "onellm[cache]"`, then call through the same `Embedding.create()` surface as cloud providers:
+Any HuggingFace embedding model works — the id after `local/` is passed straight to HuggingFace. No registry, no curation. Install the extra once with `pip install "onellm[cache]"` (lean ONNX Runtime path, ~60 MB), then call through the same `Embedding.create()` surface as cloud providers:
 
 ```python
 from onellm import Embedding
@@ -430,16 +430,26 @@ response = Embedding.create(
     input="search_document: The quick brown fox jumps over the lazy dog",
     dimensions=768,             # Matryoshka truncation (symmetric with OpenAI text-embedding-3-*)
     task="search_document",      # prepended as "search_document: " to each input
+    pooling="mean",             # "mean" (default) | "cls" | "max" - ONNX backend only
 )
 vec = response.data[0].embedding
 ```
+
+**Backend selection**: on first load of a repo, OneLLM looks for ONNX weights (`onnx/model.onnx`, `model.onnx`, or `onnx/model_quantized.onnx`). If present, the repo runs on ONNX Runtime (fast, lean). If absent, OneLLM falls back to `sentence-transformers` *only if it's already installed* (via `onellm[local-pytorch]`); otherwise raises a clear error with remediation.
+
+**Extras reference**:
+
+- `onellm[cache]` — lean default: `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`. ~60 MB.
+- `onellm[local-gpu]` — CUDA acceleration: replaces the CPU wheel with `onnxruntime-gpu`. Picks up `CUDAExecutionProvider` automatically.
+- `onellm[local-pytorch]` — PyTorch fallback: pulls `sentence-transformers` (transitively `torch`, ~1 GB) for repos that don't ship ONNX weights.
 
 Knobs:
 
 - `dimensions=<int>` — truncate and L2-renormalize (pass-through; caller owns whether the size makes sense for the chosen model).
 - `task=<str>` — prepend `f"{task}: "` to every input. Matches the Nomic prefix convention; other models ignore the extra tokens.
+- `pooling=<"mean"|"cls"|"max">` — override the token-embedding reduction on the ONNX backend (default `"mean"`). The PyTorch fallback bakes pooling into the model at load time; requesting a non-default strategy there emits a one-shot warning.
 - `trust_remote_code=<bool>` — defaults to `True` (models like Nomic ship custom pooling code). Set `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` as a global kill switch that overrides per-call kwargs.
-- `ONELLM_LOCAL_CACHE_SIZE=<int>` — LRU size for the in-memory `SentenceTransformer` cache (default 2).
+- `ONELLM_LOCAL_CACHE_SIZE=<int>` — LRU size for the in-memory backend cache (default 2).
 
 Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`), so downloads are shared with every other HF-using tool in the environment.
 

@@ -1,5 +1,107 @@
 # CHANGELOG
 
+## Unreleased - Local Provider Phase 2: ONNX Runtime backend
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### HARD BREAK on the `[cache]` extra
+
+**If you install `onellm[cache]` today and call `local/...` embedding models, read
+this.** The `[cache]` extra no longer pulls `sentence-transformers` (or, transitively,
+`torch`). It now pulls `onnxruntime` + `transformers` + `numpy` + `faiss-cpu`
+for a roughly 60 MB install footprint, down from ~1 GB.
+
+Concretely:
+
+| Scenario | Old behaviour | New behaviour |
+|---|---|---|
+| Repo ships `onnx/model.onnx` (or `model.onnx`) | Loaded via sentence-transformers/PyTorch | Loaded via ONNX Runtime (2-5x faster CPU inference, 10x smaller install) |
+| Repo ships only PyTorch weights, `[cache]` installed alone | Worked (sentence-transformers did the conversion behind the scenes) | Raises `InvalidConfigurationError` with a remediation hint |
+| Repo ships only PyTorch weights, `[cache]` + `[local-pytorch]` installed | n/a | Emits a one-shot warning and falls back to sentence-transformers |
+| CUDA acceleration | n/a in `[cache]` (sentence-transformers auto-picked the device) | Install `onellm[local-gpu]` instead of `[cache]`; picks up `onnxruntime-gpu` automatically |
+
+**What to do on upgrade:**
+
+1. If you only use ONNX-ready embedding models (e.g. `nomic-ai/nomic-embed-text-v1.5`,
+   `sentence-transformers/all-MiniLM-L6-v2`, `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`,
+   `BAAI/bge-small-en-v1.5`), no action needed - they all ship ONNX weights.
+2. If you pin a PyTorch-only repo, run `pip install 'onellm[cache,local-pytorch]'`
+   to keep the PyTorch fallback available. The error message raised on
+   mismatched installs points at this exact remediation.
+3. If you want CUDA acceleration, install `onellm[local-gpu]` instead of (or in
+   addition to) `[cache]`. ONNX Runtime picks the `CUDAExecutionProvider` up
+   automatically when the GPU wheel is present.
+
+### New features
+
+#### ONNX Runtime backend for the `local/` provider
+
+`LocalProvider` now selects its inference backend per-repo on cache miss:
+
+1. Look for ONNX weights in the repo (`onnx/model.onnx`, `model.onnx`, or
+   `onnx/model_quantized.onnx`). If present, construct an `_OnnxBackend` that
+   tokenizes via `transformers.AutoTokenizer`, runs
+   `onnxruntime.InferenceSession`, pools token-level embeddings (mean-pooling
+   by default), and L2-normalizes.
+2. Fall back to `sentence-transformers` only if it is already installed (via
+   `onellm[local-pytorch]`); emits a warning so you notice the slow path.
+3. Raise `InvalidConfigurationError` with concrete remediation text when
+   neither backend is available.
+
+The public API shape is unchanged. `Embedding.acreate(model="local/...")`,
+`dimensions=N`, `task="search_document"`, and the `trust_remote_code` kill
+switch keep their old semantics.
+
+#### `pooling` kwarg on `create_embedding`
+
+A new optional kwarg lets callers override the token-embedding reduction
+strategy on the ONNX backend: `"mean"` (default, attention-mask-weighted
+mean), `"cls"` (first-token / BERT-style), or `"max"` (element-wise max over
+non-padding tokens). The PyTorch fallback backend bakes pooling into its
+module pipeline at load time; requesting a non-default strategy there emits a
+one-shot warning and uses the model's configured pooling.
+
+```python
+resp = await onellm.Embedding.acreate(
+    model="local/sentence-transformers/all-MiniLM-L6-v2",
+    input="hello world",
+    pooling="cls",  # override default mean pooling
+)
+```
+
+#### `onellm[local-gpu]` extra
+
+Replaces the CPU `onnxruntime` wheel with `onnxruntime-gpu`. ONNX Runtime's
+`CUDAExecutionProvider` is picked up automatically at session construction
+when the GPU wheel is present.
+
+#### `onellm[local-pytorch]` extra
+
+Installs `sentence-transformers` (which transitively installs `torch`) for
+fallback coverage of repos that ship only PyTorch weights. Opt-in.
+
+#### Semantic cache routes through `LocalProvider`
+
+`cache.py` now constructs its embedder through `LocalProvider` so there is
+exactly one code path that knows how to load local embedding models. The
+cache benefits automatically from whichever backend is installed (ONNX by
+default, PyTorch fallback if only `[local-pytorch]` is present). No changes
+to the semantic cache's public API.
+
+### Migration guide
+
+```diff
+- pip install 'onellm[cache]'          # used to pull sentence-transformers + torch
++ pip install 'onellm[cache]'          # pulls onnxruntime + transformers (lean)
+
+# If you pin PyTorch-only repos, add the fallback extra:
++ pip install 'onellm[cache,local-pytorch]'
+
+# For CUDA:
++ pip install 'onellm[local-gpu]'      # replaces [cache]
+```
+
+
 ## 0.20260420.0 - Local Embedding Provider (Phase 1) + Provider Error Normalization
 
 **Status**: Development Status :: 5 - Production/Stable
