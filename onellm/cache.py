@@ -455,7 +455,7 @@ class SimpleCache:
         import numpy as np
 
         # Create new index with correct dimension
-        self.semantic_index = faiss.IndexFlatIP(384)
+        self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
 
         # Re-add all remaining embeddings in order
         if self.semantic_data:
@@ -481,7 +481,7 @@ class SimpleCache:
         if self.semantic_index is not None:
             import faiss
 
-            self.semantic_index = faiss.IndexFlatIP(384)
+            self.semantic_index = faiss.IndexFlatIP(_CACHE_MODEL_DIM)
 
         logger.info("Cache cleared")
 

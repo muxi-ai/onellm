@@ -428,10 +428,17 @@ class _OnnxBackend:
         session_inputs = {k: v for k, v in tokens.items() if k in self._expected_inputs}
         outputs = self.session.run(None, session_inputs)
         # Embedding models conventionally emit ``last_hidden_state`` as the
-        # first (and often only) output. If a model emits a pooled vector
-        # directly we'd still want pooling=strategy to apply, so we always
-        # treat the first output as a (batch, seq, hidden) tensor.
+        # first output (3D: batch, seq, hidden), but some ONNX exports
+        # (Optimum with pooling fused in, sentence-transformers ONNX
+        # exports with an explicit pooling head) emit an already-pooled
+        # 2D tensor (batch, hidden). Detect that shape and skip pooling
+        # in that case - otherwise the 2D slice index in _pool_embeddings
+        # would raise IndexError (cls) or produce nonsense (mean/max).
+        # We honor the caller's pooling kwarg only when the model actually
+        # hands us token-level embeddings.
         token_embeddings = outputs[0]
+        if token_embeddings.ndim == 2:
+            return _l2_normalize(token_embeddings)
         attention_mask = tokens["attention_mask"]
         pooled = _pool_embeddings(token_embeddings, attention_mask, pooling)
         return _l2_normalize(pooled)
@@ -498,8 +505,16 @@ def _try_download_onnx_weights(repo: str) -> str | None:
     return None
 
 
-def _instantiate_onnx_backend(repo: str, onnx_path: str) -> _OnnxBackend:
-    """Build an ``_OnnxBackend`` from a downloaded ``.onnx`` file."""
+def _instantiate_onnx_backend(
+    repo: str, onnx_path: str, trust_remote_code: bool = True
+) -> _OnnxBackend:
+    """Build an ``_OnnxBackend`` from a downloaded ``.onnx`` file.
+
+    ``trust_remote_code`` is forwarded to ``AutoTokenizer.from_pretrained``
+    so repos whose tokenizer ships custom Python code (Jina v3, some
+    Nomic variants) load via the same kill-switch semantics as the
+    PyTorch fallback path.
+    """
     try:
         # onnxruntime and transformers are optional (shipped via the
         # [cache] extra). Silence the mypy import-not-found check since
@@ -514,7 +529,7 @@ def _instantiate_onnx_backend(repo: str, onnx_path: str) -> _OnnxBackend:
         ) from exc
 
     with _normalize_errors(repo):
-        tokenizer = AutoTokenizer.from_pretrained(repo)
+        tokenizer = AutoTokenizer.from_pretrained(repo, trust_remote_code=trust_remote_code)
         # ``get_available_providers`` lets onnxruntime-gpu (via
         # onellm[local-gpu]) pick up the CUDA EP automatically while
         # falling back to CPUExecutionProvider when no GPU wheel is
@@ -658,7 +673,7 @@ class LocalProvider(Provider):
         with _normalize_errors(repo):
             onnx_path = _try_download_onnx_weights(repo)
         if onnx_path is not None:
-            return _instantiate_onnx_backend(repo, onnx_path)
+            return _instantiate_onnx_backend(repo, onnx_path, trust_remote_code)
         return _instantiate_pytorch_backend(repo, trust_remote_code)
 
     def _cache_lookup(self, repo: str) -> Any | None:

@@ -1210,6 +1210,65 @@ class TestOnnxBackend:
         await provider.create_embedding(input="hi", model="any/repo")
         assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 512
 
+    async def test_pre_pooled_2d_output_skips_pooling(self, fake_onnx_backend):
+        """Some ONNX exports (Optimum with fused pooling head, SBERT
+        ONNX exports) emit an already-pooled (batch, hidden) tensor as
+        outputs[0]. The backend must detect that shape and skip
+        _pool_embeddings; otherwise cls pooling would IndexError on the
+        2D slice and mean/max would produce nonsense.
+        """
+
+        def pre_pooled_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            sess.get_inputs.return_value = [inp, inp2]
+
+            def _run(_names, inputs):
+                batch = inputs["input_ids"].shape[0]
+                # Already pooled: (batch, hidden=4)
+                return [np.array([[1.0, 2.0, 2.0, 1.0]] * batch, dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = pre_pooled_session
+        provider = LocalProvider()
+        resp = await provider.create_embedding(input=["hi"], model="any/repo", pooling="cls")
+        # Should not crash; result must still be L2-normalized.
+        assert abs(float(np.linalg.norm(resp.data[0].embedding)) - 1.0) < 1e-5
+
+    async def test_trust_remote_code_forwarded_to_onnx_tokenizer(
+        self, fake_onnx_backend, monkeypatch
+    ):
+        """Regression: the ONNX path used to drop trust_remote_code on
+        the floor (AutoTokenizer.from_pretrained was called without it),
+        so repos whose tokenizer ships custom Python code (Jina v3,
+        Nomic variants) would blow up with no hint. The flag must now
+        be threaded through to AutoTokenizer.from_pretrained.
+        """
+        import transformers  # type: ignore[import-not-found]
+
+        monkeypatch.delenv("ONELLM_ALLOW_TRUST_REMOTE_CODE", raising=False)
+        # Use cache_size=1 + distinct repos so each call forces a fresh
+        # tokenizer load - otherwise the LRU would serve the second call
+        # from cache and the trust_remote_code flag would never propagate.
+        provider = LocalProvider(cache_size=1)
+
+        # Default: trust_remote_code=True.
+        await provider.create_embedding(input="hi", model="repo-a/default")
+        first = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert first.kwargs.get("trust_remote_code") is True
+
+        # Explicit False from the caller must propagate.
+        await provider.create_embedding(
+            input="hi", model="repo-b/opts-out", trust_remote_code=False
+        )
+        second = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert second.kwargs.get("trust_remote_code") is False
+
 
 # ---------------------------------------------------------------------------
 # Pooling
