@@ -1,5 +1,62 @@
 # CHANGELOG
 
+## 0.20260422.2 - `[local-cuda]` extra, GPU FAISS, EP observability
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Renamed `[local-gpu]` -> `[local-cuda]`; back-compat alias retained
+
+The old `[local-gpu]` name was imprecise and misleading in two ways: it implied cross-vendor GPU support (it doesn't - `onnxruntime-gpu` is CUDA-only and so is the FAISS GPU wheel), and it shipped a half-GPU install that paired `onnxruntime-gpu` with `faiss-cpu`, so pinning it got GPU embeddings feeding a CPU vector index. This release makes the CUDA-only scope explicit and fixes the composition.
+
+```bash
+# Canonical name
+pip install "onellm[local-cuda]"
+
+# Still works (transitive alias -> same wheels, including the GPU FAISS upgrade)
+pip install "onellm[local-gpu]"
+```
+
+`[local-gpu]` is scheduled for removal in a future major release. CUDA is the only GPU story today; Apple Silicon gets the CoreML EP automatically via the plain `[cache]` wheel (no extra needed), and no extras currently support DirectML, ROCm, or Metal FAISS.
+
+### End-to-end GPU stack: `faiss-cpu` -> `faiss-gpu-cu12`
+
+`[local-cuda]` now pulls `faiss-gpu-cu12` instead of `faiss-cpu`. Installs wire GPU ONNX Runtime *and* GPU FAISS together, which is what "the GPU extra" should have done from day one. The `faiss-gpu-cu12` wheel is the community-maintained CUDA-12 build (the official FAISS project ships GPU only via conda). CUDA 11 hosts should either install FAISS from conda or stay on `[cache]`.
+
+`[all]` continues to pull `faiss-cpu` so it remains installable on platforms without CUDA (notably macOS). Callers who want the GPU stack should depend on `[local-cuda]` explicitly.
+
+### Active ONNX execution provider is now logged
+
+Every `local/` backend load emits a one-shot `INFO` log line naming the ONNX execution provider the session actually picked:
+
+```
+INFO onellm.providers.local [local/nomic-ai/nomic-embed-text-v1.5] ONNX session active EP: CUDAExecutionProvider
+```
+
+When the `onnxruntime-gpu` wheel is installed but the session falls back to `CPUExecutionProvider` (the classic driver / cuDNN / `LD_LIBRARY_PATH` trap), a `WARNING` fires instead:
+
+```
+WARNING onellm.providers.local [local/...] onnxruntime-gpu is installed but the session fell back to CPUExecutionProvider. Check CUDA driver version, cuDNN install, and LD_LIBRARY_PATH.
+```
+
+Previously a misconfigured GPU host would silently serve CPU-speed embeddings from a GPU install and users had no log signal explaining why.
+
+### Runtime integrations
+
+For downstream projects that ship their own GPU variant (MUXI Runtime and similar), the recommended pin is:
+
+```toml
+yourapp[gpu] = [
+    "onellm[local-cuda,local-pytorch]",  # GPU ONNX + GPU FAISS + PyTorch fallback
+]
+```
+
+On Linux x86_64 the PyPI default `torch` wheel is CUDA-enabled, so the sentence-transformers fallback (used for repos without ONNX exports) also runs on GPU in that combination with no extra work.
+
+### Tests
+
+Added `TestExecutionProviderObservability` (4 tests) covering: active-EP INFO logged on every load, GPU-wheel-with-CPU-fallback fires the WARNING, healthy CUDA install does NOT fire the WARNING, and pure CPU install is quiet. 529 unit tests pass.
+
+
 ## 0.20260422.1 - `revision=` kwarg for reproducible `local/` embeddings
 
 **Status**: Development Status :: 5 - Production/Stable

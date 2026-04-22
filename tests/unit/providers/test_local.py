@@ -165,6 +165,9 @@ def fake_onnx_backend(monkeypatch):
         input2 = MagicMock()
         input2.name = "attention_mask"
         sess.get_inputs.return_value = [input1, input2]
+        # Default to CPU EP; tests that exercise the GPU observability
+        # branch override ``get_providers`` via ``session_factory``.
+        sess.get_providers.return_value = ["CPUExecutionProvider"]
 
         def _run(_out_names, inputs):
             session_calls.append({"inputs": {k: v.copy() for k, v in inputs.items()}})
@@ -1584,6 +1587,112 @@ class TestMaxLengthResolution:
 # ---------------------------------------------------------------------------
 # Revision plumbing (git ref pinning for reproducible embeddings)
 # ---------------------------------------------------------------------------
+
+
+class TestExecutionProviderObservability:
+    """Verify the ONNX session's active EP is logged on every backend
+    load, and the GPU-wheel-but-CPU-fallback mismatch produces a loud
+    WARNING. Before this observability pass, users pinning
+    ``onellm[local-cuda]`` on a host with broken CUDA drivers would see
+    CPU inference speeds with no log line explaining why.
+    """
+
+    async def test_active_ep_is_logged(self, fake_onnx_backend, caplog):
+        import logging as _logging
+
+        provider = LocalProvider()
+        with caplog.at_level(_logging.INFO, logger="onellm.providers.local"):
+            await provider.create_embedding(input="hi", model="any/repo")
+
+        messages = [rec.getMessage() for rec in caplog.records]
+        assert any("active EP: CPUExecutionProvider" in m for m in messages), messages
+
+    async def test_gpu_wheel_with_cpu_fallback_logs_warning(
+        self, fake_onnx_backend, monkeypatch, caplog
+    ):
+        """When onnxruntime-gpu is installed (i.e. the module advertises
+        CUDA in ``get_available_providers``) but the session still picks
+        the CPU EP at runtime, we must emit a WARNING that names the
+        classic driver-mismatch checklist."""
+        import logging as _logging
+
+        import onnxruntime  # type: ignore[import-not-found]
+
+        # Simulate the onnxruntime-gpu wheel: registers CUDA EP
+        # globally, but the session only activates CPU (a real-world
+        # driver / cuDNN / LD_LIBRARY_PATH mismatch).
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+
+        provider = LocalProvider()
+        with caplog.at_level(_logging.WARNING, logger="onellm.providers.local"):
+            await provider.create_embedding(input="hi", model="mismatch/repo")
+
+        warnings = [rec for rec in caplog.records if rec.levelno == _logging.WARNING]
+        assert any(
+            "fell back to CPUExecutionProvider" in rec.getMessage() for rec in warnings
+        ), [rec.getMessage() for rec in warnings]
+
+    async def test_gpu_wheel_with_gpu_active_does_not_warn(
+        self, fake_onnx_backend, monkeypatch, caplog
+    ):
+        """When the GPU wheel is installed AND CUDA actually activates,
+        we must log the EP as INFO but must NOT emit the mismatch
+        WARNING (that would be noise on a healthy install)."""
+        import logging as _logging
+
+        import onnxruntime  # type: ignore[import-not-found]
+
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+
+        def gpu_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            sess.get_inputs.return_value = [inp, inp2]
+            sess.get_providers.return_value = [
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider",
+            ]
+
+            def _run(_names, inputs):
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = gpu_session
+
+        provider = LocalProvider()
+        with caplog.at_level(_logging.INFO, logger="onellm.providers.local"):
+            await provider.create_embedding(input="hi", model="healthy-gpu/repo")
+
+        messages = [rec.getMessage() for rec in caplog.records]
+        assert any("active EP: CUDAExecutionProvider" in m for m in messages), messages
+        assert not any("fell back to CPUExecutionProvider" in m for m in messages)
+
+    async def test_cpu_only_install_no_warning(self, fake_onnx_backend, caplog):
+        """On a pure ``onellm[cache]`` install (no CUDA EP registered
+        anywhere), selecting CPU is correct and must not trigger the
+        mismatch warning."""
+        import logging as _logging
+
+        provider = LocalProvider()
+        with caplog.at_level(_logging.WARNING, logger="onellm.providers.local"):
+            await provider.create_embedding(input="hi", model="cpu-only/repo")
+
+        warnings = [rec.getMessage() for rec in caplog.records if rec.levelno == _logging.WARNING]
+        assert not any("fell back to CPUExecutionProvider" in m for m in warnings)
 
 
 class TestRevisionPlumbing:

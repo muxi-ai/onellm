@@ -239,7 +239,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
   - `local/BAAI/bge-small-en-v1.5`
   - Use `onellm download local/<repo-id>` to pre-download weights
 - **Features**: ONNX Runtime backend (default, lean); PyTorch fallback via `onellm[local-pytorch]`; `dimensions`, `task`, `pooling`, `max_length`, and `revision` kwargs; per-repo max sequence length resolved from ONNX shape + model config + tokenizer config (no more hard-coded 512 cap); deployment ceiling via `ONELLM_LOCAL_MAX_TOKEN_LENGTH` (default 32768); git-ref pinning via `revision=<sha|tag|branch>` for reproducible deployments; class-level LRU (keyed by `(repo, revision)`) shared across `get_provider("local")` calls
-- **Install**: `pip install "onellm[cache]"` (~345 MB) for CPU, `onellm[local-gpu]` for CUDA
+- **Install**: `pip install "onellm[cache]"` (~345 MB) for CPU; `onellm[local-cuda]` for end-to-end CUDA (GPU ONNX Runtime + `faiss-gpu-cu12`); `onellm[local-pytorch]` adds the sentence-transformers fallback for repos without ONNX exports. `onellm[local-gpu]` is a deprecated alias for `onellm[local-cuda]` and will be removed in a future major release. GPU support is CUDA-only — Apple Silicon runs on the CoreML EP automatically via the plain `[cache]` wheel.
 - **Pricing**: Free (self-hosted)
 - **Best for**: In-process embeddings without an extra service; drop-in embedding for the semantic cache
 

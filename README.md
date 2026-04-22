@@ -446,9 +446,10 @@ vec = response.data[0].embedding
 
 | Extra | Pulls | Notes |
 |---|---|---|
-| `onellm[cache]` | onnxruntime + transformers + numpy + faiss-cpu | Lean default (~345 MB), no torch |
-| `onellm[local-gpu]` | onnxruntime-gpu + transformers + numpy + faiss-cpu | CUDA `CUDAExecutionProvider` auto-detected |
-| `onellm[local-pytorch]` | sentence-transformers (+ torch) | Fallback for repos without ONNX weights |
+| `onellm[cache]` | onnxruntime + transformers + numpy + faiss-cpu | Lean default (~345 MB), no torch. On macOS the CoreML EP auto-activates via the standard onnxruntime wheel — no GPU extra needed for Apple Silicon. |
+| `onellm[local-cuda]` | onnxruntime-gpu + transformers + numpy + faiss-gpu-cu12 | Full CUDA stack (GPU ONNX + GPU FAISS). `CUDAExecutionProvider` auto-selected. Active EP is logged per backend load; a driver-mismatch WARNING fires if the GPU wheel falls back to CPU. CUDA-only — no DirectML / ROCm / MPS today. |
+| `onellm[local-gpu]` | → `onellm[local-cuda]` | **Deprecated alias.** Transitively resolves to `[local-cuda]`; existing pins keep working and now inherit the GPU FAISS upgrade. Please migrate; removal scheduled for a future major. |
+| `onellm[local-pytorch]` | sentence-transformers (+ torch) | Fallback for repos without ONNX weights. On Linux x86_64 the PyPI `torch` default wheel is CUDA-enabled, so pairing `onellm[local-cuda,local-pytorch]` gives GPU inference on both code paths. |
 
 Knobs:
 

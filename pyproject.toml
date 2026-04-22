@@ -51,14 +51,27 @@ cache = [
     "numpy>=1.26.0",
     "faiss-cpu>=1.13.2",
 ]
-# CUDA acceleration for local embeddings. Replaces the CPU onnxruntime wheel
-# with the GPU build; onnxruntime's CUDAExecutionProvider is picked up
-# automatically at session construction.
-local-gpu = [
+# CUDA-accelerated end-to-end GPU stack for local embeddings:
+#   - onnxruntime-gpu: CUDAExecutionProvider auto-selected at session build
+#   - faiss-gpu-cu12:  GPU vector index (community-maintained PyPI wheel;
+#                      the official FAISS project ships GPU via conda only)
+# Replaces the earlier half-baked [local-gpu] shape that paired GPU ONNX
+# with CPU FAISS. Installs the same transformers/numpy baseline as [cache].
+# CUDA-only: Apple Silicon should use [cache] (CoreML EP auto-activates);
+# AMD/Intel GPUs and DirectML are not supported today (no matching FAISS
+# GPU wheel). See CHANGELOG 0.20260422.2.
+local-cuda = [
     "onnxruntime-gpu>=1.20.0",
     "transformers>=4.44.0",
     "numpy>=1.26.0",
-    "faiss-cpu>=1.13.2",
+    "faiss-gpu-cu12>=1.13.0",
+]
+# Deprecated alias kept for back-compat. Resolves to [local-cuda] via the
+# transitive-extra mechanism, so pinning onellm[local-gpu] still works and
+# now gets the faiss-gpu-cu12 upgrade transparently. Scheduled for removal
+# in a future major release; please migrate to onellm[local-cuda].
+local-gpu = [
+    "onellm[local-cuda]",
 ]
 # Fallback backend for repos that don't ship ONNX weights. Pulls torch +
 # sentence-transformers (~1 GB install). Use only when you're pinned to a
@@ -73,6 +86,9 @@ all = [
     "llama-cpp-python>=0.3.16",
     "google-auth>=2.48.0",
     "google-cloud-aiplatform>=1.134.0",
+    # Default to the CPU onnxruntime + faiss stack for [all] so it stays
+    # installable on every platform (including macOS, which has no CUDA).
+    # Callers who want GPU should use onellm[local-cuda] explicitly.
     "onnxruntime>=1.20.0",
     "transformers>=4.44.0",
     "sentence-transformers>=5.2.2",

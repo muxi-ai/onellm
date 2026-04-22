@@ -412,6 +412,64 @@ def _l2_normalize(vectors: Any) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# Execution-provider observability
+# ---------------------------------------------------------------------------
+
+
+def _is_gpu_ort_installed(ort_module: Any) -> bool:
+    """Best-effort detection of the ``onnxruntime-gpu`` wheel.
+
+    Both ``onnxruntime`` and ``onnxruntime-gpu`` import under the same
+    ``onnxruntime`` name, so we can't tell them apart from the module
+    itself. The distinguishing signal is that the GPU wheel *registers*
+    ``CUDAExecutionProvider`` (or ``TensorrtExecutionProvider``) in the
+    build-time EP list, even when the host has no CUDA runtime and the
+    provider ultimately can't be used. We walk that list and look for
+    any GPU-ish name.
+    """
+    try:
+        providers = ort_module.get_available_providers()
+    except Exception:  # noqa: BLE001
+        return False
+    return any("CUDA" in p or "Tensorrt" in p or "ROCm" in p for p in providers)
+
+
+def _log_active_ep(repo: str, session: Any, ort_module: Any) -> None:
+    """One-shot INFO (+ optional WARNING) naming the active EP.
+
+    Session providers are returned in priority order - the first entry
+    is the one onnxruntime will actually dispatch through. We surface
+    that name so operators can confirm in a single log line whether
+    their GPU wheel is doing real work or silently serving CPU
+    embeddings at GPU install size.
+    """
+    try:
+        active_providers = session.get_providers()
+    except Exception:  # noqa: BLE001 - provider introspection must not blow up
+        return
+    if not active_providers:
+        return
+    active = active_providers[0]
+    logger.info("[local/%s] ONNX session active EP: %s", repo, active)
+
+    # Driver-mismatch trap: user installed onellm[local-cuda] hoping for
+    # CUDA acceleration, but onnxruntime-gpu couldn't bind the CUDA EP
+    # at session construction (missing driver, wrong cuDNN version,
+    # LD_LIBRARY_PATH not set inside containerized runtimes, etc.). Warn
+    # loudly instead of letting them assume the GPU wheel "is working".
+    if _is_gpu_ort_installed(ort_module) and active == "CPUExecutionProvider":
+        logger.warning(
+            "[local/%s] onnxruntime-gpu is installed but the session fell "
+            "back to CPUExecutionProvider. Check CUDA driver version, "
+            "cuDNN install, and LD_LIBRARY_PATH. Run "
+            "`python -c 'import onnxruntime as ort; "
+            "print(ort.get_available_providers())'` to confirm which EPs "
+            "onnxruntime actually registered on this host.",
+            repo,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Sequence-length resolution
 # ---------------------------------------------------------------------------
 
@@ -810,10 +868,17 @@ def _instantiate_onnx_backend(
             repo, trust_remote_code=trust_remote_code, revision=revision
         )
         # ``get_available_providers`` lets onnxruntime-gpu (via
-        # onellm[local-gpu]) pick up the CUDA EP automatically while
+        # onellm[local-cuda]) pick up the CUDA EP automatically while
         # falling back to CPUExecutionProvider when no GPU wheel is
         # installed. The default CPU wheel reports only CPU.
         session = ort.InferenceSession(onnx_path, providers=ort.get_available_providers())
+
+    # Observability: log which EP actually got selected, and warn when a
+    # GPU wheel is installed but the session silently fell back to CPU
+    # (classic driver / cuDNN / LD_LIBRARY_PATH mismatch - users would
+    # otherwise see CPU inference speeds and wonder why onnxruntime-gpu
+    # "did nothing").
+    _log_active_ep(repo, session, ort)
 
     advertised = _resolve_model_max_length(
         repo, tokenizer, session, trust_remote_code=trust_remote_code, revision=revision
