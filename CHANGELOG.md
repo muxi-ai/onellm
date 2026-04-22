@@ -42,15 +42,61 @@ Previously a misconfigured GPU host would silently serve CPU-speed embeddings fr
 
 ### Runtime integrations
 
-For downstream projects that ship their own GPU variant (MUXI Runtime and similar), the recommended pin is:
+For downstream projects that ship their own GPU variant (MUXI Runtime and similar), the recommended pin for a full-GPU runtime is:
 
 ```toml
 yourapp[gpu] = [
-    "onellm[local-cuda,local-pytorch]",  # GPU ONNX + GPU FAISS + PyTorch fallback
+    "yourapp[base]",
+    "onellm[local-cuda,local-pytorch]>=0.20260422.2",
 ]
 ```
 
-On Linux x86_64 the PyPI default `torch` wheel is CUDA-enabled, so the sentence-transformers fallback (used for repos without ONNX exports) also runs on GPU in that combination with no extra work.
+That combination delivers:
+
+- `onnxruntime-gpu` + `faiss-gpu-cu12` — GPU embeddings feeding a GPU vector index, end-to-end
+- `sentence-transformers` with CUDA `torch` auto-selected (the PyPI default `torch` wheel on Linux x86_64 is already CUDA-enabled), so the PyTorch fallback path for HF repos without ONNX exports also runs on GPU
+
+CPU variants are unchanged:
+
+```toml
+yourapp[base] = [
+    "onellm[cache,local-pytorch]>=0.20260422.2",
+]
+```
+
+Bonus: on macOS the `[cache]` wheel auto-activates the CoreML EP with no extra install, so Apple Silicon users get hardware acceleration for free from the CPU variant — a separate `[mac-gpu]` extra is not needed and is not provided.
+
+#### Platform support matrix
+
+| Host | `yourapp[gpu]` works? | Notes |
+|---|---|---|
+| Linux x86_64 + NVIDIA + CUDA 12 | yes | full GPU stack |
+| Windows + NVIDIA + CUDA 12 | yes | full GPU stack |
+| Linux + CUDA 11 | no | `faiss-gpu-cu12` requires CUDA 12 runtime libraries; either upgrade the host CUDA or use `yourapp[base]` and install FAISS from conda |
+| macOS (Intel or Apple Silicon) | no | no CUDA on Apple hardware; use `yourapp[base]` (CoreML EP activates automatically on Apple Silicon) |
+| Linux + AMD/Intel GPU | no | no supported GPU FAISS wheel today; use `yourapp[base]` |
+
+#### Operational signal for runtimes
+
+On the first embedding call per repo, the runtime's logs will now contain one of:
+
+```
+INFO  onellm.providers.local [local/<repo>] ONNX session active EP: CUDAExecutionProvider
+```
+
+(healthy GPU install) or:
+
+```
+WARNING onellm.providers.local [local/<repo>] onnxruntime-gpu is installed but the
+         session fell back to CPUExecutionProvider. Check CUDA driver version,
+         cuDNN install, and LD_LIBRARY_PATH.
+```
+
+(broken GPU install — CUDA drivers missing, cuDNN version mismatch, or `LD_LIBRARY_PATH` not set inside the runtime's container). The WARNING is your smoke-test signal: if a runtime's GPU variant is deployed somewhere and the first embedding emits that line, the host has a driver issue and the runtime is silently serving CPU-speed embeddings from a GPU-sized install. Worth piping into whatever deployment alerting the runtime already has.
+
+#### Back-compat for existing pins
+
+If you were already depending on `onellm[local-gpu]` directly, no action is required. The name is kept as a transitive alias that resolves to `[local-cuda]`, so existing pins continue to install and now inherit the `faiss-gpu-cu12` upgrade automatically. Migrate to `[local-cuda]` at your convenience; the alias is scheduled for removal in a future major release.
 
 ### Tests
 
