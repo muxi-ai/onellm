@@ -454,6 +454,7 @@ def _resolve_model_max_length(
     session: Any,
     *,
     trust_remote_code: bool,
+    revision: str | None = None,
 ) -> int:
     """Determine the real max sequence length the repo supports.
 
@@ -496,7 +497,9 @@ def _resolve_model_max_length(
     try:
         from transformers import AutoConfig  # type: ignore[import-not-found]
 
-        cfg = AutoConfig.from_pretrained(repo, trust_remote_code=trust_remote_code)
+        cfg = AutoConfig.from_pretrained(
+            repo, trust_remote_code=trust_remote_code, revision=revision
+        )
         raw = getattr(cfg, "max_position_embeddings", None)
         if isinstance(raw, int) and 0 < raw <= _TOKENIZER_SENTINEL_THRESHOLD:
             caps.append(raw)
@@ -747,7 +750,7 @@ class _PyTorchBackend:
 # ---------------------------------------------------------------------------
 
 
-def _try_download_onnx_weights(repo: str) -> str | None:
+def _try_download_onnx_weights(repo: str, revision: str | None = None) -> str | None:
     """Return the local path to ONNX weights for ``repo``, or ``None``.
 
     Walks ``_ONNX_WEIGHT_CANDIDATES`` in order and returns the first file
@@ -756,20 +759,26 @@ def _try_download_onnx_weights(repo: str) -> str | None:
     Other errors (auth, rate-limit, network) propagate so the surrounding
     ``_normalize_errors`` context translates them to the right
     ``OneLLMError`` subclass.
+
+    ``revision`` is a git commit SHA, tag, or branch name forwarded to
+    ``hf_hub_download``; ``None`` resolves ``main``.
     """
     from huggingface_hub import hf_hub_download
     from huggingface_hub.errors import EntryNotFoundError
 
     for candidate in _ONNX_WEIGHT_CANDIDATES:
         try:
-            return hf_hub_download(repo_id=repo, filename=candidate)
+            return hf_hub_download(repo_id=repo, filename=candidate, revision=revision)
         except EntryNotFoundError:
             continue
     return None
 
 
 def _instantiate_onnx_backend(
-    repo: str, onnx_path: str, trust_remote_code: bool = True
+    repo: str,
+    onnx_path: str,
+    trust_remote_code: bool = True,
+    revision: str | None = None,
 ) -> _OnnxBackend:
     """Build an ``_OnnxBackend`` from a downloaded ``.onnx`` file.
 
@@ -777,6 +786,11 @@ def _instantiate_onnx_backend(
     so repos whose tokenizer ships custom Python code (Jina v3, some
     Nomic variants) load via the same kill-switch semantics as the
     PyTorch fallback path.
+
+    ``revision`` pins the tokenizer and config to a specific git ref on
+    HuggingFace, so the tokenizer matches the already-downloaded ONNX
+    weights bit-for-bit (important: config shape can change between
+    commits, which would break the max-length probe).
     """
     try:
         # onnxruntime and transformers are optional (shipped via the
@@ -792,7 +806,9 @@ def _instantiate_onnx_backend(
         ) from exc
 
     with _normalize_errors(repo):
-        tokenizer = AutoTokenizer.from_pretrained(repo, trust_remote_code=trust_remote_code)
+        tokenizer = AutoTokenizer.from_pretrained(
+            repo, trust_remote_code=trust_remote_code, revision=revision
+        )
         # ``get_available_providers`` lets onnxruntime-gpu (via
         # onellm[local-gpu]) pick up the CUDA EP automatically while
         # falling back to CPUExecutionProvider when no GPU wheel is
@@ -800,7 +816,7 @@ def _instantiate_onnx_backend(
         session = ort.InferenceSession(onnx_path, providers=ort.get_available_providers())
 
     advertised = _resolve_model_max_length(
-        repo, tokenizer, session, trust_remote_code=trust_remote_code
+        repo, tokenizer, session, trust_remote_code=trust_remote_code, revision=revision
     )
     safety_ceiling = _get_safety_ceiling()
     model_max_length = min(advertised, safety_ceiling)
@@ -824,11 +840,16 @@ def _instantiate_onnx_backend(
     )
 
 
-def _instantiate_pytorch_backend(repo: str, trust_remote_code: bool) -> _PyTorchBackend:
+def _instantiate_pytorch_backend(
+    repo: str, trust_remote_code: bool, revision: str | None = None
+) -> _PyTorchBackend:
     """Build a ``_PyTorchBackend`` for ``repo``.
 
     Only called when ``repo`` has no ONNX weights. Emits a warning so
     callers notice the slow install + slow inference path.
+
+    ``revision`` is forwarded to ``SentenceTransformer`` to pin the
+    download to a specific git ref; ``None`` resolves ``main``.
     """
     try:
         from sentence_transformers import SentenceTransformer
@@ -848,7 +869,7 @@ def _instantiate_pytorch_backend(repo: str, trust_remote_code: bool) -> _PyTorch
         repo,
     )
     with _normalize_errors(repo):
-        model = SentenceTransformer(repo, trust_remote_code=trust_remote_code)
+        model = SentenceTransformer(repo, trust_remote_code=trust_remote_code, revision=revision)
     return _PyTorchBackend(repo=repo, st_model=model)
 
 
@@ -953,7 +974,12 @@ class LocalProvider(Provider):
             return bool(caller_value)
         return True
 
-    def _instantiate_model(self, repo: str, trust_remote_code: bool) -> Any:
+    def _instantiate_model(
+        self,
+        repo: str,
+        trust_remote_code: bool,
+        revision: str | None = None,
+    ) -> Any:
         """Construct an embedding backend for ``repo``.
 
         This is the *expensive* part of loading - on a cache miss the call
@@ -988,23 +1014,29 @@ class LocalProvider(Provider):
         # has no ONNX weights *and* sentence-transformers is already
         # installed. Otherwise raise a clear InvalidConfigurationError.
         with _normalize_errors(repo):
-            onnx_path = _try_download_onnx_weights(repo)
+            onnx_path = _try_download_onnx_weights(repo, revision=revision)
         if onnx_path is not None:
-            return _instantiate_onnx_backend(repo, onnx_path, trust_remote_code)
-        return _instantiate_pytorch_backend(repo, trust_remote_code)
+            return _instantiate_onnx_backend(repo, onnx_path, trust_remote_code, revision=revision)
+        return _instantiate_pytorch_backend(repo, trust_remote_code, revision=revision)
 
-    def _cache_lookup(self, repo: str) -> Any | None:
-        """Return the cached model for ``repo`` and mark it MRU, or
-        ``None`` on miss. Plain dict/list ops - fast, safe to call on the
-        event loop thread.
+    def _cache_lookup(self, repo: str, revision: str | None = None) -> Any | None:
+        """Return the cached model for ``(repo, revision)`` and mark it
+        MRU, or ``None`` on miss. Plain dict/list ops - fast, safe to
+        call on the event loop thread.
+
+        The cache key includes ``revision`` so two formations pinning
+        different revisions of the same repo don't collide. ``None``
+        (the "follow main" case) is its own key and stays separate from
+        any pinned revision.
         """
-        if repo in self._cache:
-            self._cache_order.remove(repo)
-            self._cache_order.append(repo)
-            return self._cache[repo]
+        key = (repo, revision)
+        if key in self._cache:
+            self._cache_order.remove(key)
+            self._cache_order.append(key)
+            return self._cache[key]
         return None
 
-    def _cache_insert(self, repo: str, model: Any) -> None:
+    def _cache_insert(self, repo: str, model: Any, revision: str | None = None) -> None:
         """Insert ``model`` under ``repo`` with LRU eviction if at
         capacity. Fast dict/list ops; safe to call on the event loop.
 
@@ -1023,7 +1055,8 @@ class LocalProvider(Provider):
         who cared about which specific instance they got would already
         have called ``_cache_lookup`` to identify cache hits.
         """
-        if repo in self._cache:
+        key = (repo, revision)
+        if key in self._cache:
             # Second concurrent winner - discard to avoid corrupting the
             # LRU order list. The caller still gets the model they just
             # constructed (via the return value of _instantiate_model);
@@ -1034,24 +1067,34 @@ class LocalProvider(Provider):
             evicted = self._cache.pop(oldest, None)
             del evicted
             logger.debug("Evicted %s from local provider cache", oldest)
-        self._cache[repo] = model
-        self._cache_order.append(repo)
+        self._cache[key] = model
+        self._cache_order.append(key)
 
-    def _load_model(self, repo: str, trust_remote_code: bool) -> Any:
-        """Synchronous load (or return cached) for ``repo``.
+    def _load_model(
+        self,
+        repo: str,
+        trust_remote_code: bool,
+        revision: str | None = None,
+    ) -> Any:
+        """Synchronous load (or return cached) for ``(repo, revision)``.
 
         Kept as the supported test/helper entry point. Async callers
         (:meth:`create_embedding`) should use :meth:`_load_model_async`
         to avoid blocking the event loop on cache miss.
         """
-        cached = self._cache_lookup(repo)
+        cached = self._cache_lookup(repo, revision)
         if cached is not None:
             return cached
-        model = self._instantiate_model(repo, trust_remote_code)
-        self._cache_insert(repo, model)
+        model = self._instantiate_model(repo, trust_remote_code, revision=revision)
+        self._cache_insert(repo, model, revision=revision)
         return model
 
-    async def _load_model_async(self, repo: str, trust_remote_code: bool) -> Any:
+    async def _load_model_async(
+        self,
+        repo: str,
+        trust_remote_code: bool,
+        revision: str | None = None,
+    ) -> Any:
         """Async load (or return cached) for ``repo``.
 
         On cache miss, offloads the multi-second
@@ -1060,15 +1103,16 @@ class LocalProvider(Provider):
         run on the event loop (dict/list ops are microseconds and are
         serialized by the single-threaded loop).
         """
-        cached = self._cache_lookup(repo)
+        cached = self._cache_lookup(repo, revision)
         if cached is not None:
             return cached
 
         loop = asyncio.get_running_loop()
         model = await loop.run_in_executor(
-            None, lambda: self._instantiate_model(repo, trust_remote_code)
+            None,
+            lambda: self._instantiate_model(repo, trust_remote_code, revision=revision),
         )
-        self._cache_insert(repo, model)
+        self._cache_insert(repo, model, revision=revision)
         return model
 
     # ------------------------------------------------------------------
@@ -1152,6 +1196,12 @@ class LocalProvider(Provider):
                 * ``trust_remote_code`` (bool): override the default (True).
                   The ``ONELLM_ALLOW_TRUST_REMOTE_CODE=false`` kill switch
                   always wins over caller kwargs.
+                * ``revision`` (str | None): git commit SHA, tag, or
+                  branch name to pin the HuggingFace download to.
+                  Defaults to ``None`` (= ``main``). Forwarded to every
+                  HF entry point (weights, tokenizer, config). Enables
+                  reproducible embeddings across deployments. Empty
+                  string raises ``InvalidRequestError``.
 
         Returns:
             EmbeddingResponse: the OpenAI-shaped response, with ``model``
@@ -1197,6 +1247,19 @@ class LocalProvider(Provider):
                 )
         allow_exceed = bool(kwargs.get("allow_exceed_model_max_length", False))
 
+        # Validate revision up front. Accept only None or a non-empty
+        # string. Empty strings are rejected because HuggingFace would
+        # treat them inconsistently depending on version; surface a
+        # clear error instead of letting a typo resolve to ``main``.
+        revision = kwargs.get("revision")
+        if revision is not None:
+            if not isinstance(revision, str) or not revision:
+                raise InvalidRequestError(
+                    f"revision must be a non-empty string or None, got {revision!r}",
+                    provider="local",
+                    status_code=400,
+                )
+
         # Apply task prefix (if any) and load the backend.
         inputs = self._apply_task_prefix(inputs, kwargs.get("task"))
         trust_flag = self._resolve_trust_remote_code(**kwargs)
@@ -1205,7 +1268,7 @@ class LocalProvider(Provider):
         # construction runs off the event loop on cache miss. The
         # cache-hit fast path is a single dict lookup and stays on the
         # loop.
-        backend = await self._load_model_async(model, trust_flag)
+        backend = await self._load_model_async(model, trust_flag, revision=revision)
 
         # Both backends expose a synchronous ``encode`` that is CPU/GPU-
         # bound and would stall every coroutine on the event loop for

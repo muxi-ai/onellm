@@ -72,6 +72,9 @@ For the in-process `local/` embedding provider (HuggingFace embedding models, ON
 ```bash
 onellm download local/nomic-ai/nomic-embed-text-v1.5
 onellm download local/sentence-transformers/all-MiniLM-L6-v2
+
+# Pin to a specific git revision (commit SHA, tag, or branch) for reproducible deployments
+onellm download local/nomic-ai/nomic-embed-text-v1.5 --revision e04b7e4c5ea3e3d7e41e13d4c02fa5e29e0e3a0a
 ```
 
 ### Quick Win: Your First LLM Call
@@ -454,6 +457,7 @@ Knobs:
 - `pooling=<"mean"|"cls"|"max">` — override the token-embedding reduction on the ONNX backend (default `"mean"`). The PyTorch fallback bakes pooling into the model at load time; requesting a non-default strategy there emits a one-shot warning.
 - `max_length=<int>` — override the max sequence length for this call. Defaults to the model's advertised cap, resolved from (in priority order) the ONNX session's `input_ids` shape, `AutoConfig.max_position_embeddings`, and `tokenizer.model_max_length`. Bogus sentinel values (e.g. `10**30`) are rejected. Passing a value larger than the advertised cap raises `InvalidRequestError` unless you also pass `allow_exceed_model_max_length=True`.
 - `allow_exceed_model_max_length=<bool>` — opt into exceeding the model's config-advertised cap. Needed for models like Nomic v1.5 that use RoPE NTK-scaling to reach longer contexts (8192) than the base config declares (2048). Logs a one-shot warning when triggered. Default `False`.
+- `revision=<str>` — pin the HuggingFace download to a specific git commit SHA, tag, or branch name. Forwarded to every HF entry point (weights, tokenizer, model config) so reproducibility is bit-for-bit. Empty string is rejected. Default `None` (= `main`). The provider's LRU keys on `(repo, revision)`, so two callers pinning different revisions of the same repo don't collide.
 - `trust_remote_code=<bool>` — defaults to `True` (models like Nomic ship custom pooling code). Set `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` as a global kill switch that overrides per-call kwargs.
 - `ONELLM_LOCAL_CACHE_SIZE=<int>` — class-level LRU size for the in-memory backend cache (default 2). Shared across `LocalProvider` instances so repeated `Embedding.acreate()` calls don't reload the backend.
 - `ONELLM_LOCAL_MAX_TOKEN_LENGTH=<int>` — deployment-level safety ceiling applied at backend load time (default `32768`). Useful on memory-constrained hosts: even if the model advertises an 8K context, the resolved cap is `min(advertised, ceiling)`. Non-integer or `<1` values fall back to the default with a warning.

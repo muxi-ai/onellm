@@ -45,7 +45,12 @@ import sys
 from pathlib import Path
 
 
-def download_gguf(repo_id: str, filename: str, output_dir: str | None = None):
+def download_gguf(
+    repo_id: str,
+    filename: str,
+    output_dir: str | None = None,
+    revision: str | None = None,
+):
     """
     Download a GGUF model from HuggingFace.
 
@@ -53,6 +58,8 @@ def download_gguf(repo_id: str, filename: str, output_dir: str | None = None):
         repo_id: HuggingFace repository ID
         filename: Model filename to download
         output_dir: Directory to save the model (default: ~/llama_models)
+        revision: Optional git commit SHA, tag, or branch to pin to.
+            ``None`` resolves ``main`` (back-compat).
 
     Returns:
         Path to the downloaded file
@@ -85,6 +92,7 @@ def download_gguf(repo_id: str, filename: str, output_dir: str | None = None):
             repo_id=repo_id,
             filename=filename,
             local_dir=output_dir,
+            revision=revision,
         )
         print("\n✓ Downloaded successfully!")
         print(f"  File: {file_path}")
@@ -105,7 +113,11 @@ def download_gguf(repo_id: str, filename: str, output_dir: str | None = None):
         sys.exit(1)
 
 
-def download_local_model(slug: str, output_dir: str | None = None) -> str:
+def download_local_model(
+    slug: str,
+    output_dir: str | None = None,
+    revision: str | None = None,
+) -> str:
     """
     Download a full HuggingFace snapshot for use with the ``local/`` provider.
 
@@ -116,6 +128,8 @@ def download_local_model(slug: str, output_dir: str | None = None) -> str:
             as the repo id.
         output_dir: Optional explicit cache directory. When omitted,
             ``HF_HOME`` is respected, then ``~/.cache/huggingface/hub``.
+        revision: Optional git commit SHA, tag, or branch to pin to.
+            ``None`` resolves ``main`` (back-compat).
 
     Returns:
         The local filesystem path to the downloaded snapshot.
@@ -143,13 +157,15 @@ def download_local_model(slug: str, output_dir: str | None = None) -> str:
     cache_dir = output_dir if output_dir else None
 
     print(f"Downloading HuggingFace snapshot: {repo_id}")
+    if revision:
+        print(f"Revision: {revision}")
     if cache_dir:
         print(f"Destination: {cache_dir}")
     else:
         print("Destination: huggingface_hub default cache")
 
     try:
-        path = snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
+        path = snapshot_download(repo_id=repo_id, cache_dir=cache_dir, revision=revision)
     except Exception as exc:  # noqa: BLE001 - surface provider errors verbatim
         print(f"\n✗ Error downloading snapshot: {exc}")
         if "404" in str(exc):
@@ -194,6 +210,11 @@ Examples:
                   -f mistral-7b-instruct-v0.2.Q4_K_M.gguf \\
                   -o /path/to/models
 
+  # Pin a specific git revision (commit SHA, tag, or branch)
+  onellm download local/nomic-ai/nomic-embed-text-v1.5 \\
+                  --revision e04b7e4c5ea3e3d7e41e13d4c02fa5e29e0e3a0a
+  onellm download local/sentence-transformers/all-MiniLM-L6-v2 -R main
+
 Popular GGUF repositories:
   - TheBloke/* (e.g., TheBloke/Llama-2-7B-GGUF)
   - microsoft/Phi-3-mini-4k-instruct-gguf
@@ -221,18 +242,33 @@ Popular GGUF repositories:
         "-o",
         help="Output directory (default: ~/llama_models for GGUF, HF cache for local/)",
     )
+    parser.add_argument(
+        "--revision",
+        "-R",
+        default=None,
+        help=(
+            "Git revision (commit SHA, tag, or branch) to pin the download to. "
+            "Defaults to 'main'. Use this for reproducible deployments."
+        ),
+    )
 
     args = parser.parse_args()
 
+    # Revision must be non-empty when supplied (argparse already rejects
+    # bare ``--revision`` without a value, so the empty-string guard is
+    # only triggered by ``--revision ""`` which we treat as a user error).
+    if args.revision is not None and not args.revision:
+        parser.error("--revision must be a non-empty string")
+
     # Route to the correct backend based on which arguments were supplied.
     if _is_local_slug(args.slug):
-        download_local_model(args.slug, args.output)
+        download_local_model(args.slug, args.output, revision=args.revision)
         return
 
     # Treat an unprefixed positional arg as a raw HF repo slug snapshot too -
     # lets callers write `onellm download sentence-transformers/all-MiniLM-L6-v2`.
     if args.slug and not args.repo_id:
-        download_local_model(args.slug, args.output)
+        download_local_model(args.slug, args.output, revision=args.revision)
         return
 
     if not args.repo_id or not args.filename:
@@ -241,7 +277,7 @@ Popular GGUF repositories:
             "or both --repo-id and --filename for GGUF downloads."
         )
 
-    download_gguf(args.repo_id, args.filename, args.output)
+    download_gguf(args.repo_id, args.filename, args.output, revision=args.revision)
 
 
 if __name__ == "__main__":

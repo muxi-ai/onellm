@@ -83,7 +83,9 @@ def fake_sentence_transformers(monkeypatch):
     # Force the ONNX discovery step to miss, so _instantiate_model falls
     # through to _instantiate_pytorch_backend. Without this, the backend
     # selector would try hf_hub_download against the live HF hub.
-    monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
+    monkeypatch.setattr(
+        "onellm.providers.local._try_download_onnx_weights", lambda repo, revision=None: None
+    )
 
     fake_module = types.ModuleType("sentence_transformers")
 
@@ -119,7 +121,7 @@ def fake_onnx_backend(monkeypatch):
     # is opaque since the fake InferenceSession below ignores it.
     monkeypatch.setattr(
         "onellm.providers.local._try_download_onnx_weights",
-        lambda repo: "/fake/onnx/model.onnx",
+        lambda repo, revision=None: "/fake/onnx/model.onnx",
     )
 
     tokenizer_calls: list[dict[str, Any]] = []
@@ -302,8 +304,8 @@ class TestLRUCache:
         provider = LocalProvider(cache_size=1)
         provider._load_model("a", trust_remote_code=False)
         provider._load_model("b", trust_remote_code=False)
-        assert "a" not in provider._cache
-        assert "b" in provider._cache
+        assert ("a", None) not in provider._cache
+        assert ("b", None) in provider._cache
 
     def test_cache_hit_promotes_model_to_mru(self, fake_sentence_transformers):
         provider = LocalProvider(cache_size=2)
@@ -312,9 +314,9 @@ class TestLRUCache:
         # Touch 'a' -> becomes MRU; loading 'c' must evict 'b', not 'a'.
         provider._load_model("a", trust_remote_code=False)
         provider._load_model("c", trust_remote_code=False)
-        assert "a" in provider._cache
-        assert "b" not in provider._cache
-        assert "c" in provider._cache
+        assert ("a", None) in provider._cache
+        assert ("b", None) not in provider._cache
+        assert ("c", None) in provider._cache
 
     def test_cache_size_minimum_one(self, fake_sentence_transformers):
         provider = LocalProvider(cache_size=0)
@@ -342,7 +344,7 @@ class TestLRUCache:
         first = LocalProvider()
         first._load_model("shared-repo/x", trust_remote_code=False)
         second = LocalProvider()  # simulates a fresh dispatcher call
-        assert "shared-repo/x" in second._cache
+        assert ("shared-repo/x", None) in second._cache
         # And a cache-hit through the second instance must not trigger
         # a new _instantiate_model call.
         before_count = fake_sentence_transformers.call_count
@@ -364,7 +366,7 @@ class TestLRUCache:
         provider._cache_insert("a", object())
         provider._cache_insert("a", object())  # second concurrent winner
 
-        assert provider._cache_order == ["a"], "duplicate appended -> race corruption"
+        assert provider._cache_order == [("a", None)], "duplicate appended -> race corruption"
 
         # Fill to capacity, then evict via a third repo; the ghost entry
         # would cause 'a' to look absent from _cache but still present in
@@ -372,10 +374,10 @@ class TestLRUCache:
         provider._cache_insert("b", object())
         provider._cache_insert("c", object())  # triggers eviction of 'a'
 
-        assert "a" not in provider._cache
-        assert "a" not in provider._cache_order
-        assert set(provider._cache) == {"b", "c"}
-        assert provider._cache_order == ["b", "c"]
+        assert ("a", None) not in provider._cache
+        assert ("a", None) not in provider._cache_order
+        assert set(provider._cache) == {("b", None), ("c", None)}
+        assert provider._cache_order == [("b", None), ("c", None)]
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +411,9 @@ class TestMissingExtra:
         pointing to both remediation paths.
         """
         # Force ONNX discovery to miss.
-        monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
+        monkeypatch.setattr(
+            "onellm.providers.local._try_download_onnx_weights", lambda repo, revision=None: None
+        )
         # Block sentence_transformers import.
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
         provider = LocalProvider()
@@ -427,7 +431,7 @@ class TestMissingExtra:
         """
         monkeypatch.setattr(
             "onellm.providers.local._try_download_onnx_weights",
-            lambda repo: "/fake/onnx/model.onnx",
+            lambda repo, revision=None: "/fake/onnx/model.onnx",
         )
         monkeypatch.setitem(sys.modules, "onnxruntime", None)
         monkeypatch.setitem(sys.modules, "transformers", None)
@@ -690,7 +694,7 @@ class TestDownloadLocalModel:
     def test_local_prefix_stripped_before_hf_call(self, monkeypatch, tmp_path, capsys):
         calls: dict[str, object] = {}
 
-        def fake_snapshot_download(repo_id, cache_dir):
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
             calls["repo_id"] = repo_id
             calls["cache_dir"] = cache_dir
             return str(tmp_path / repo_id.replace("/", "_"))
@@ -714,7 +718,7 @@ class TestDownloadLocalModel:
     def test_slug_without_local_prefix_also_works(self, monkeypatch, tmp_path):
         calls: dict[str, object] = {}
 
-        def fake_snapshot_download(repo_id, cache_dir):
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
             calls["repo_id"] = repo_id
             return "/tmp/fake-path"
 
@@ -738,7 +742,7 @@ class TestDownloadLocalModel:
         """
         captured: dict[str, Any] = {}
 
-        def fake_snapshot_download(repo_id, cache_dir):
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
             captured["cache_dir"] = cache_dir
             return "/tmp/fake"
 
@@ -959,7 +963,9 @@ class TestErrorNormalizationIntegration:
     @staticmethod
     def _force_pytorch_path(monkeypatch):
         """Skip ONNX discovery so errors come from the pytorch backend."""
-        monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", lambda repo: None)
+        monkeypatch.setattr(
+            "onellm.providers.local._try_download_onnx_weights", lambda repo, revision=None: None
+        )
 
     def test_load_model_surfaces_repo_not_found(self, monkeypatch):
         self._force_pytorch_path(monkeypatch)
@@ -1139,7 +1145,7 @@ class TestBackendSelection:
 
         attempted: list[str] = []
 
-        def fake_download(repo_id, filename):
+        def fake_download(repo_id, filename, revision=None):
             attempted.append(filename)
             raise EntryNotFoundError(f"no {filename}")
 
@@ -1161,7 +1167,7 @@ class TestBackendSelection:
 
         from onellm.providers.local import _try_download_onnx_weights
 
-        def fake_download(repo_id, filename):
+        def fake_download(repo_id, filename, revision=None):
             if filename == "onnx/model.onnx":
                 return "/cached/onnx/model.onnx"
             raise EntryNotFoundError(f"no {filename}")
@@ -1573,6 +1579,227 @@ class TestMaxLengthResolution:
         provider = LocalProvider()
         await provider.create_embedding(input="hi", model="sentinel/repo")
         assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 512
+
+
+# ---------------------------------------------------------------------------
+# Revision plumbing (git ref pinning for reproducible embeddings)
+# ---------------------------------------------------------------------------
+
+
+class TestRevisionPlumbing:
+    """The ``revision`` kwarg must flow from create_embedding through every
+    downstream HuggingFace call site (weights download, tokenizer,
+    AutoConfig probe) so pinning actually works. Before this was wired
+    up, the kwarg was silently dropped and everything resolved to
+    ``main`` regardless.
+    """
+
+    async def test_revision_forwarded_to_hf_hub_download(self, fake_onnx_backend, monkeypatch):
+        """``_try_download_onnx_weights`` must receive the caller's
+        ``revision`` so the ONNX weights are pinned to the right git ref."""
+        captured: dict[str, Any] = {}
+
+        def spy(repo, revision=None):
+            captured["repo"] = repo
+            captured["revision"] = revision
+            return "/fake/onnx/model.onnx"
+
+        monkeypatch.setattr("onellm.providers.local._try_download_onnx_weights", spy)
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        await provider.create_embedding(input="hi", model="any/repo", revision="abc123")
+        assert captured == {"repo": "any/repo", "revision": "abc123"}
+
+    async def test_revision_forwarded_to_autotokenizer_and_autoconfig(self, fake_onnx_backend):
+        """Both the tokenizer and config loads must see the pinned
+        revision. Config matters because shape (e.g.
+        ``max_position_embeddings``) can change between commits."""
+        import transformers  # type: ignore[import-not-found]
+
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        await provider.create_embedding(input="hi", model="repo/a", revision="deadbeef")
+
+        tok_call = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert tok_call.kwargs.get("revision") == "deadbeef"
+
+        cfg_call = transformers.AutoConfig.from_pretrained.call_args_list[-1]
+        assert cfg_call.kwargs.get("revision") == "deadbeef"
+
+    async def test_revision_default_is_none(self, fake_onnx_backend):
+        """Back-compat: omitting ``revision`` must pass ``None`` through
+        every HF call (= resolve ``main``)."""
+        import transformers  # type: ignore[import-not-found]
+
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        await provider.create_embedding(input="hi", model="repo/nopin")
+        tok_call = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
+        assert tok_call.kwargs.get("revision") is None
+
+    async def test_empty_revision_rejected(self, fake_onnx_backend):
+        """``revision=""`` is a typo hazard - HuggingFace would resolve
+        it inconsistently depending on version. Reject with a clear
+        error instead."""
+        from onellm.errors import InvalidRequestError
+
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        with pytest.raises(InvalidRequestError, match="non-empty string"):
+            await provider.create_embedding(input="hi", model="any/repo", revision="")
+
+    async def test_non_string_revision_rejected(self, fake_onnx_backend):
+        from onellm.errors import InvalidRequestError
+
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        with pytest.raises(InvalidRequestError, match="non-empty string"):
+            await provider.create_embedding(input="hi", model="any/repo", revision=123)
+
+    async def test_revision_is_part_of_cache_key(self, fake_onnx_backend):
+        """Two calls with the same repo but different revisions must
+        produce two separate cache entries - otherwise the first load
+        would shadow the second, and ``revision="v2"`` would silently
+        return ``v1`` embeddings."""
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=4)
+        await provider.create_embedding(input="hi", model="same/repo", revision="v1")
+        await provider.create_embedding(input="hi", model="same/repo", revision="v2")
+        await provider.create_embedding(input="hi", model="same/repo")  # main
+
+        keys = set(provider._cache)
+        assert ("same/repo", "v1") in keys
+        assert ("same/repo", "v2") in keys
+        assert ("same/repo", None) in keys
+
+    async def test_same_repo_same_revision_hits_cache(self, fake_onnx_backend):
+        """Pinned-revision calls must still benefit from the LRU - two
+        calls with identical (repo, revision) must instantiate once."""
+        import transformers  # type: ignore[import-not-found]
+
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=2)
+        await provider.create_embedding(input="hi", model="same/repo", revision="abc")
+        before = transformers.AutoTokenizer.from_pretrained.call_count
+        await provider.create_embedding(input="hello", model="same/repo", revision="abc")
+        after = transformers.AutoTokenizer.from_pretrained.call_count
+        assert after == before, "second pinned call should have hit cache"
+
+    def test_pytorch_backend_forwards_revision(self, fake_sentence_transformers):
+        """The PyTorch fallback path must pass ``revision`` to the
+        ``SentenceTransformer`` constructor."""
+        LocalProvider._reset_cache_for_tests()
+        provider = LocalProvider(cache_size=1)
+        provider._load_model("st/repo", trust_remote_code=False, revision="pinned-tag")
+        call = fake_sentence_transformers.call_args_list[-1]
+        assert call.kwargs.get("revision") == "pinned-tag"
+
+
+# ---------------------------------------------------------------------------
+# CLI: --revision flag plumbing
+# ---------------------------------------------------------------------------
+
+
+class TestCliRevisionFlag:
+    def test_cli_local_slug_forwards_revision(self, monkeypatch, tmp_path):
+        captured: dict[str, Any] = {}
+
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
+            captured["repo_id"] = repo_id
+            captured["revision"] = revision
+            return str(tmp_path / "path")
+
+        fake_module = types.ModuleType("huggingface_hub")
+        fake_module.snapshot_download = fake_snapshot_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_module)
+
+        from onellm.cli.download_model import main
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["onellm-download", "local/any/repo", "--revision", "deadbeef"],
+        )
+        main()
+        assert captured["repo_id"] == "any/repo"
+        assert captured["revision"] == "deadbeef"
+
+    def test_cli_short_revision_flag(self, monkeypatch, tmp_path):
+        captured: dict[str, Any] = {}
+
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
+            captured["revision"] = revision
+            return str(tmp_path)
+
+        fake_module = types.ModuleType("huggingface_hub")
+        fake_module.snapshot_download = fake_snapshot_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_module)
+
+        from onellm.cli.download_model import main
+
+        monkeypatch.setattr(sys, "argv", ["onellm-download", "local/any/repo", "-R", "v1.2.3"])
+        main()
+        assert captured["revision"] == "v1.2.3"
+
+    def test_cli_gguf_forwards_revision(self, monkeypatch, tmp_path):
+        captured: dict[str, Any] = {}
+
+        def fake_hf_hub_download(repo_id, filename, local_dir, revision=None):
+            captured["revision"] = revision
+            captured["filename"] = filename
+            return str(tmp_path / filename)
+
+        fake_module = types.ModuleType("huggingface_hub")
+        fake_module.hf_hub_download = fake_hf_hub_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_module)
+
+        from onellm.cli.download_model import main
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "onellm-download",
+                "-r",
+                "Some/Repo",
+                "-f",
+                "model.gguf",
+                "-o",
+                str(tmp_path),
+                "-R",
+                "abc123",
+            ],
+        )
+        main()
+        assert captured["revision"] == "abc123"
+        assert captured["filename"] == "model.gguf"
+
+    def test_cli_empty_revision_rejected(self, monkeypatch):
+        from onellm.cli.download_model import main
+
+        monkeypatch.setattr(sys, "argv", ["onellm-download", "local/any/repo", "--revision", ""])
+        with pytest.raises(SystemExit):
+            main()
+
+    def test_cli_no_revision_omits_kwarg_default(self, monkeypatch, tmp_path):
+        """Back-compat: without ``--revision`` the CLI must call
+        ``snapshot_download`` with ``revision=None`` (not an empty
+        string, not a missing kwarg entirely)."""
+        captured: dict[str, Any] = {}
+
+        def fake_snapshot_download(repo_id, cache_dir, revision=None):
+            captured["revision"] = revision
+            return "/tmp/x"
+
+        fake_module = types.ModuleType("huggingface_hub")
+        fake_module.snapshot_download = fake_snapshot_download
+        monkeypatch.setitem(sys.modules, "huggingface_hub", fake_module)
+
+        from onellm.cli.download_model import main
+
+        monkeypatch.setattr(sys, "argv", ["onellm-download", "local/any/repo"])
+        main()
+        assert captured["revision"] is None
 
 
 # ---------------------------------------------------------------------------

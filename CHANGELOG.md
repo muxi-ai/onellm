@@ -1,5 +1,74 @@
 # CHANGELOG
 
+## 0.20260422.1 - `revision=` kwarg for reproducible `local/` embeddings
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Pin HuggingFace downloads to a git ref
+
+`local/` provider calls now accept `revision=<sha|tag|branch>` on every entry point. Before this release the kwarg was silently dropped: every download resolved to `main` regardless of what the caller passed, so embedding vectors could change between deployments whenever HuggingFace accepted a new commit on a model repo. Reproducibility was impossible without manually pre-downloading via `snapshot_download(..., revision=...)` and setting `HF_HUB_OFFLINE=1`.
+
+```python
+# Pinned to a specific commit - deterministic across deployments
+await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input=["hello"],
+    revision="e04b7e4c5ea3e3d7e41e13d4c02fa5e29e0e3a0a",
+)
+
+# Omitted (or None) -> resolves main, as before (back-compat)
+await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input=["hello"],
+)
+
+# Invalid revision -> RevisionNotFoundError surfaces from HuggingFace
+await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input=["hello"],
+    revision="does-not-exist",
+)
+```
+
+### Threaded through every HF call site
+
+The revision forwards to:
+
+- `huggingface_hub.hf_hub_download` (ONNX weights discovery)
+- `transformers.AutoTokenizer.from_pretrained`
+- `transformers.AutoConfig.from_pretrained` (the max-length probe - config shape can differ between commits, so revision matters here too)
+- `sentence_transformers.SentenceTransformer` (PyTorch fallback path)
+
+### CLI: `onellm download --revision`
+
+```bash
+# Pin a snapshot download
+onellm download local/nomic-ai/nomic-embed-text-v1.5 --revision <sha>
+onellm download local/sentence-transformers/all-MiniLM-L6-v2 -R main
+
+# Pin a GGUF download
+onellm download -r TheBloke/Llama-2-7B-GGUF -f llama-2-7b.Q4_K_M.gguf -R <sha>
+```
+
+Empty string is rejected up front (`parser.error`) rather than passed to HuggingFace.
+
+### LRU cache keys on `(repo, revision)`
+
+The class-level LRU now keys on a tuple instead of a bare repo id. Two formations pinning different revisions of the same repo get two separate cache entries instead of colliding. The `None` (= `main`) case is its own key and stays separate from any pinned revision.
+
+### Error contract
+
+| Failure mode | Error | Retriable? |
+|---|---|---|
+| `revision=""` or non-string | `InvalidRequestError` (400) | no |
+| `revision="<does-not-exist>"` | `ResourceNotFoundError` (from HF `RevisionNotFoundError`) | no |
+
+### Migration
+
+No action required for existing callers - omitting `revision` preserves exact current behavior. MUXI runtime PR #155 (slug syntax `local/<org>/<repo>:<revision>`) depends on this release.
+
+---
+
 ## 0.20260422.0 - Real max-sequence-length resolution
 
 **Status**: Development Status :: 5 - Production/Stable
