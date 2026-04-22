@@ -63,10 +63,27 @@ wheel. The CUDA execution provider is selected automatically when present.
 The provider supports Matryoshka truncation via ``dimensions=<int>`` (slice +
 L2-renormalize, with no validation - the caller owns whether that makes
 sense for the chosen model), task-adaptive prompting via ``task=<str>``
-(prepends ``f"{task}: "`` to every input, Nomic-style convention), and
+(prepends ``f"{task}: "`` to every input, Nomic-style convention),
 pooling override via ``pooling=<"mean"|"cls"|"max">`` (ONNX backend only;
 the PyTorch fallback uses whatever pooling the source model was trained
-with and emits a warning if a different strategy is requested).
+with and emits a warning if a different strategy is requested), and
+per-call sequence-length override via ``max_length=<int>``.
+
+Sequence length
+---------------
+
+Instead of a hard-coded 512-token cap, the backend resolves each repo's
+real max sequence length from three authoritative sources (ONNX shape,
+``AutoConfig.max_position_embeddings``, ``tokenizer.model_max_length``)
+and uses the minimum of the sane values. A deployment-level safety
+ceiling (``ONELLM_LOCAL_MAX_TOKEN_LENGTH``, default ``32768``) clamps
+this at load time so memory-constrained hosts stay safe. Callers can
+pass ``max_length=<int>`` on any embedding call to request a shorter
+window for a specific batch; passing a value larger than the resolved
+cap raises ``InvalidRequestError`` unless the caller also opts in via
+``allow_exceed_model_max_length=True`` (for RoPE-extrapolation models
+like Nomic v1.5 whose runtime ceiling exceeds the config's
+``max_position_embeddings``).
 
 Error contract
 --------------
@@ -158,10 +175,24 @@ _ONNX_WEIGHT_CANDIDATES: tuple[str, ...] = (
     "onnx/model_quantized.onnx",
 )
 
-# Hard cap on sequence length. Some tokenizer configs advertise absurd
-# ``model_max_length`` values (10^30) that would blow out memory if we
-# honored them; 512 covers every popular embedding model we know of.
-_MAX_TOKEN_LENGTH = 512
+# Sequence-length resolution constants.
+#
+# We no longer blindly cap every model at 512. Instead, we consult three
+# authoritative sources in priority order (session shape, model config,
+# tokenizer config) and take the minimum of the sane values, falling back
+# to ``_MODEL_MAX_LENGTH_FALLBACK`` only when nothing advertises a sensible
+# cap. Bogus "unlimited" sentinels (e.g. ``model_max_length=10**30`` that
+# some tokenizer configs ship) are rejected by the sentinel threshold.
+#
+# A deployment-level safety ceiling (``ONELLM_LOCAL_MAX_TOKEN_LENGTH``) lets
+# memory-constrained hosts enforce a lower ceiling without patching code.
+# The default ceiling (32K tokens) is high enough that every popular
+# embedding model - including 8K-context ones like Nomic v1.5 and Jina v3 -
+# works out of the box, while still capping an 128K pathological config.
+_MODEL_MAX_LENGTH_FALLBACK = 512
+_TOKENIZER_SENTINEL_THRESHOLD = 1_000_000
+_DEFAULT_SAFETY_CEILING = 32_768
+_SAFETY_CEILING_ENV = "ONELLM_LOCAL_MAX_TOKEN_LENGTH"
 
 
 # ---------------------------------------------------------------------------
@@ -381,6 +412,107 @@ def _l2_normalize(vectors: Any) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# Sequence-length resolution
+# ---------------------------------------------------------------------------
+
+
+def _get_safety_ceiling() -> int:
+    """Read the deployment-level safety ceiling from the environment.
+
+    Set ``ONELLM_LOCAL_MAX_TOKEN_LENGTH`` to a positive integer to clamp
+    every ONNX backend's max sequence length at load time. Non-integer or
+    non-positive values are ignored and the default ceiling is returned,
+    logged at WARNING so misconfiguration is visible.
+    """
+    raw = os.environ.get(_SAFETY_CEILING_ENV)
+    if raw is None:
+        return _DEFAULT_SAFETY_CEILING
+    try:
+        val = int(raw)
+    except ValueError:
+        logger.warning(
+            "Ignoring %s=%r: not a valid integer. Using default ceiling %d.",
+            _SAFETY_CEILING_ENV,
+            raw,
+            _DEFAULT_SAFETY_CEILING,
+        )
+        return _DEFAULT_SAFETY_CEILING
+    if val < 1:
+        logger.warning(
+            "Ignoring %s=%d: must be >= 1. Using default ceiling %d.",
+            _SAFETY_CEILING_ENV,
+            val,
+            _DEFAULT_SAFETY_CEILING,
+        )
+        return _DEFAULT_SAFETY_CEILING
+    return val
+
+
+def _resolve_model_max_length(
+    repo: str,
+    tokenizer: Any,
+    session: Any,
+    *,
+    trust_remote_code: bool,
+) -> int:
+    """Determine the real max sequence length the repo supports.
+
+    Source priority (most authoritative first):
+
+      1. ONNX session's declared ``input_ids`` seq-length dim. Only set
+         when the exporter hard-coded the seq dimension; rare but
+         authoritative (a longer input would crash the session with
+         ``InvalidArgument``). Dynamic dims (``None`` / ``-1`` /
+         symbolic name) are ignored.
+      2. ``AutoConfig.max_position_embeddings`` from the model config.
+         This is the positional embedding table size the model was
+         trained for (e.g. Nomic v1.5 = 8192, XLM-R = 514, BERT-base
+         = 512). Authoritative for the vast majority of repos.
+      3. ``tokenizer.model_max_length`` - fallback for repos that do not
+         ship a model config readable by ``AutoConfig``. Often matches
+         source 2 when both exist.
+
+    Sentinel values (anything above ``_TOKENIZER_SENTINEL_THRESHOLD``) are
+    rejected as bogus so the legacy "10**30 means unlimited" convention
+    does not silently allocate enormous tokenizer buffers.
+
+    Returns the minimum of the sane candidate caps, or
+    ``_MODEL_MAX_LENGTH_FALLBACK`` when nothing advertises a valid value.
+    """
+    caps: list[int] = []
+
+    # 1. ONNX session: check for hard-coded seq_len on input_ids.
+    try:
+        for inp in session.get_inputs():
+            if getattr(inp, "name", None) == "input_ids":
+                shape = getattr(inp, "shape", None) or []
+                if len(shape) >= 2 and isinstance(shape[1], int) and shape[1] > 0:
+                    caps.append(int(shape[1]))
+                break
+    except Exception:  # noqa: BLE001 - session introspection must not explode
+        pass
+
+    # 2. Model config's max_position_embeddings.
+    try:
+        from transformers import AutoConfig  # type: ignore[import-not-found]
+
+        cfg = AutoConfig.from_pretrained(repo, trust_remote_code=trust_remote_code)
+        raw = getattr(cfg, "max_position_embeddings", None)
+        if isinstance(raw, int) and 0 < raw <= _TOKENIZER_SENTINEL_THRESHOLD:
+            caps.append(raw)
+    except Exception:  # noqa: BLE001 - config load failure is non-fatal here
+        pass
+
+    # 3. Tokenizer's model_max_length.
+    raw = getattr(tokenizer, "model_max_length", None)
+    if isinstance(raw, int) and not isinstance(raw, bool):
+        if 0 < raw <= _TOKENIZER_SENTINEL_THRESHOLD:
+            caps.append(raw)
+
+    return min(caps) if caps else _MODEL_MAX_LENGTH_FALLBACK
+
+
+# ---------------------------------------------------------------------------
 # Inference backends
 # ---------------------------------------------------------------------------
 
@@ -398,12 +530,17 @@ class _OnnxBackend:
         repo: str,
         tokenizer: Any,  # transformers.PreTrainedTokenizerBase
         session: Any,  # onnxruntime.InferenceSession
-        max_length: int,
+        model_max_length: int,
     ) -> None:
         self.repo = repo
         self.tokenizer = tokenizer
         self.session = session
-        self.max_length = max_length
+        # ``model_max_length`` is the ceiling: the repo's advertised max
+        # sequence length, already clamped by the deployment safety
+        # ceiling at load time. Per-call ``encode(max_length=...)`` may
+        # request a smaller value (useful for batching or memory
+        # shaping); anything larger is rejected as a caller error.
+        self.model_max_length = model_max_length
         # Cache the set of input names the model declares. Some repos
         # ship ONNX exports that only take ``input_ids`` + ``attention_mask``
         # (e.g. MiniLM); others also take ``token_type_ids`` (BERT-family).
@@ -450,18 +587,61 @@ class _OnnxBackend:
             )
         return session_inputs
 
-    def encode(self, texts: list[str], *, pooling: str = _DEFAULT_POOLING) -> Any:
+    _warned_exceed: bool = False
+
+    def encode(
+        self,
+        texts: list[str],
+        *,
+        pooling: str = _DEFAULT_POOLING,
+        max_length: int | None = None,
+        allow_exceed_model_max_length: bool = False,
+    ) -> Any:
         if pooling not in _POOLING_STRATEGIES:
             raise InvalidRequestError(
                 f"pooling must be one of {_POOLING_STRATEGIES}, got {pooling!r}",
                 provider="local",
                 status_code=400,
             )
+        if max_length is None:
+            effective_max = self.model_max_length
+        else:
+            if not isinstance(max_length, int) or isinstance(max_length, bool) or max_length < 1:
+                raise InvalidRequestError(
+                    f"max_length must be a positive integer, got {max_length!r}",
+                    provider="local",
+                    status_code=400,
+                )
+            if max_length > self.model_max_length:
+                if not allow_exceed_model_max_length:
+                    raise InvalidRequestError(
+                        f"[local/{self.repo}] requested max_length={max_length} "
+                        f"exceeds this model's advertised cap of "
+                        f"{self.model_max_length} (from model config / tokenizer). "
+                        "Some models (e.g. Nomic v1.5 with RoPE NTK-scaling) can "
+                        "handle longer inputs via runtime extrapolation; pass "
+                        "``allow_exceed_model_max_length=True`` to opt into that "
+                        "at your own risk, or pick a smaller value.",
+                        provider="local",
+                        status_code=400,
+                    )
+                if not self._warned_exceed:
+                    logger.warning(
+                        "[local/%s] encoding at max_length=%d, above the model's "
+                        "advertised cap of %d. Output quality may degrade if the "
+                        "model does not support the extrapolated length. Set "
+                        "allow_exceed_model_max_length=False to re-enforce the cap.",
+                        self.repo,
+                        max_length,
+                        self.model_max_length,
+                    )
+                    self._warned_exceed = True
+            effective_max = max_length
         tokens = self.tokenizer(
             texts,
             padding=True,
             truncation=True,
-            max_length=self.max_length,
+            max_length=effective_max,
             return_tensors="np",
         )
         session_inputs = self._build_session_inputs(tokens)
@@ -496,8 +676,26 @@ class _PyTorchBackend:
         self.repo = repo
         self.st_model = st_model
         self._warned_pooling = False
+        # ``SentenceTransformer`` exposes its tokenizer cap as
+        # ``max_seq_length``. Fall back to the safe default when missing.
+        raw = getattr(st_model, "max_seq_length", None)
+        if (
+            isinstance(raw, int)
+            and not isinstance(raw, bool)
+            and 0 < raw <= _TOKENIZER_SENTINEL_THRESHOLD
+        ):
+            self.model_max_length = raw
+        else:
+            self.model_max_length = _MODEL_MAX_LENGTH_FALLBACK
 
-    def encode(self, texts: list[str], *, pooling: str = _DEFAULT_POOLING) -> Any:
+    def encode(
+        self,
+        texts: list[str],
+        *,
+        pooling: str = _DEFAULT_POOLING,
+        max_length: int | None = None,
+        allow_exceed_model_max_length: bool = False,
+    ) -> Any:
         if pooling not in _POOLING_STRATEGIES:
             raise InvalidRequestError(
                 f"pooling must be one of {_POOLING_STRATEGIES}, got {pooling!r}",
@@ -515,6 +713,32 @@ class _PyTorchBackend:
                 self.repo,
             )
             self._warned_pooling = True
+        if max_length is not None:
+            if not isinstance(max_length, int) or isinstance(max_length, bool) or max_length < 1:
+                raise InvalidRequestError(
+                    f"max_length must be a positive integer, got {max_length!r}",
+                    provider="local",
+                    status_code=400,
+                )
+            if max_length > self.model_max_length and not allow_exceed_model_max_length:
+                raise InvalidRequestError(
+                    f"[local/{self.repo}] requested max_length={max_length} exceeds "
+                    f"this model's advertised cap of {self.model_max_length}. "
+                    "Pass allow_exceed_model_max_length=True to bypass at your risk.",
+                    provider="local",
+                    status_code=400,
+                )
+            # SentenceTransformer respects max_seq_length attr at
+            # encode-time, so we swap it in and restore after. This is
+            # thread-unsafe but the backend is also memoized at the
+            # class level and inference is CPU/GPU-bound, so contending
+            # threads are rare; acceptable for the fallback path.
+            prev = self.st_model.max_seq_length
+            self.st_model.max_seq_length = max_length
+            try:
+                return self.st_model.encode(texts, normalize_embeddings=True)
+            finally:
+                self.st_model.max_seq_length = prev
         return self.st_model.encode(texts, normalize_embeddings=True)
 
 
@@ -575,9 +799,29 @@ def _instantiate_onnx_backend(
         # installed. The default CPU wheel reports only CPU.
         session = ort.InferenceSession(onnx_path, providers=ort.get_available_providers())
 
-    raw_max = getattr(tokenizer, "model_max_length", _MAX_TOKEN_LENGTH) or _MAX_TOKEN_LENGTH
-    max_length = min(int(raw_max), _MAX_TOKEN_LENGTH)
-    return _OnnxBackend(repo=repo, tokenizer=tokenizer, session=session, max_length=max_length)
+    advertised = _resolve_model_max_length(
+        repo, tokenizer, session, trust_remote_code=trust_remote_code
+    )
+    safety_ceiling = _get_safety_ceiling()
+    model_max_length = min(advertised, safety_ceiling)
+    if advertised > safety_ceiling:
+        logger.warning(
+            "[local/%s] model advertises max_position_embeddings=%d but %s=%d "
+            "caps it lower; inputs will truncate at %d. Raise %s if you need "
+            "the full context window.",
+            repo,
+            advertised,
+            _SAFETY_CEILING_ENV,
+            safety_ceiling,
+            model_max_length,
+            _SAFETY_CEILING_ENV,
+        )
+    return _OnnxBackend(
+        repo=repo,
+        tokenizer=tokenizer,
+        session=session,
+        model_max_length=model_max_length,
+    )
 
 
 def _instantiate_pytorch_backend(repo: str, trust_remote_code: bool) -> _PyTorchBackend:
@@ -892,6 +1136,19 @@ class LocalProvider(Provider):
                   the ONNX backend's default token-embedding reduction.
                   Defaults to ``"mean"``. Ignored (with a one-shot warning)
                   on the PyTorch fallback backend.
+                * ``max_length`` (int): override the max sequence length
+                  the tokenizer truncates to. Defaults to the model's
+                  advertised cap (resolved from ONNX shape, model config,
+                  and tokenizer config, clamped by
+                  ``ONELLM_LOCAL_MAX_TOKEN_LENGTH``). Passing a value
+                  higher than the advertised cap raises
+                  ``InvalidRequestError`` unless
+                  ``allow_exceed_model_max_length=True`` is also passed.
+                * ``allow_exceed_model_max_length`` (bool): opt into
+                  exceeding the config-advertised cap. Needed for
+                  RoPE-extrapolation models (e.g. Nomic v1.5 advertises
+                  2048 but supports 8192 at inference time). Logs a
+                  one-shot warning when triggered. Default False.
                 * ``trust_remote_code`` (bool): override the default (True).
                   The ``ONELLM_ALLOW_TRUST_REMOTE_CODE=false`` kill switch
                   always wins over caller kwargs.
@@ -928,6 +1185,18 @@ class LocalProvider(Provider):
                 status_code=400,
             )
 
+        # Validate max_length up front. Actual "exceeds model cap" check
+        # happens inside the backend where the advertised cap is known.
+        max_length = kwargs.get("max_length")
+        if max_length is not None:
+            if not isinstance(max_length, int) or isinstance(max_length, bool) or max_length < 1:
+                raise InvalidRequestError(
+                    f"max_length must be a positive integer, got {max_length!r}",
+                    provider="local",
+                    status_code=400,
+                )
+        allow_exceed = bool(kwargs.get("allow_exceed_model_max_length", False))
+
         # Apply task prefix (if any) and load the backend.
         inputs = self._apply_task_prefix(inputs, kwargs.get("task"))
         trust_flag = self._resolve_trust_remote_code(**kwargs)
@@ -945,7 +1214,15 @@ class LocalProvider(Provider):
         # hardware.
         loop = asyncio.get_running_loop()
         with _normalize_errors(model):
-            raw = await loop.run_in_executor(None, lambda: backend.encode(inputs, pooling=pooling))
+            raw = await loop.run_in_executor(
+                None,
+                lambda: backend.encode(
+                    inputs,
+                    pooling=pooling,
+                    max_length=max_length,
+                    allow_exceed_model_max_length=allow_exceed,
+                ),
+            )
         vectors: list[list[float]] = [list(v) for v in raw.tolist()]
 
         # Matryoshka truncation (pass-through; no tier validation).

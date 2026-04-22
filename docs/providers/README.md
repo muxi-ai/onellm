@@ -238,7 +238,7 @@ OneLLM supports 21 providers, giving you access to 300+ language models through 
   - `local/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (50+ languages)
   - `local/BAAI/bge-small-en-v1.5`
   - Use `onellm download local/<repo-id>` to pre-download weights
-- **Features**: ONNX Runtime backend (default, lean); PyTorch fallback via `onellm[local-pytorch]`; `dimensions`, `task`, and `pooling` kwargs; class-level LRU shared across `get_provider("local")` calls
+- **Features**: ONNX Runtime backend (default, lean); PyTorch fallback via `onellm[local-pytorch]`; `dimensions`, `task`, `pooling`, and `max_length` kwargs; per-repo max sequence length resolved from ONNX shape + model config + tokenizer config (no more hard-coded 512 cap); deployment ceiling via `ONELLM_LOCAL_MAX_TOKEN_LENGTH` (default 32768); class-level LRU shared across `get_provider("local")` calls
 - **Install**: `pip install "onellm[cache]"` (~345 MB) for CPU, `onellm[local-gpu]` for CUDA
 - **Pricing**: Free (self-hosted)
 - **Best for**: In-process embeddings without an extra service; drop-in embedding for the semantic cache

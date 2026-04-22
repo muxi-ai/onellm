@@ -432,6 +432,7 @@ response = Embedding.create(
     dimensions=768,             # Matryoshka truncation (symmetric with OpenAI text-embedding-3-*)
     task="search_document",      # prepended as "search_document: " to each input
     pooling="mean",             # "mean" (default) | "cls" | "max" - ONNX backend only
+    max_length=2048,             # optional; defaults to the model's advertised cap
 )
 vec = response.data[0].embedding
 ```
@@ -451,8 +452,11 @@ Knobs:
 - `dimensions=<int>` — truncate and L2-renormalize (pass-through; caller owns whether the size makes sense for the chosen model).
 - `task=<str>` — prepend `f"{task}: "` to every input. Matches the Nomic prefix convention; other models ignore the extra tokens.
 - `pooling=<"mean"|"cls"|"max">` — override the token-embedding reduction on the ONNX backend (default `"mean"`). The PyTorch fallback bakes pooling into the model at load time; requesting a non-default strategy there emits a one-shot warning.
+- `max_length=<int>` — override the max sequence length for this call. Defaults to the model's advertised cap, resolved from (in priority order) the ONNX session's `input_ids` shape, `AutoConfig.max_position_embeddings`, and `tokenizer.model_max_length`. Bogus sentinel values (e.g. `10**30`) are rejected. Passing a value larger than the advertised cap raises `InvalidRequestError` unless you also pass `allow_exceed_model_max_length=True`.
+- `allow_exceed_model_max_length=<bool>` — opt into exceeding the model's config-advertised cap. Needed for models like Nomic v1.5 that use RoPE NTK-scaling to reach longer contexts (8192) than the base config declares (2048). Logs a one-shot warning when triggered. Default `False`.
 - `trust_remote_code=<bool>` — defaults to `True` (models like Nomic ship custom pooling code). Set `ONELLM_ALLOW_TRUST_REMOTE_CODE=false` as a global kill switch that overrides per-call kwargs.
 - `ONELLM_LOCAL_CACHE_SIZE=<int>` — class-level LRU size for the in-memory backend cache (default 2). Shared across `LocalProvider` instances so repeated `Embedding.acreate()` calls don't reload the backend.
+- `ONELLM_LOCAL_MAX_TOKEN_LENGTH=<int>` — deployment-level safety ceiling applied at backend load time (default `32768`). Useful on memory-constrained hosts: even if the model advertises an 8K context, the resolved cap is `min(advertised, ceiling)`. Non-integer or `<1` values fall back to the default with a warning.
 
 Weights live in the standard HF cache (`$HF_HOME` or `~/.cache/huggingface/hub/`), so downloads are shared with every other HF-using tool in the environment. Failures from the HuggingFace backend (missing repo, gated access, 429, 5xx, timeout, OOM, kill-switch) normalize to the same `onellm.errors` classes the cloud providers use, so `fallback_models=["local/...", "openai/..."]` chains work out of the box.
 

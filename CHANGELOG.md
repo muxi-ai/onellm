@@ -1,5 +1,67 @@
 # CHANGELOG
 
+## 0.20260422.0 - Real max-sequence-length resolution
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### `local/` provider no longer blindly caps every model at 512 tokens
+
+Previously every local embedding model was truncated at `max_length=512` regardless of what it actually supported, silently dropping tokens past the 512th on any longer-context model. The cap now reflects reality: the ONNX backend consults three authoritative sources at load time and uses the minimum of the sane values.
+
+Resolution priority (most authoritative first):
+1. **ONNX session's `input_ids` seq-length dim** — only set when the exporter hard-coded it, but binding when present (exceeding it crashes `onnxruntime` with `InvalidArgument`).
+2. **`AutoConfig.max_position_embeddings`** — the positional embedding table size the model was trained for (Nomic v1.5 = 2048, XLM-R = 514, BERT-base = 512). This is what the model's config *declares*; some models (Nomic v1.5, Jina v3) support longer contexts at inference via RoPE NTK-scaling — see the opt-in below.
+3. **`tokenizer.model_max_length`** — fallback for repos without a readable model config.
+
+Sentinel values (`model_max_length = 10**30`, etc.) are rejected via a `1_000_000` threshold so the legacy "unlimited" convention does not silently allocate enormous tokenizer buffers.
+
+### Per-call `max_length` override + `allow_exceed_model_max_length` opt-in
+
+`Embedding.create()` / `acreate()` now accept `max_length=<int>`. Passing a positive value ≤ the model's advertised cap truncates for that call; passing a value larger than the cap raises `InvalidRequestError` with a clear message (no silent clamping).
+
+```python
+resp = await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input=long_docs,
+    max_length=2048,  # shorter window to save memory on a big batch
+)
+```
+
+Advanced users may need to exceed the config-advertised cap — notably Nomic v1.5, whose config reports `max_position_embeddings=2048` but whose RoPE NTK-scaling supports up to 8192 tokens at inference time. Opt in explicitly:
+
+```python
+resp = await onellm.Embedding.acreate(
+    model="local/nomic-ai/nomic-embed-text-v1.5",
+    input=very_long_doc,
+    max_length=8192,
+    allow_exceed_model_max_length=True,   # logs a one-shot warning
+)
+```
+
+The opt-in path logs a WARNING the first time it fires. It's opt-in rather than default because the attention memory cost grows quadratically with sequence length; encoding an 8K-token doc on Nomic can exhaust RAM on modest hardware.
+
+The PyTorch fallback (`_PyTorchBackend`, for repos without ONNX weights) mirrors both kwargs by transiently swapping `SentenceTransformer.max_seq_length` around the call.
+
+### Deployment safety ceiling
+
+A new env var `ONELLM_LOCAL_MAX_TOKEN_LENGTH` (default `32768`) clamps the resolved max length at backend construction. The default is high enough that every popular embedding model works out of the box; memory-constrained hosts can lower it without patching code. Non-integer or ≤0 values are ignored with a warning and the default is used.
+
+When the env var clamps the model's advertised cap, a one-shot WARNING explains the situation and names the env var so operators can raise the ceiling deliberately.
+
+### Error contract
+
+| Failure mode | Error | Retriable? |
+|---|---|---|
+| `max_length` not a positive integer | `InvalidRequestError` (400) | no |
+| `max_length` exceeds model's cap (without opt-in) | `InvalidRequestError` (400) | no |
+| `max_length` exceeds cap with `allow_exceed_model_max_length=True` | one-shot WARNING, request proceeds | — |
+
+### Migration
+
+No action required for existing callers. Users who want longer contexts simply stop clamping themselves — the first call after upgrade picks up the model's real cap automatically. Users who want a tighter ceiling set `ONELLM_LOCAL_MAX_TOKEN_LENGTH`.
+
+---
+
 ## 0.20260421.0 - Local Embedding Provider
 
 **Status**: Development Status :: 5 - Production/Stable

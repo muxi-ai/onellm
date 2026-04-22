@@ -179,9 +179,18 @@ def fake_onnx_backend(monkeypatch):
         sess.run.side_effect = _run
         return sess
 
+    def _default_config(repo, **_kwargs):
+        # Simulate an ``AutoConfig`` that advertises no explicit cap so
+        # ``_resolve_model_max_length`` falls through to the tokenizer's
+        # ``model_max_length``. Individual tests can swap this out.
+        cfg = MagicMock(name=f"AutoConfig({repo!r})")
+        cfg.max_position_embeddings = None
+        return cfg
+
     state: dict[str, Any] = {
         "tokenizer_factory": _default_tokenizer,
         "session_factory": _default_session,
+        "config_factory": _default_config,
         "tokenizer_calls": tokenizer_calls,
         "session_calls": session_calls,
     }
@@ -192,6 +201,9 @@ def fake_onnx_backend(monkeypatch):
     def _session_factory_wrapper(onnx_path, providers=None):
         return state["session_factory"](onnx_path, providers)
 
+    def _config_factory_wrapper(repo, **kwargs):
+        return state["config_factory"](repo, **kwargs)
+
     fake_ort = types.ModuleType("onnxruntime")
     fake_ort.InferenceSession = MagicMock(side_effect=_session_factory_wrapper)
     fake_ort.get_available_providers = MagicMock(return_value=["CPUExecutionProvider"])
@@ -201,6 +213,8 @@ def fake_onnx_backend(monkeypatch):
     fake_transformers.AutoTokenizer.from_pretrained = MagicMock(
         side_effect=_tokenizer_factory_wrapper
     )
+    fake_transformers.AutoConfig = MagicMock()
+    fake_transformers.AutoConfig.from_pretrained = MagicMock(side_effect=_config_factory_wrapper)
 
     monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
@@ -1351,6 +1365,214 @@ class TestOnnxBackend:
         )
         second = transformers.AutoTokenizer.from_pretrained.call_args_list[-1]
         assert second.kwargs.get("trust_remote_code") is False
+
+
+# ---------------------------------------------------------------------------
+# Max sequence length resolution + per-call override
+# ---------------------------------------------------------------------------
+
+
+class TestMaxLengthResolution:
+    """Covers _resolve_model_max_length + per-call max_length override."""
+
+    async def test_model_max_length_resolves_from_autoconfig(self, fake_onnx_backend):
+        """When AutoConfig advertises max_position_embeddings=8192 and the
+        tokenizer is silent, the backend must honor the 8192 cap instead
+        of falling back to 512."""
+
+        def big_config(repo, **_kwargs):
+            cfg = MagicMock()
+            cfg.max_position_embeddings = 8192
+            return cfg
+
+        def silent_tokenizer(repo):
+            tok = MagicMock()
+            # No sensible model_max_length advertised.
+            tok.model_max_length = None
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                fake_onnx_backend["tokenizer_calls"].append({"max_length": max_length})
+                ids = np.ones((len(texts), 2), dtype=np.int64)
+                mask = np.ones((len(texts), 2), dtype=np.int64)
+                return {"input_ids": ids, "attention_mask": mask}
+
+            tok.side_effect = _tok
+            return tok
+
+        fake_onnx_backend["config_factory"] = big_config
+        fake_onnx_backend["tokenizer_factory"] = silent_tokenizer
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="long/ctx")
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 8192
+
+    async def test_onnx_hardcoded_seq_len_wins(self, fake_onnx_backend):
+        """An ONNX export whose ``input_ids`` declares a fixed seq-length
+        dimension is the hardest constraint - going over it would crash
+        onnxruntime. The resolver must pick it even when config and
+        tokenizer advertise more."""
+
+        def big_config(repo, **_kwargs):
+            cfg = MagicMock()
+            cfg.max_position_embeddings = 8192
+            return cfg
+
+        def hardcoded_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp.shape = [None, 256]  # hard-coded seq_len
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            inp2.shape = [None, 256]
+            sess.get_inputs.return_value = [inp, inp2]
+
+            def _run(_names, inputs):
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["config_factory"] = big_config
+        fake_onnx_backend["session_factory"] = hardcoded_session
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="hardcoded/repo")
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 256
+
+    async def test_per_call_max_length_respected(self, fake_onnx_backend):
+        """Passing max_length=N on create_embedding must override the
+        advertised cap for that call and propagate to the tokenizer."""
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="any/repo", max_length=128)
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 128
+
+    async def test_per_call_max_length_exceeding_cap_raises(self, fake_onnx_backend):
+        """Default fake model advertises 512; requesting 9999 must raise
+        InvalidRequestError rather than silently clamping or sending an
+        oversized request to the session."""
+        from onellm.errors import InvalidRequestError
+
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError, match="exceeds"):
+            await provider.create_embedding(input="hi", model="any/repo", max_length=9999)
+
+    async def test_allow_exceed_model_max_length_opt_in(self, fake_onnx_backend, caplog):
+        """Advanced users (e.g. Nomic v1.5 with RoPE NTK-scaling) can opt
+        into exceeding the config-advertised cap. The request must then
+        propagate to the tokenizer without raising, and a one-shot
+        warning must be logged."""
+        import logging as _logging
+
+        provider = LocalProvider()
+        with caplog.at_level(_logging.WARNING, logger="onellm.providers.local"):
+            resp = await provider.create_embedding(
+                input="hi",
+                model="any/repo",
+                max_length=4096,
+                allow_exceed_model_max_length=True,
+            )
+        assert len(resp.data) == 1
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 4096
+        assert any(
+            "above the model's advertised cap" in rec.getMessage() for rec in caplog.records
+        ), "expected opt-in warning"
+
+    async def test_per_call_max_length_invalid_type_raises(self, fake_onnx_backend):
+        from onellm.errors import InvalidRequestError
+
+        provider = LocalProvider()
+        with pytest.raises(InvalidRequestError, match="positive integer"):
+            await provider.create_embedding(input="hi", model="any/repo", max_length=0)
+        with pytest.raises(InvalidRequestError, match="positive integer"):
+            await provider.create_embedding(input="hi", model="any/repo", max_length="128")
+        with pytest.raises(InvalidRequestError, match="positive integer"):
+            await provider.create_embedding(input="hi", model="any/repo", max_length=True)
+
+    async def test_safety_ceiling_env_clamps_advertised(self, fake_onnx_backend, monkeypatch):
+        """When ONELLM_LOCAL_MAX_TOKEN_LENGTH is set below the model's
+        advertised cap, the backend must clamp at the env value."""
+
+        def big_config(repo, **_kwargs):
+            cfg = MagicMock()
+            cfg.max_position_embeddings = 8192
+            return cfg
+
+        def big_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = 8192
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                fake_onnx_backend["tokenizer_calls"].append({"max_length": max_length})
+                ids = np.ones((len(texts), 2), dtype=np.int64)
+                mask = np.ones((len(texts), 2), dtype=np.int64)
+                return {"input_ids": ids, "attention_mask": mask}
+
+            tok.side_effect = _tok
+            return tok
+
+        fake_onnx_backend["config_factory"] = big_config
+        fake_onnx_backend["tokenizer_factory"] = big_tokenizer
+        monkeypatch.setenv("ONELLM_LOCAL_MAX_TOKEN_LENGTH", "1024")
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="clamped/repo")
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 1024
+
+    async def test_safety_ceiling_env_invalid_uses_default(self, fake_onnx_backend, monkeypatch):
+        """Non-integer or <=0 env values must fall back to the default
+        32K ceiling rather than refusing to load or clamping at 0."""
+
+        def big_config(repo, **_kwargs):
+            cfg = MagicMock()
+            cfg.max_position_embeddings = 8192
+            return cfg
+
+        def big_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = 8192
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                fake_onnx_backend["tokenizer_calls"].append({"max_length": max_length})
+                ids = np.ones((len(texts), 2), dtype=np.int64)
+                mask = np.ones((len(texts), 2), dtype=np.int64)
+                return {"input_ids": ids, "attention_mask": mask}
+
+            tok.side_effect = _tok
+            return tok
+
+        fake_onnx_backend["config_factory"] = big_config
+        fake_onnx_backend["tokenizer_factory"] = big_tokenizer
+        monkeypatch.setenv("ONELLM_LOCAL_MAX_TOKEN_LENGTH", "not-a-number")
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="clamped/repo")
+        # Default ceiling (32768) > advertised 8192, so the model's cap wins.
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 8192
+
+    async def test_sentinel_model_max_length_rejected(self, fake_onnx_backend):
+        """Tokenizer configs sometimes advertise ``model_max_length=10**30``
+        as a sentinel for "unlimited". That must not be honored."""
+
+        def sentinel_tokenizer(repo):
+            tok = MagicMock()
+            tok.model_max_length = 10**30
+
+            def _tok(texts, padding=True, truncation=True, max_length=512, return_tensors="np"):
+                fake_onnx_backend["tokenizer_calls"].append({"max_length": max_length})
+                ids = np.ones((len(texts), 2), dtype=np.int64)
+                mask = np.ones((len(texts), 2), dtype=np.int64)
+                return {"input_ids": ids, "attention_mask": mask}
+
+            tok.side_effect = _tok
+            return tok
+
+        fake_onnx_backend["tokenizer_factory"] = sentinel_tokenizer
+        # config returns None -> no cap from there either; fallback to 512.
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="sentinel/repo")
+        assert fake_onnx_backend["tokenizer_calls"][-1]["max_length"] == 512
 
 
 # ---------------------------------------------------------------------------
