@@ -21,31 +21,45 @@ from onellm.providers.minimax import MinimaxProvider
 
 
 class MockResponse:
-    """Mock aiohttp response object.
+    """Mock httpx.Response.
 
     The shared ``_read_response_body`` on ``Provider`` reads bodies via
-    ``response.text()`` so non-JSON error bodies from gateways survive
-    the error-mapper; tests therefore need to expose ``text()``.
+    ``await response.aread()`` then ``response.text`` (a sync property
+    in httpx); the response below mirrors both shapes. ``status`` is
+    kept as an alias of ``status_code`` for any legacy assertions.
     """
 
     def __init__(self, status: int, data: dict[str, Any]):
-        self.status = status
+        self.status_code = status
         self._data = data
+        payload = json.dumps(data)
+        self._text = payload
+        self._content = payload.encode("utf-8")
 
-    async def json(self):
+    @property
+    def status(self) -> int:
+        return self.status_code
+
+    @property
+    def content(self) -> bytes:
+        return self._content
+
+    @property
+    def text(self) -> str:
+        return self._text
+
+    def json(self):
         return self._data
 
-    async def text(self):
-        return json.dumps(self._data)
+    async def aread(self) -> bytes:
+        return self._content
 
-    async def read(self):
-        return b"test data"
+    async def aclose(self) -> None:
+        return None
 
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
-    async def __aenter__(self):
-        return self
+    async def aiter_lines(self):
+        for line in self._text.splitlines():
+            yield line
 
 
 @pytest.fixture
@@ -56,13 +70,12 @@ def mock_env_api_key(monkeypatch):
 
 @pytest.fixture
 def mock_aiohttp_session():
-    """Create a mock for get_session_safe to return a mock session."""
+    """Patch ``get_session_safe`` (on the Anthropic-compatible base) to
+    return a fake httpx-shaped client."""
     with mock.patch("onellm.providers.anthropic.get_session_safe") as mock_get_session:
-        # Create a session instance
-        session_instance = MagicMock()
-        session_instance.close = AsyncMock()
+        client = MagicMock()
+        client.aclose = AsyncMock()
 
-        # Create a response for messages endpoint (Anthropic-compatible format)
         minimax_response = MockResponse(
             status=200,
             data={
@@ -77,14 +90,12 @@ def mock_aiohttp_session():
             },
         )
 
-        # Set up request to return our mock response
-        request_context = AsyncMock()
-        request_context.__aenter__.return_value = minimax_response
-        request_context.__aexit__.return_value = None
-        session_instance.request = MagicMock(return_value=request_context)
+        client.request = AsyncMock(return_value=minimax_response)
 
-        # Set up get_session_safe to return (session, is_pooled) tuple
-        mock_get_session.return_value = (session_instance, False)
+        async def _fake_get_session(_pool_key):
+            return client, False
+
+        mock_get_session.side_effect = _fake_get_session
 
         yield mock_get_session
 

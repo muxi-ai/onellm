@@ -182,7 +182,9 @@ class Image:
         Download an image from a URL.
 
         This helper method asynchronously downloads image data from a given URL.
-        It uses aiohttp for efficient async HTTP requests.
+        Uses httpx for efficient async HTTP requests with automatic HTTP/2
+        negotiation; falls back to HTTP/1.1 via TLS ALPN when the upstream
+        does not advertise h2.
 
         Args:
             url: URL of the image to download
@@ -193,14 +195,10 @@ class Image:
         Raises:
             ValueError: If the download fails (non-200 status code)
         """
-        import aiohttp
+        import httpx
 
-        # Create a session for HTTP requests
-        async with aiohttp.ClientSession() as session:
-            # Make the GET request to download the image
-            async with session.get(url) as response:
-                # Check if the request was successful
-                if response.status != 200:
-                    raise ValueError(f"Failed to download image: {response.status}")
-                # Return the binary image data
-                return await response.read()
+        async with httpx.AsyncClient(http2=True, follow_redirects=True) as client:
+            response = await client.get(url)
+            if response.status_code != 200:
+                raise ValueError(f"Failed to download image: {response.status_code}")
+            return response.content

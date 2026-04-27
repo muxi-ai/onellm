@@ -1,5 +1,8 @@
 """Unit tests for the HTTP connection pooling module."""
 
+import warnings
+
+import httpx
 import pytest
 
 from onellm.http_pool import (
@@ -20,21 +23,41 @@ class TestPoolConfig:
         assert config.keepalive_timeout == 30
         assert config.dns_cache_ttl == 300
         assert config.request_timeout == 300
+        # HTTP/2 is on by default after the httpx migration so users
+        # opting into pooling automatically get multiplexed requests.
+        assert config.http2 is True
 
     def test_custom_config(self):
         """Test custom configuration values."""
-        config = PoolConfig(
-            max_connections=50,
-            max_per_host=10,
-            keepalive_timeout=60,
-            dns_cache_ttl=600,
-            request_timeout=120,
-        )
+        # Capture the deprecation warning from setting dns_cache_ttl to a
+        # non-default value (it's a no-op under httpx; we keep the field
+        # for back-compat but warn so callers know to drop it).
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            config = PoolConfig(
+                max_connections=50,
+                max_per_host=10,
+                keepalive_timeout=60,
+                dns_cache_ttl=600,
+                request_timeout=120,
+                http2=False,
+            )
         assert config.max_connections == 50
         assert config.max_per_host == 10
         assert config.keepalive_timeout == 60
         assert config.dns_cache_ttl == 600
         assert config.request_timeout == 120
+        assert config.http2 is False
+
+    def test_dns_cache_ttl_emits_deprecation_warning(self):
+        """Setting dns_cache_ttl to a non-default value warns; the field is
+        a no-op under httpx and exists only for back-compat."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", DeprecationWarning)
+            PoolConfig(dns_cache_ttl=600)
+        deprecations = [w for w in caught if issubclass(w.category, DeprecationWarning)]
+        assert deprecations, "expected DeprecationWarning for dns_cache_ttl override"
+        assert "dns_cache_ttl" in str(deprecations[0].message)
 
 
 class TestHTTPConnectionPool:
@@ -69,9 +92,10 @@ class TestHTTPConnectionPool:
         config = PoolConfig()
         HTTPConnectionPool.configure(config)
 
-        session = await HTTPConnectionPool.get_session("openai")
-        assert session is not None
-        assert not session.closed
+        client = await HTTPConnectionPool.get_session("openai")
+        assert client is not None
+        assert isinstance(client, httpx.AsyncClient)
+        assert not client.is_closed
 
     @pytest.mark.asyncio
     async def test_get_session_reuses_session(self):
@@ -79,9 +103,9 @@ class TestHTTPConnectionPool:
         config = PoolConfig()
         HTTPConnectionPool.configure(config)
 
-        session1 = await HTTPConnectionPool.get_session("openai")
-        session2 = await HTTPConnectionPool.get_session("openai")
-        assert session1 is session2
+        client1 = await HTTPConnectionPool.get_session("openai")
+        client2 = await HTTPConnectionPool.get_session("openai")
+        assert client1 is client2
 
     @pytest.mark.asyncio
     async def test_different_keys_get_different_sessions(self):
@@ -89,9 +113,9 @@ class TestHTTPConnectionPool:
         config = PoolConfig()
         HTTPConnectionPool.configure(config)
 
-        session_openai = await HTTPConnectionPool.get_session("openai")
-        session_anthropic = await HTTPConnectionPool.get_session("anthropic")
-        assert session_openai is not session_anthropic
+        client_openai = await HTTPConnectionPool.get_session("openai")
+        client_anthropic = await HTTPConnectionPool.get_session("anthropic")
+        assert client_openai is not client_anthropic
 
     @pytest.mark.asyncio
     async def test_close_all_closes_sessions(self):
@@ -99,11 +123,11 @@ class TestHTTPConnectionPool:
         config = PoolConfig()
         HTTPConnectionPool.configure(config)
 
-        session = await HTTPConnectionPool.get_session("openai")
-        assert not session.closed
+        client = await HTTPConnectionPool.get_session("openai")
+        assert not client.is_closed
 
         await HTTPConnectionPool.close_all()
-        assert session.closed
+        assert client.is_closed
         assert HTTPConnectionPool.is_enabled() is False
 
 
@@ -120,11 +144,12 @@ class TestGetSessionSafe:
     @pytest.mark.asyncio
     async def test_returns_fallback_when_disabled(self):
         """Test that fallback session is returned when pooling is disabled."""
-        session, pooled = await get_session_safe("openai")
-        assert session is not None
+        client, pooled = await get_session_safe("openai")
+        assert client is not None
+        assert isinstance(client, httpx.AsyncClient)
         assert pooled is False
-        # Caller is responsible for closing fallback sessions
-        await session.close()
+        # Caller is responsible for closing fallback clients
+        await client.aclose()
 
     @pytest.mark.asyncio
     async def test_returns_pooled_when_enabled(self):
@@ -132,24 +157,25 @@ class TestGetSessionSafe:
         config = PoolConfig()
         HTTPConnectionPool.configure(config)
 
-        session, pooled = await get_session_safe("openai")
-        assert session is not None
+        client, pooled = await get_session_safe("openai")
+        assert client is not None
+        assert isinstance(client, httpx.AsyncClient)
         assert pooled is True
-        # Should NOT close pooled sessions - they are managed by the pool
+        # Should NOT close pooled clients - they are managed by the pool
 
     @pytest.mark.asyncio
     async def test_fallback_sessions_are_independent(self):
         """Test that fallback sessions are not reused."""
-        session1, pooled1 = await get_session_safe("openai")
-        session2, pooled2 = await get_session_safe("openai")
+        client1, pooled1 = await get_session_safe("openai")
+        client2, pooled2 = await get_session_safe("openai")
 
         assert pooled1 is False
         assert pooled2 is False
-        assert session1 is not session2
+        assert client1 is not client2
 
-        # Clean up fallback sessions
-        await session1.close()
-        await session2.close()
+        # Clean up fallback clients
+        await client1.aclose()
+        await client2.aclose()
 
 
 class TestInitPoolingIntegration:

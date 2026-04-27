@@ -1,5 +1,68 @@
 # CHANGELOG
 
+## 0.20260427.0 - HTTP/2-capable async client (httpx) replaces aiohttp
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Async HTTP layer migrated from `aiohttp` to `httpx[http2]`
+
+Every provider's async HTTP path (`Provider._make_request`, the streaming layer in `Provider._stream`, the pooled client lifecycle in `onellm/http_pool.py`, and the file-upload form in `onellm.image`) now runs on `httpx.AsyncClient` instead of `aiohttp.ClientSession`. The driving reason: `httpx[http2]` negotiates HTTP/2 via TLS ALPN out of the box, which aiohttp cannot do without third-party extensions. OpenAI, Anthropic, Google, Mistral, Cohere, Azure, Vertex AI, and Ollama all serve TLS endpoints that benefit from HTTP/2 multiplexing — one TCP connection carrying many in-flight requests instead of HoL-blocking a queue. For latency-sensitive batched workloads (semantic cache lookups, embedding fan-out) this is a measurable improvement on the same wire.
+
+```python
+# Public API is unchanged - this just runs faster on HTTP/2 endpoints now
+import onellm
+resp = await onellm.ChatCompletion.acreate(
+    model="openai/gpt-4o-mini",
+    messages=[{"role": "user", "content": "hello"}],
+)
+```
+
+`http2=True` is the default in the connection pool; callers do not have to opt in. If a server downgrades to HTTP/1.1 during the ALPN handshake, `httpx` transparently falls back, so this is strictly additive.
+
+### Why this is not just `s/aiohttp/httpx/`
+
+The two libraries' response shapes differ in ways that affected the provider error path:
+
+- **Status code**: aiohttp `response.status` vs httpx `response.status_code`
+- **Body access**: aiohttp `await response.text()` (coroutine) vs httpx `response.text` (sync property after the body is buffered)
+- **Streaming drain**: aiohttp `await response.read()` vs httpx `await response.aread()`
+- **Async context manager on requests**: aiohttp wraps `client.request(...)` in an async context manager; httpx returns the response directly from the awaitable
+- **Connection lifecycle**: aiohttp `await session.close()` vs httpx `await client.aclose()`
+
+`Provider._read_response_body` and `Provider._handle_response` were rewritten to consume the httpx shape (`aread` then `text`), and every provider that overrode the request path (`Anthropic`, `Mistral`, `Ollama`, `Cohere`, `Azure`, `Vertex AI`, `Google`) was updated to call `client.request(...)` directly instead of `async with session.request(...) as response`. The streaming code in `Provider._stream` now drives `client.stream(...)` and consumes `aiter_lines()` (an async iterator in httpx, where aiohttp exposed `iter_any()` over the buffered chunks).
+
+### Connection pool: per-host `httpx.AsyncClient` cache
+
+`onellm.http_pool` was rewritten around `httpx.AsyncClient` instances keyed by provider pool name. Each pool entry caches one client with HTTP/2 enabled, configurable connection limits, and pooled lifecycle managed by `get_session_safe(pool_key) -> (client, is_pooled)`. Providers that bypass the pool (e.g. for streaming requests that need their own client lifetime) still get a one-shot `httpx.AsyncClient(http2=True)` with `is_pooled=False` so the request path can `await client.aclose()` itself.
+
+Compared to the previous aiohttp pool, the wins are:
+
+- HTTP/2 multiplexing across requests sharing a host
+- Smaller per-request allocation (no `aiohttp.RequestInfo` / `ClientResponse` chain)
+- Cleaner shutdown semantics (one `aclose()` call vs aiohttp's `close()` + `connector.close()` dance)
+
+### Test mocks rewritten for the httpx response shape
+
+Provider unit tests mocked the aiohttp shape directly — `MockResponse` exposed `status`, `text` as a coroutine, and `__aenter__`/`__aexit__` so the test could substitute for the async-context-managed request. None of that survives the migration: a fresh `tests/unit/providers/_httpx_mocks.py` module now provides `MockHttpxResponse` (mirrors `httpx.Response` exactly: `status_code`, sync `text` property, `content` bytes, `aread()`/`aclose()` async no-ops, `aiter_lines()` async iterator) and `MockHttpxClient` (mirrors `AsyncClient`: `request`/`get`/`post` return responses directly, `stream` is an async context manager, `aclose()` is awaitable). A `patch_get_session_safe(provider_module, response)` helper installs a fake `(client, is_pooled=False)` pair on any provider's `get_session_safe` symbol so each test can mock its provider's HTTP layer in one line.
+
+Per-provider test files (`test_openai_provider.py`, `test_anthropic_provider.py`, `test_minimax.py`, `test_mistral_provider.py`, `test_ollama.py`, `test_azure.py`, `test_http_pool.py`, `tests/test_utils.py`, `tests/unit/core/test_utils.py`) were updated to consume the new shape. 530 unit tests pass against the new HTTP layer.
+
+### Dependencies
+
+```diff
+- "aiohttp>=3.13.3",
++ "httpx[http2]>=0.27.0",
+```
+
+The `[http2]` extra pulls in `h2` (HPACK + framing). No new transitive CVE pins required. Versions `0.20260422.3` and `0.20260422.4` were development checkpoints on the migration branch and are superseded by this release.
+
+### Migration
+
+No action required for callers — `onellm`'s public API is unchanged. Existing code that constructs providers, awaits `ChatCompletion.acreate`, streams chunks, or uploads files continues to work.
+
+If you depend on `onellm`'s internal HTTP layer (e.g. forking the connection pool, monkey-patching `aiohttp.ClientSession`, or asserting on `response.status` in your own tests), you'll need to migrate to the httpx shape per the table above. The provider-test fixtures in `tests/unit/providers/_httpx_mocks.py` are a working reference.
+
+
 ## 0.20260422.2 - `[local-cuda]` extra, GPU FAISS, EP observability
 
 **Status**: Development Status :: 5 - Production/Stable

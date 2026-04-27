@@ -31,7 +31,7 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import aiohttp
+import httpx
 
 from ..config import get_provider_config
 from ..errors import (
@@ -172,56 +172,48 @@ class AnthropicProvider(Provider):
         # Get authentication and content-type headers
         headers = self._get_headers()
 
-        # Handle file uploads
+        # Build httpx request kwargs. Multipart uploads use ``files=`` +
+        # ``data=`` directly (no FormData class); JSON bodies use ``json=``
+        # so httpx handles the serialization.
+        request_kwargs: dict[str, Any] = {
+            "method": method,
+            "url": url,
+            "headers": headers,
+            "timeout": timeout,
+        }
         if files:
-            # Need to use multipart/form-data for file uploads
-            headers.pop("Content-Type", None)  # Remove Content-Type for multipart form
-            form_data = aiohttp.FormData()
-
-            # Add file data to the form
-            for key, file_info in files.items():
-                form_data.add_field(
-                    key,
+            # Strip the JSON Content-Type so httpx can fill in the
+            # multipart boundary itself.
+            headers.pop("Content-Type", None)
+            request_kwargs["files"] = {
+                key: (
+                    file_info.get("filename", "file"),
                     file_info["data"],
-                    filename=file_info.get("filename", "file"),
-                    content_type=file_info.get("content_type", "application/octet-stream"),
+                    file_info.get("content_type", "application/octet-stream"),
                 )
-
-            # Add other fields to the form
+                for key, file_info in files.items()
+            }
             if data:
+                form_fields: dict[str, str] = {}
                 for key, value in data.items():
-                    if isinstance(value, dict | list):
-                        # Convert complex objects to JSON strings
-                        form_data.add_field(key, json.dumps(value), content_type="application/json")
-                    else:
-                        # Add simple values as strings
-                        form_data.add_field(key, str(value))
-
-            body = form_data
-        else:
-            # For regular JSON requests, serialize the data
-            body = json.dumps(data) if data else None
+                    form_fields[key] = (
+                        json.dumps(value) if isinstance(value, dict | list) else str(value)
+                    )
+                request_kwargs["data"] = form_fields
+        elif data is not None:
+            request_kwargs["json"] = data
 
         async def execute_request():
-            """Inner function to execute the HTTP request with proper error handling"""
-            session, pooled = await get_session_safe("anthropic")
+            """Execute the request, routing streaming vs buffered modes."""
+            client, pooled = await get_session_safe("anthropic")
+            if stream:
+                return self._stream(client, pooled, request_kwargs)
             try:
-                async with session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    data=body,
-                    timeout=timeout,
-                ) as response:
-                    if stream:
-                        # For streaming responses, return a generator
-                        return self._handle_streaming_response(response)
-                    else:
-                        # For regular responses, parse JSON and handle errors
-                        return await self._handle_response(response)
+                response = await client.request(**request_kwargs)
+                return await self._handle_response(response)
             finally:
                 if not pooled:
-                    await session.close()
+                    await client.aclose()
 
         # Use retry mechanism for non-streaming requests
         if not stream:
@@ -230,7 +222,7 @@ class AnthropicProvider(Provider):
             # Streaming requests don't use retry mechanism
             return await execute_request()
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
+    async def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -245,23 +237,39 @@ class AnthropicProvider(Provider):
         """
         # Read response body tolerantly so non-JSON error pages (gateway
         # HTML, reverse-proxy text/plain) still reach _handle_error_response
-        # instead of crashing with aiohttp.ContentTypeError.
+        # instead of crashing with a content-type assumption.
         response_data = await self._read_response_body(response)
 
         # Check for error status codes
-        if response.status != 200:
-            self._handle_error_response(response.status, response_data)
+        if response.status_code != 200:
+            self._handle_error_response(response.status_code, response_data)
 
         return response_data
 
+    async def _stream(
+        self,
+        client: httpx.AsyncClient,
+        pooled: bool,
+        request_kwargs: dict[str, Any],
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Open a streaming request and yield parsed chunks; manage client
+        lifecycle for ad-hoc (non-pooled) clients."""
+        try:
+            async with client.stream(**request_kwargs) as response:
+                async for chunk in self._handle_streaming_response(response):
+                    yield chunk
+        finally:
+            if not pooled:
+                await client.aclose()
+
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
+        self, response: httpx.Response
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
         Args:
-            response: API response
+            response: httpx.Response from a ``client.stream()`` context.
 
         Yields:
             Parsed JSON chunks
@@ -270,13 +278,15 @@ class AnthropicProvider(Provider):
             OneLLMError: On API errors
         """
         # Check for error status codes
-        if response.status != 200:
+        if response.status_code != 200:
             error_data = await self._read_response_body(response)
-            self._handle_error_response(response.status, error_data)
+            self._handle_error_response(response.status_code, error_data)
 
-        # Process the stream line by line
-        async for line in response.content:
-            line = line.decode("utf-8").strip()
+        # httpx aiter_lines yields decoded strings with line terminators
+        # already stripped; we strip() again for tolerance against
+        # whitespace in the SSE framing.
+        async for line in response.aiter_lines():
+            line = line.strip()
             # Anthropic's streaming format prefixes each JSON chunk with "data: "
             if line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
@@ -821,23 +831,16 @@ class AnthropicProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the download request with proper error handling"""
-            session, pooled = await get_session_safe("anthropic")
+            client, pooled = await get_session_safe("anthropic")
             try:
-                async with session.get(
-                    url=url,
-                    headers=headers,
-                    timeout=timeout,
-                ) as response:
-                    # Check for error status codes
-                    if response.status != 200:
-                        error_data = await self._read_response_body(response)
-                        self._handle_error_response(response.status, error_data)
-
-                    # Return the raw file content
-                    return await response.read()
+                response = await client.get(url=url, headers=headers, timeout=timeout)
+                if response.status_code != 200:
+                    error_data = await self._read_response_body(response)
+                    self._handle_error_response(response.status_code, error_data)
+                return response.content
             finally:
                 if not pooled:
-                    await session.close()
+                    await client.aclose()
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)

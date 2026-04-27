@@ -277,23 +277,24 @@ class TestAzureProvider:
     async def test_error_handling(self, azure_provider):
         """Test error response handling.
 
-        The base-class ``_read_response_body`` now routes through
-        ``response.text()`` so non-JSON error bodies still reach the
-        taxonomy mapper; the mock exposes ``text()`` accordingly.
+        The base-class ``_read_response_body`` now drains the body via
+        ``await response.aread()`` and reads ``response.text`` (a
+        synchronous property under httpx) so non-JSON error bodies still
+        reach the taxonomy mapper. The mock below exposes both shapes.
         """
-        error_response = MagicMock()
-        error_response.status = 401
-        error_response.text = AsyncMock(
-            return_value=json.dumps(
-                {
-                    "error": {
-                        "message": "Invalid API key",
-                        "type": "authentication_error",
-                        "code": "invalid_api_key",
-                    }
+        payload = json.dumps(
+            {
+                "error": {
+                    "message": "Invalid API key",
+                    "type": "authentication_error",
+                    "code": "invalid_api_key",
                 }
-            )
+            }
         )
+        error_response = MagicMock()
+        error_response.status_code = 401
+        error_response.text = payload  # httpx: sync property, not coroutine
+        error_response.aread = AsyncMock(return_value=payload.encode("utf-8"))
 
         with pytest.raises(AuthenticationError) as exc_info:
             await azure_provider._handle_response(error_response)

@@ -30,7 +30,7 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import aiohttp
+import httpx
 
 from ..config import get_provider_config
 from ..errors import (
@@ -44,6 +44,7 @@ from ..errors import (
     ResourceNotFoundError,
     ServiceUnavailableError,
 )
+from ..http_pool import get_session_safe
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -170,52 +171,44 @@ class MistralProvider(Provider):
         # Get authentication and content-type headers
         headers = self._get_headers()
 
-        # Handle file uploads
+        # Build httpx request kwargs (multipart via files=/data=, JSON via json=).
+        request_kwargs: dict[str, Any] = {
+            "method": method,
+            "url": url,
+            "headers": headers,
+            "timeout": timeout,
+        }
         if files:
-            # Need to use multipart/form-data for file uploads
-            headers.pop("Content-Type", None)  # Remove Content-Type for multipart form
-            form_data = aiohttp.FormData()
-
-            # Add file data to the form
-            for key, file_info in files.items():
-                form_data.add_field(
-                    key,
+            headers.pop("Content-Type", None)
+            request_kwargs["files"] = {
+                key: (
+                    file_info.get("filename", "file"),
                     file_info["data"],
-                    filename=file_info.get("filename", "file"),
-                    content_type=file_info.get("content_type", "application/octet-stream"),
+                    file_info.get("content_type", "application/octet-stream"),
                 )
-
-            # Add other fields to the form
+                for key, file_info in files.items()
+            }
             if data:
+                form_fields: dict[str, str] = {}
                 for key, value in data.items():
-                    if isinstance(value, dict | list):
-                        # Convert complex objects to JSON strings
-                        form_data.add_field(key, json.dumps(value), content_type="application/json")
-                    else:
-                        # Add simple values as strings
-                        form_data.add_field(key, str(value))
-
-            body = form_data
-        else:
-            # For regular JSON requests, serialize the data
-            body = json.dumps(data) if data else None
+                    form_fields[key] = (
+                        json.dumps(value) if isinstance(value, dict | list) else str(value)
+                    )
+                request_kwargs["data"] = form_fields
+        elif data is not None:
+            request_kwargs["json"] = data
 
         async def execute_request():
-            """Inner function to execute the HTTP request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
-                async with session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    data=body,
-                    timeout=timeout,
-                ) as response:
-                    if stream:
-                        # For streaming responses, return a generator
-                        return self._handle_streaming_response(response)
-                    else:
-                        # For regular responses, parse JSON and handle errors
-                        return await self._handle_response(response)
+            """Execute the HTTP request, routing streaming vs buffered modes."""
+            client, pooled = await get_session_safe("mistral")
+            if stream:
+                return self._stream(client, pooled, request_kwargs)
+            try:
+                response = await client.request(**request_kwargs)
+                return await self._handle_response(response)
+            finally:
+                if not pooled:
+                    await client.aclose()
 
         # Use retry mechanism for non-streaming requests
         if not stream:
@@ -224,7 +217,7 @@ class MistralProvider(Provider):
             # Streaming requests don't use retry mechanism
             return await execute_request()
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
+    async def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -243,19 +236,35 @@ class MistralProvider(Provider):
         response_data = await self._read_response_body(response)
 
         # Check for error status codes
-        if response.status != 200:
-            self._handle_error_response(response.status, response_data)
+        if response.status_code != 200:
+            self._handle_error_response(response.status_code, response_data)
 
         return response_data
 
+    async def _stream(
+        self,
+        client: httpx.AsyncClient,
+        pooled: bool,
+        request_kwargs: dict[str, Any],
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Open a streaming request and yield parsed chunks; manage client
+        lifecycle for ad-hoc clients."""
+        try:
+            async with client.stream(**request_kwargs) as response:
+                async for chunk in self._handle_streaming_response(response):
+                    yield chunk
+        finally:
+            if not pooled:
+                await client.aclose()
+
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
+        self, response: httpx.Response
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
         Args:
-            response: API response
+            response: httpx.Response from a ``client.stream()`` context.
 
         Yields:
             Parsed JSON chunks
@@ -264,13 +273,12 @@ class MistralProvider(Provider):
             OneLLMError: On API errors
         """
         # Check for error status codes
-        if response.status != 200:
+        if response.status_code != 200:
             error_data = await self._read_response_body(response)
-            self._handle_error_response(response.status, error_data)
+            self._handle_error_response(response.status_code, error_data)
 
-        # Process the stream line by line
-        async for line in response.content:
-            line = line.decode("utf-8").strip()
+        async for line in response.aiter_lines():
+            line = line.strip()
             # Mistral's streaming format prefixes each JSON chunk with "data: "
             if line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
@@ -691,19 +699,16 @@ class MistralProvider(Provider):
 
         async def execute_request():
             """Inner function to execute the download request with proper error handling"""
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url=url,
-                    headers=headers,
-                    timeout=timeout,
-                ) as response:
-                    # Check for error status codes
-                    if response.status != 200:
-                        error_data = await self._read_response_body(response)
-                        self._handle_error_response(response.status, error_data)
-
-                    # Return the raw file content
-                    return await response.read()
+            client, pooled = await get_session_safe("mistral")
+            try:
+                response = await client.get(url=url, headers=headers, timeout=timeout)
+                if response.status_code != 200:
+                    error_data = await self._read_response_body(response)
+                    self._handle_error_response(response.status_code, error_data)
+                return response.content
+            finally:
+                if not pooled:
+                    await client.aclose()
 
         # Use retry mechanism for reliability
         return await retry_async(execute_request, config=self.retry_config)
