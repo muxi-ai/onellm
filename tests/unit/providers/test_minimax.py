@@ -7,7 +7,6 @@ These tests verify that the MiniMax provider correctly uses the Anthropic-compat
 interface and properly configures the API endpoint for MiniMax's API.
 """
 
-import json
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -18,48 +17,19 @@ from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers import get_provider
 from onellm.providers.anthropic_compatible import AnthropicCompatibleProvider
 from onellm.providers.minimax import MinimaxProvider
+from tests.unit.providers._httpx_mocks import MockHttpxResponse
 
 
-class MockResponse:
-    """Mock httpx.Response.
-
-    The shared ``_read_response_body`` on ``Provider`` reads bodies via
-    ``await response.aread()`` then ``response.text`` (a sync property
-    in httpx); the response below mirrors both shapes. ``status`` is
-    kept as an alias of ``status_code`` for any legacy assertions.
-    """
+class MockResponse(MockHttpxResponse):
+    """Thin adapter over the shared ``MockHttpxResponse`` that accepts
+    the legacy ``status=`` keyword used by this file's call sites."""
 
     def __init__(self, status: int, data: dict[str, Any]):
-        self.status_code = status
-        self._data = data
-        payload = json.dumps(data)
-        self._text = payload
-        self._content = payload.encode("utf-8")
+        super().__init__(data, status_code=status)
 
     @property
     def status(self) -> int:
         return self.status_code
-
-    @property
-    def content(self) -> bytes:
-        return self._content
-
-    @property
-    def text(self) -> str:
-        return self._text
-
-    def json(self):
-        return self._data
-
-    async def aread(self) -> bytes:
-        return self._content
-
-    async def aclose(self) -> None:
-        return None
-
-    async def aiter_lines(self):
-        for line in self._text.splitlines():
-            yield line
 
 
 @pytest.fixture

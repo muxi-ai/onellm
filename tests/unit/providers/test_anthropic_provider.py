@@ -7,7 +7,6 @@ These tests verify that the Anthropic provider correctly handles various request
 converts between OpenAI and Anthropic formats, and manages unique Anthropic features.
 """
 
-import json
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -17,49 +16,19 @@ import pytest
 from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers import get_provider
 from onellm.providers.anthropic import AnthropicProvider
+from tests.unit.providers._httpx_mocks import MockHttpxResponse
 
 
-class MockResponse:
-    """Mock httpx.Response.
-
-    ``_read_response_body`` (inherited from ``Provider`` base) now drains
-    the body via ``await response.aread()`` and reads ``response.text``
-    (a synchronous property under httpx). The ``status`` attribute is
-    kept as a compatibility alias of ``status_code`` so any older
-    assertions still work during the migration.
-    """
+class MockResponse(MockHttpxResponse):
+    """Thin adapter over the shared ``MockHttpxResponse`` that accepts
+    the legacy ``status=`` keyword used by this file's call sites."""
 
     def __init__(self, status: int, data: dict[str, Any]):
-        self.status_code = status
-        self._data = data
-        payload = json.dumps(data)
-        self._text = payload
-        self._content = payload.encode("utf-8")
+        super().__init__(data, status_code=status)
 
     @property
     def status(self) -> int:
         return self.status_code
-
-    @property
-    def content(self) -> bytes:
-        return self._content
-
-    @property
-    def text(self) -> str:
-        return self._text
-
-    def json(self):
-        return self._data
-
-    async def aread(self) -> bytes:
-        return self._content
-
-    async def aclose(self) -> None:
-        return None
-
-    async def aiter_lines(self):
-        for line in self._text.splitlines():
-            yield line
 
 
 @pytest.fixture

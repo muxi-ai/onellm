@@ -6,7 +6,6 @@ formats responses appropriately, and handles errors correctly.
 """
 
 import io
-import json
 import os
 from typing import Any
 from unittest import mock
@@ -23,16 +22,16 @@ from onellm.errors import (
 from onellm.providers import get_provider
 from onellm.providers.openai import OpenAIProvider
 from onellm.types.common import Message
+from tests.unit.providers._httpx_mocks import MockHttpxResponse
 
 
-class MockResponse:
-    """Mock httpx.Response for unit tests.
+class MockResponse(MockHttpxResponse):
+    """Thin adapter over the shared ``MockHttpxResponse``.
 
-    Mirrors the buffered/streaming surface of httpx (sync ``json``,
-    ``text`` property, ``content`` bytes property, async
-    ``aiter_lines``/``aread``/``aclose``). The legacy ``status``
-    attribute is retained as an alias of ``status_code`` so older
-    assertions that referenced it keep working during the migration.
+    Preserves the legacy ``status=`` keyword used by older test sites in
+    this file (``MockHttpxResponse`` only accepts ``status_code=``) so we
+    don't have to rewrite every call site, while keeping the actual
+    response shape consolidated in ``_httpx_mocks.py``.
     """
 
     def __init__(
@@ -41,73 +40,16 @@ class MockResponse:
         *,
         status: int | None = None,
         status_code: int | None = None,
-        content_type: str = "application/json",
+        headers: dict[str, str] | None = None,
     ) -> None:
-        # Accept both ``status`` (legacy) and ``status_code`` (httpx).
-        if status_code is None and status is None:
-            self.status_code = 200
-        elif status_code is not None:
-            self.status_code = status_code
-        else:
-            self.status_code = status  # type: ignore[assignment]
-        self.headers = {"content-type": content_type}
-        self._data = data
+        resolved = status_code if status_code is not None else (status if status is not None else 200)
+        super().__init__(data, status_code=resolved, headers=headers)
 
-        if isinstance(data, bytes):
-            self._content_bytes = data
-            try:
-                self._text = data.decode("utf-8")
-            except UnicodeDecodeError:
-                self._text = ""
-        elif isinstance(data, str):
-            self._text = data
-            self._content_bytes = data.encode("utf-8")
-        elif isinstance(data, dict):
-            payload = json.dumps(data)
-            self._text = payload
-            self._content_bytes = payload.encode("utf-8")
-        else:
-            self._text = ""
-            self._content_bytes = b""
-
-    # Legacy alias - some tests still read ``response.status``.
     @property
     def status(self) -> int:
+        # Legacy alias retained for any assertion that still reads
+        # ``response.status`` (the aiohttp-era attribute name).
         return self.status_code
-
-    @property
-    def content(self) -> bytes:
-        """httpx-shaped synchronous bytes property."""
-        return self._content_bytes
-
-    @property
-    def text(self) -> str:
-        """httpx-shaped synchronous text property."""
-        return self._text
-
-    def json(self) -> Any:
-        """httpx ``json()`` is synchronous (body is already buffered)."""
-        if isinstance(self._data, dict):
-            return self._data
-        return json.loads(self._text or "{}")
-
-    async def aread(self) -> bytes:
-        return self._content_bytes
-
-    async def aclose(self) -> None:
-        return None
-
-    async def aiter_lines(self):
-        for line in self._text.splitlines():
-            yield line
-
-    async def aiter_bytes(self):
-        yield self._content_bytes
-
-    # Some legacy paths still call ``read()``/``text()`` as async; keep
-    # them working so we don't have to chase down every reference.
-    async def read(self) -> bytes:
-        return self._content_bytes
 
 
 class MockAsyncIterator:

@@ -28,10 +28,7 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    import httpx
+from typing import Any
 
 import httpx
 
