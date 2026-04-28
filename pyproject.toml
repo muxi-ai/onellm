@@ -14,7 +14,10 @@ authors = [
 ]
 dependencies = [
     "requests>=2.32.5",
-    "aiohttp>=3.13.3",
+    # httpx replaces aiohttp as the async HTTP client (see CHANGELOG
+    # 0.20260427.0). The [http2] extra pulls in `h2`, which we negotiate
+    # via TLS ALPN inside ``onellm/http_pool.py``.
+    "httpx[http2]>=0.27.0",
     "pydantic>=2.12.5",
     "PyYAML>=6.0.3",
     "openai>=2.15.0",

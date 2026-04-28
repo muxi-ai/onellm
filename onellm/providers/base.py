@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import aiohttp
+import httpx
 
 from ..models import (
     ChatCompletionChunk,
@@ -104,30 +104,31 @@ class Provider(ABC):
         # Extract provider name from class name by removing "Provider" suffix
         return cls.__name__.replace("Provider", "").lower()
 
-    async def _read_response_body(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
+    async def _read_response_body(self, response: httpx.Response) -> dict[str, Any]:
         """Read a response body tolerantly, always returning a dict.
 
         Happy-path responses from upstream APIs are JSON, but error
         responses frequently arrive with ``text/plain`` or ``text/html``
         bodies - reverse proxies, WAF rate-limit pages, auth failures
-        that return plain text, gateway timeouts, etc. Calling
-        :meth:`aiohttp.ClientResponse.json` on such a body raises
-        :class:`aiohttp.ContentTypeError`, which leaks past each
-        provider's error-classification layer and surfaces to the caller
-        as a raw aiohttp exception instead of the proper
-        :class:`AuthenticationError` / :class:`ServiceUnavailableError`
-        / etc.
+        that return plain text, gateway timeouts, etc. We parse the body
+        as JSON if possible and fall back to
+        ``{"error": {"message": <raw-text>}}`` otherwise so that each
+        provider's ``_handle_error_response`` has a usable shape.
+        Non-object JSON (e.g. a bare array from a misbehaving proxy) is
+        wrapped the same way so the ``data.get("error", ...)`` lookup
+        downstream still works.
 
-        Reading via :meth:`~aiohttp.ClientResponse.text` side-steps the
-        content-type check; we parse the body as JSON if possible and
-        fall back to ``{"error": {"message": <raw-text>}}`` otherwise so
-        that each provider's ``_handle_error_response`` has a usable
-        shape. Non-object JSON (e.g. a bare array from a misbehaving
-        proxy) is wrapped the same way so the ``data.get("error", ...)``
-        lookup downstream still works.
+        Streamed responses (those entered via ``client.stream()``) need
+        an explicit :meth:`~httpx.Response.aread` first; this helper
+        triggers the read implicitly via the ``.text`` property, which
+        handles both buffered and streamed bodies after read.
         """
         try:
-            raw = await response.text()
+            # Force the body to be read; cheap on already-buffered
+            # responses and required for ones still in streaming mode
+            # before we touch ``.text``.
+            await response.aread()
+            raw = response.text
         except Exception:  # pragma: no cover - defensive against decode errors
             raw = ""
 

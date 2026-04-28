@@ -52,7 +52,7 @@ class AsyncContextManager:
 
     Example:
         async_cm = AsyncContextManager(return_value=mock_response)
-        with mock.patch('aiohttp.ClientSession', return_value=async_cm):
+        with mock.patch('httpx.AsyncClient', return_value=async_cm):
             result = await some_async_function()
     """
 

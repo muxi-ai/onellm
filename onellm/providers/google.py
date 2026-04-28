@@ -29,7 +29,7 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import aiohttp
+import httpx
 
 from ..config import get_provider_config
 from ..errors import (
@@ -40,6 +40,7 @@ from ..errors import (
     ResourceNotFoundError,
     ServiceUnavailableError,
 )
+from ..http_pool import get_session_safe
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -222,46 +223,70 @@ class GoogleProvider(Provider):
             "x-goog-api-key": self.api_key,  # Pass API key in header instead
         }
 
-        timeout_obj = aiohttp.ClientTimeout(total=timeout or self.timeout)
+        request_kwargs: dict[str, Any] = {
+            "method": method,
+            "url": url,
+            "json": data,
+            "headers": headers,
+            "timeout": timeout or self.timeout,
+        }
 
-        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
-            try:
-                async with session.request(
-                    method=method,
-                    url=url,
-                    json=data,
-                    headers=headers,
-                ) as response:
-                    if response.status != 200:
-                        # Tolerant read: Google edge can return text/html or
-                        # protobuf-encoded error bodies for auth/quota failures.
-                        error_data = await self._read_response_body(response)
-                        self._handle_error_response(response.status, error_data)
+        client, pooled = await get_session_safe("google")
+        if stream:
+            return self._stream(client, pooled, request_kwargs)
+        try:
+            response = await client.request(**request_kwargs)
+            if response.status_code != 200:
+                # Tolerant read: Google edge can return text/html or
+                # protobuf-encoded error bodies for auth/quota failures.
+                error_data = await self._read_response_body(response)
+                self._handle_error_response(response.status_code, error_data)
+            return response.json()
+        except httpx.HTTPError as e:
+            raise ServiceUnavailableError(
+                f"Failed to connect to Google API: {str(e)}", provider="google"
+            )
+        finally:
+            if not pooled:
+                await client.aclose()
 
-                    if stream:
-                        return self._handle_streaming_response(response)
-                    else:
-                        return await response.json()
-
-            except aiohttp.ClientError as e:
-                raise ServiceUnavailableError(
-                    f"Failed to connect to Google API: {str(e)}", provider="google"
-                )
+    async def _stream(
+        self,
+        client: httpx.AsyncClient,
+        pooled: bool,
+        request_kwargs: dict[str, Any],
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Open a streaming request and yield parsed SSE chunks; manage
+        client lifecycle for ad-hoc clients."""
+        try:
+            async with client.stream(**request_kwargs) as response:
+                if response.status_code != 200:
+                    error_data = await self._read_response_body(response)
+                    self._handle_error_response(response.status_code, error_data)
+                async for chunk in self._handle_streaming_response(response):
+                    yield chunk
+        except httpx.HTTPError as e:
+            raise ServiceUnavailableError(
+                f"Failed to connect to Google API: {str(e)}", provider="google"
+            )
+        finally:
+            if not pooled:
+                await client.aclose()
 
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
+        self, response: httpx.Response
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
         Args:
-            response: API response
+            response: httpx.Response from a ``client.stream()`` context.
 
         Yields:
             Parsed JSON chunks
         """
-        async for line in response.content:
-            line = line.decode("utf-8").strip()
+        async for line in response.aiter_lines():
+            line = line.strip()
             if line and line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
 

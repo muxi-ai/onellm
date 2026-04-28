@@ -3,7 +3,7 @@
 Tests for the Ollama provider.
 """
 
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -156,25 +156,24 @@ class TestOllamaProvider:
         """Test checking model availability normalizes /v1 endpoints to root /api/tags."""
         provider = OllamaProvider()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json.return_value = {
-                "models": [{"name": "llama3:8b"}, {"name": "mistral:7b"}]
-            }
+        # httpx.Response: ``status_code`` (not ``status``) and ``.json()``
+        # is synchronous in httpx. Wrap in a MagicMock so attribute
+        # access matches the provider code's expectations.
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(
+            return_value={"models": [{"name": "llama3:8b"}, {"name": "mistral:7b"}]}
+        )
 
-            request_context = AsyncMock()
-            request_context.__aenter__.return_value = mock_response
-            request_context.__aexit__.return_value = None
-            session_instance = MagicMock()
-            session_instance.get = MagicMock(return_value=request_context)
-            mock_session.return_value.__aenter__.return_value = session_instance
-            mock_session.return_value.__aexit__.return_value = None
+        with patch("onellm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            client = MagicMock()
+            client.get = AsyncMock(return_value=mock_response)
+            client.__aenter__ = AsyncMock(return_value=client)
+            client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = client
 
             assert await provider._check_model_available("llama3:8b", "http://localhost:11434/v1")
-            session_instance.get.assert_called_once_with(
-                "http://localhost:11434/api/tags", timeout=ANY
-            )
+            client.get.assert_called_once_with("http://localhost:11434/api/tags")
             assert provider._model_cache["http://localhost:11434"] == {"llama3:8b", "mistral:7b"}
 
     @pytest.mark.asyncio
@@ -182,17 +181,15 @@ class TestOllamaProvider:
         """Test checking model availability - failure case."""
         provider = OllamaProvider()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 500
+        mock_response = MagicMock()
+        mock_response.status_code = 500
 
-            request_context = AsyncMock()
-            request_context.__aenter__.return_value = mock_response
-            request_context.__aexit__.return_value = None
-            session_instance = MagicMock()
-            session_instance.get = MagicMock(return_value=request_context)
-            mock_session.return_value.__aenter__.return_value = session_instance
-            mock_session.return_value.__aexit__.return_value = None
+        with patch("onellm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            client = MagicMock()
+            client.get = AsyncMock(return_value=mock_response)
+            client.__aenter__ = AsyncMock(return_value=client)
+            client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = client
 
             # Non-200 responses should report the model as unavailable
             assert not await provider._check_model_available(
@@ -204,54 +201,48 @@ class TestOllamaProvider:
         """Test listing models - success case."""
         provider = OllamaProvider()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json.return_value = {
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(
+            return_value={
                 "models": [
                     {"name": "llama3:8b"},
                     {"name": "mistral:7b"},
                     {"name": "llava:latest"},
                 ]
             }
+        )
 
-            request_context = AsyncMock()
-            request_context.__aenter__.return_value = mock_response
-            request_context.__aexit__.return_value = None
-            session_instance = MagicMock()
-            session_instance.get = MagicMock(return_value=request_context)
-            mock_session.return_value.__aenter__.return_value = session_instance
-            mock_session.return_value.__aexit__.return_value = None
+        with patch("onellm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            client = MagicMock()
+            client.get = AsyncMock(return_value=mock_response)
+            client.__aenter__ = AsyncMock(return_value=client)
+            client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = client
 
             models = await provider.list_models()
             assert models == ["llama3:8b", "mistral:7b", "llava:latest"]
-            session_instance.get.assert_called_once_with(
-                "http://localhost:11434/api/tags", timeout=ANY
-            )
+            client.get.assert_called_once_with("http://localhost:11434/api/tags")
 
     @pytest.mark.asyncio
     async def test_list_models_custom_endpoint(self):
         """Test listing models with custom endpoint."""
         provider = OllamaProvider()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json.return_value = {"models": [{"name": "mixtral:8x7b"}]}
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(return_value={"models": [{"name": "mixtral:8x7b"}]})
 
-            request_context = AsyncMock()
-            request_context.__aenter__.return_value = mock_response
-            request_context.__aexit__.return_value = None
-            session_instance = MagicMock()
-            session_instance.get = MagicMock(return_value=request_context)
-            mock_session.return_value.__aenter__.return_value = session_instance
-            mock_session.return_value.__aexit__.return_value = None
+        with patch("onellm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            client = MagicMock()
+            client.get = AsyncMock(return_value=mock_response)
+            client.__aenter__ = AsyncMock(return_value=client)
+            client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = client
 
             models = await provider.list_models("http://gpu-server:11434/v1")
             assert models == ["mixtral:8x7b"]
-            session_instance.get.assert_called_once_with(
-                "http://gpu-server:11434/api/tags", timeout=ANY
-            )
+            client.get.assert_called_once_with("http://gpu-server:11434/api/tags")
 
     @pytest.mark.asyncio
     async def test_create_chat_completion_with_endpoint(self):

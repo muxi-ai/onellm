@@ -7,7 +7,6 @@ These tests verify that the Anthropic provider correctly handles various request
 converts between OpenAI and Anthropic formats, and manages unique Anthropic features.
 """
 
-import json
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -17,36 +16,19 @@ import pytest
 from onellm.errors import AuthenticationError, InvalidRequestError
 from onellm.providers import get_provider
 from onellm.providers.anthropic import AnthropicProvider
+from tests.unit.providers._httpx_mocks import MockHttpxResponse
 
 
-class MockResponse:
-    """Mock aiohttp response object.
-
-    ``_read_response_body`` (inherited from ``Provider`` base class) now
-    consumes ``response.text()`` instead of ``response.json()`` so that
-    non-JSON error bodies from gateways survive the error-mapper. Tests
-    therefore need a ``text()`` method that returns a JSON-serialised
-    string; ``json()`` is kept for backwards-compat with other call sites.
-    """
+class MockResponse(MockHttpxResponse):
+    """Thin adapter over the shared ``MockHttpxResponse`` that accepts
+    the legacy ``status=`` keyword used by this file's call sites."""
 
     def __init__(self, status: int, data: dict[str, Any]):
-        self.status = status
-        self._data = data
+        super().__init__(data, status_code=status)
 
-    async def json(self):
-        return self._data
-
-    async def text(self):
-        return json.dumps(self._data)
-
-    async def read(self):
-        return b"test data"
-
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
-    async def __aenter__(self):
-        return self
+    @property
+    def status(self) -> int:
+        return self.status_code
 
 
 @pytest.fixture
@@ -57,13 +39,17 @@ def mock_env_api_key(monkeypatch):
 
 @pytest.fixture
 def mock_aiohttp_session():
-    """Create a mock for get_session_safe to return a mock session."""
-    with mock.patch("onellm.providers.anthropic.get_session_safe") as mock_get_session:
-        # Create a session instance
-        session_instance = MagicMock()
-        session_instance.close = AsyncMock()
+    """Patch ``get_session_safe`` to return a fake httpx-shaped client.
 
-        # Create a response for messages endpoint (Anthropic native format)
+    Despite the legacy fixture name, the underlying client is now a
+    ``httpx.AsyncClient`` look-alike: ``client.request(...)`` returns a
+    Response directly (no async-context-manager wrapping), and
+    ``client.aclose()`` is awaitable.
+    """
+    with mock.patch("onellm.providers.anthropic.get_session_safe") as mock_get_session:
+        client = MagicMock()
+        client.aclose = AsyncMock()
+
         anthropic_response = MockResponse(
             status=200,
             data={
@@ -78,14 +64,16 @@ def mock_aiohttp_session():
             },
         )
 
-        # Set up request to return our mock response
-        request_context = AsyncMock()
-        request_context.__aenter__.return_value = anthropic_response
-        request_context.__aexit__.return_value = None
-        session_instance.request = MagicMock(return_value=request_context)
+        client.request = AsyncMock(return_value=anthropic_response)
 
-        # Set up get_session_safe to return (session, is_pooled) tuple
-        mock_get_session.return_value = (session_instance, False)
+        # ``get_session_safe`` is itself an async function; ``mock.patch``
+        # returns a synchronous MagicMock by default, so wrap the return
+        # in an awaitable so the provider's ``await get_session_safe(...)``
+        # resolves correctly.
+        async def _fake_get_session(_pool_key):
+            return client, False
+
+        mock_get_session.side_effect = _fake_get_session
 
         yield mock_get_session
 

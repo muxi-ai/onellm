@@ -34,7 +34,7 @@ import re
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import aiohttp
+import httpx
 
 from ..errors import (
     APIError,
@@ -158,22 +158,23 @@ class OllamaProvider(OpenAICompatibleProvider):
             return True
 
         try:
-            # Query available models
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{discovery_endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        models = {m["name"] for m in data.get("models", [])}
+            # Query available models. Local Ollama servers usually only
+            # speak HTTP/1.1; httpx negotiates this via TLS ALPN (HTTP
+            # over plaintext is always h1.1) so a global ``http2=True``
+            # default doesn't break here.
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(f"{discovery_endpoint}/api/tags")
+                if response.status_code == 200:
+                    data = response.json()
+                    models = {m["name"] for m in data.get("models", [])}
 
-                        # Cache the results
-                        self._model_cache[discovery_endpoint] = models
+                    # Cache the results
+                    self._model_cache[discovery_endpoint] = models
 
-                        # Check if our model is available
-                        return model in models
-                    else:
-                        return False
+                    # Check if our model is available
+                    return model in models
+                else:
+                    return False
         except Exception:
             # If we can't check, assume it might be available
             return True
@@ -311,20 +312,17 @@ class OllamaProvider(OpenAICompatibleProvider):
         discovery_endpoint = self._get_discovery_endpoint(endpoint)
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{discovery_endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return [m["name"] for m in data.get("models", [])]
-                    else:
-                        raise APIError(
-                            f"Failed to list models: HTTP {response.status}",
-                            provider=self.provider_name,
-                            status_code=response.status,
-                        )
-        except aiohttp.ClientError as e:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(f"{discovery_endpoint}/api/tags")
+                if response.status_code == 200:
+                    data = response.json()
+                    return [m["name"] for m in data.get("models", [])]
+                raise APIError(
+                    f"Failed to list models: HTTP {response.status_code}",
+                    provider=self.provider_name,
+                    status_code=response.status_code,
+                )
+        except httpx.HTTPError as e:
             raise ServiceUnavailableError(
                 f"Cannot connect to Ollama server at {endpoint}: {str(e)}",
                 provider=self.provider_name,

@@ -6,7 +6,6 @@ formats responses appropriately, and handles errors correctly.
 """
 
 import io
-import json
 import os
 from typing import Any
 from unittest import mock
@@ -23,75 +22,34 @@ from onellm.errors import (
 from onellm.providers import get_provider
 from onellm.providers.openai import OpenAIProvider
 from onellm.types.common import Message
+from tests.unit.providers._httpx_mocks import MockHttpxResponse
 
 
-class MockResponse:
-    """Mock aiohttp response object."""
+class MockResponse(MockHttpxResponse):
+    """Thin adapter over the shared ``MockHttpxResponse``.
+
+    Preserves the legacy ``status=`` keyword used by older test sites in
+    this file (``MockHttpxResponse`` only accepts ``status_code=``) so we
+    don't have to rewrite every call site, while keeping the actual
+    response shape consolidated in ``_httpx_mocks.py``.
+    """
 
     def __init__(
         self,
         data: dict[str, Any] | bytes | str | None = None,
         *,
-        status: int = 200,
-        content_type: str = "application/json",
+        status: int | None = None,
+        status_code: int | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
-        self.status = status
-        self._data = data
-        self._content_type = content_type
-
-        # For raw data
-        if isinstance(data, bytes):
-            self._content = [data]
-        elif isinstance(data, str):
-            self._content = [data.encode("utf-8")]
-        elif isinstance(data, dict):
-            self._content = [json.dumps(data).encode("utf-8")]
-        else:
-            self._content = []
-
-    async def json(self):
-        if isinstance(self._data, dict):
-            return self._data
-        if isinstance(self._data, str):
-            return json.loads(self._data)
-        if isinstance(self._data, bytes):
-            return json.loads(self._data.decode("utf-8"))
-        return {}
-
-    async def text(self):
-        """Get response as text."""
-        if isinstance(self._data, str):
-            return self._data
-        if isinstance(self._data, bytes):
-            return self._data.decode("utf-8")
-        if isinstance(self._data, dict):
-            return json.dumps(self._data)
-        return ""
-
-    async def read(self):
-        if isinstance(self._data, bytes):
-            return self._data
-        if isinstance(self._data, str):
-            return self._data.encode("utf-8")
-        if isinstance(self._data, dict):
-            return json.dumps(self._data).encode("utf-8")
-        return b""
-
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
-    async def __aenter__(self):
-        return self
+        resolved = status_code if status_code is not None else (status if status is not None else 200)
+        super().__init__(data, status_code=resolved, headers=headers)
 
     @property
-    def content(self):
-        """Content property that returns self for async iteration."""
-        return self
-
-    async def __aiter__(self):
-        """Support async iteration for streaming."""
-        for chunk in self._content:
-            yield chunk
+    def status(self) -> int:
+        # Legacy alias retained for any assertion that still reads
+        # ``response.status`` (the aiohttp-era attribute name).
+        return self.status_code
 
 
 class MockAsyncIterator:
@@ -382,22 +340,24 @@ class TestOpenAIProvider:
 
     @pytest.mark.asyncio
     async def test_streaming_error_handling(self):
-        """Test _handle_streaming_response error handling."""
+        """Test _handle_streaming_response error handling.
+
+        After the httpx migration the streaming path receives an
+        ``httpx.Response`` from ``client.stream()``; its body is still
+        readable via ``aread()`` and surfaced through the
+        synchronous ``text`` property. The fake response below mirrors
+        that shape with a real ``MockResponse``.
+        """
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Error body is read via response.text() now so we can tolerate
-        # non-JSON content types (see _read_response_body helper).
-        mock_response = mock.MagicMock()
-        mock_response.status = 401
-        mock_response.text = mock.AsyncMock(
-            return_value=json.dumps(
-                {
-                    "error": {
-                        "message": "Invalid authentication",
-                        "type": "authentication_error",
-                    }
+        mock_response = MockResponse(
+            {
+                "error": {
+                    "message": "Invalid authentication",
+                    "type": "authentication_error",
                 }
-            )
+            },
+            status_code=401,
         )
 
         with pytest.raises(AuthenticationError) as excinfo:
@@ -405,24 +365,25 @@ class TestOpenAIProvider:
                 pass
 
         assert "Invalid authentication" in str(excinfo.value)
-        assert mock_response.text.called
 
     @pytest.mark.asyncio
     async def test_streaming_invalid_json(self):
-        """Test handling of invalid JSON in streaming response."""
+        """Test handling of invalid JSON in streaming response.
+
+        httpx's ``aiter_lines`` yields decoded ``str`` (line terminators
+        already stripped); the mock response below joins lines with
+        ``\\n`` so ``aiter_lines`` produces them in order.
+        """
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # Create a mock response
-        mock_response = mock.MagicMock()
-        mock_response.status = 200
-
-        # Set up the content as a proper async iterator
-        test_data = [
-            b"data: invalid json",
-            b'data: {"id": "chatcmpl-123", "choices": [{"delta": {"content": "content"}}]}',
-            b"data: [DONE]",
-        ]
-        mock_response.content = MockAsyncIterator(test_data)
+        body = "\n".join(
+            [
+                "data: invalid json",
+                'data: {"id": "chatcmpl-123", "choices": [{"delta": {"content": "content"}}]}',
+                "data: [DONE]",
+            ]
+        )
+        mock_response = MockResponse(body, status_code=200)
 
         chunks = []
         async for chunk in provider._handle_streaming_response(mock_response):
@@ -549,17 +510,18 @@ class TestOpenAIProvider:
 
     @pytest.mark.asyncio
     async def test_handle_response_error(self):
-        """Test _handle_response error handling."""
+        """Test _handle_response error handling.
+
+        After the httpx migration, ``_handle_response`` reads the body
+        via ``await response.aread()`` then ``response.text``; the
+        ``MockResponse`` helper supports both shapes so error parsing
+        still routes through the proper status-code taxonomy.
+        """
         provider = OpenAIProvider(api_key="sk-test-key")
 
-        # _handle_response now reads via response.text() so the body can be
-        # tolerated even when the server returns a non-JSON content type.
-        mock_response = mock.MagicMock()
-        mock_response.status = 500
-        mock_response.text = mock.AsyncMock(
-            return_value=json.dumps(
-                {"error": {"message": "Internal server error", "type": "server_error"}}
-            )
+        mock_response = MockResponse(
+            {"error": {"message": "Internal server error", "type": "server_error"}},
+            status_code=500,
         )
 
         with pytest.raises(ServiceUnavailableError) as excinfo:
@@ -905,7 +867,7 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         # Setup file data
@@ -932,8 +894,9 @@ class TestOpenAIProvider:
             }
         )
 
-        # Set up the mock session to return our mock response
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        # httpx ``client.request(...)`` returns a Response directly (no
+        # async-context-manager wrapping like aiohttp had).
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         # Call the method
         result = await provider._make_request(method="POST", path="/files", data=data, files=files)
@@ -960,12 +923,12 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         expected_data = b"raw binary data"
         mock_response = MockResponse(expected_data)
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         # Call the method
         result = await provider._make_request_raw(method="GET", path="/raw-endpoint")
@@ -986,12 +949,12 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         error_response = {"error": {"message": "Invalid API key", "type": "authentication_error"}}
         mock_response = MockResponse(error_response, status=401)
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         # Call the method and expect an error
         with pytest.raises(AuthenticationError) as exc_info:
@@ -1016,12 +979,12 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         error_text = "Internal Server Error"
         mock_response = MockResponse(error_text, status=500)
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         with pytest.raises(ServiceUnavailableError) as exc_info:
             await provider._make_request_raw(method="GET", path="/raw-endpoint")
@@ -1132,12 +1095,12 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         # Test successful call with valid parameters
         mock_response = MockResponse(image_response)
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         result = await provider.create_image(
             prompt="A beautiful sunset",
@@ -1164,14 +1127,14 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         # Mock response for successful transcription
         mock_response = MockResponse(
             {"text": "This is a transcription of audio content.", "language": "en"}
         )
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         # Mock the _process_audio_file method to avoid actual file handling
         with patch.object(
@@ -1214,12 +1177,12 @@ class TestOpenAIProvider:
         session_patch = patch("onellm.providers.openai.get_session_safe", new_callable=AsyncMock)
         mock_get_session = session_patch.start()
         mock_session_instance = MagicMock()
-        mock_session_instance.close = AsyncMock()
+        mock_session_instance.aclose = AsyncMock()
         mock_get_session.return_value = (mock_session_instance, False)
 
         # Mock response for successful translation
         mock_response = MockResponse({"text": "This is a translation of audio content."})
-        mock_session_instance.request.return_value.__aenter__.return_value = mock_response
+        mock_session_instance.request = AsyncMock(return_value=mock_response)
 
         # Mock the _process_audio_file method to avoid actual file handling
         with patch.object(

@@ -30,7 +30,7 @@ import time
 from collections.abc import AsyncGenerator
 from typing import IO, Any, Literal, cast, overload
 
-import aiohttp
+import httpx
 
 from ..config import get_provider_config
 from ..errors import (
@@ -208,59 +208,64 @@ class OpenAIProvider(Provider):
         # Get authentication and content-type headers
         headers = self._get_headers()
 
-        # Body can be one of three shapes: multipart FormData (file uploads),
-        # serialized JSON string (regular POST/PUT), or None (GET/DELETE).
-        # Annotating up front so mypy can follow the branches.
-        body: aiohttp.FormData | str | None
+        # Build the request payload. Three shapes are possible:
+        #   - multipart/form-data when ``files`` is supplied (httpx takes
+        #     ``files=`` and ``data=`` directly; no FormData class needed)
+        #   - JSON body for regular POST/PUT (httpx serializes via ``json=``)
+        #   - empty body for GET/DELETE
+        request_kwargs: dict[str, Any] = {
+            "method": method,
+            "url": url,
+            "headers": headers,
+            "timeout": timeout,
+        }
         if files:
-            # Need to use multipart/form-data for file uploads
-            headers.pop("Content-Type", None)  # Remove Content-Type for multipart form
-            form_data = aiohttp.FormData()
-
-            # Add file data to the form
-            for key, file_info in files.items():
-                form_data.add_field(
-                    key,
+            # Multipart upload: httpx fills in the ``Content-Type`` header
+            # (with the boundary) automatically, so strip the JSON one we
+            # injected via ``_get_headers``.
+            headers.pop("Content-Type", None)
+            httpx_files = {
+                key: (
+                    file_info.get("filename", "file"),
                     file_info["data"],
-                    filename=file_info.get("filename", "file"),
-                    content_type=file_info.get("content_type", "application/octet-stream"),
+                    file_info.get("content_type", "application/octet-stream"),
                 )
-
-            # Add other fields to the form
+                for key, file_info in files.items()
+            }
+            request_kwargs["files"] = httpx_files
             if data:
+                # Form fields alongside the file. Serialize complex values
+                # to JSON to match the previous aiohttp.FormData behaviour.
+                form_fields: dict[str, str] = {}
                 for key, value in data.items():
-                    if isinstance(value, dict | list):
-                        # Convert complex objects to JSON strings
-                        form_data.add_field(key, json.dumps(value), content_type="application/json")
-                    else:
-                        # Add simple values as strings
-                        form_data.add_field(key, str(value))
-
-            body = form_data
-        else:
-            # For regular JSON requests, serialize the data
-            body = json.dumps(data) if data else None
+                    form_fields[key] = (
+                        json.dumps(value) if isinstance(value, dict | list) else str(value)
+                    )
+                request_kwargs["data"] = form_fields
+        elif data is not None:
+            # ``json=`` lets httpx handle serialization and Content-Type;
+            # we already set Content-Type via ``_get_headers`` but httpx
+            # honours it (the explicit header wins).
+            request_kwargs["json"] = data
 
         async def execute_request():
-            """Inner function to execute the HTTP request with proper error handling"""
-            session, pooled = await get_session_safe("openai")
+            """Execute the HTTP request and route streaming vs buffered modes.
+
+            For streaming requests the client lifecycle is handed off to
+            the inner generator (``_stream``) so the underlying httpx
+            stream context stays open across yield boundaries. For
+            buffered requests we own the client lifecycle here and
+            release it after the response is parsed.
+            """
+            client, pooled = await get_session_safe("openai")
+            if stream:
+                return self._stream(client, pooled, request_kwargs)
             try:
-                async with session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    data=body,
-                    timeout=timeout,
-                ) as response:
-                    if stream:
-                        # For streaming responses, return a generator
-                        return self._handle_streaming_response(response)
-                    else:
-                        # For regular responses, parse JSON and handle errors
-                        return await self._handle_response(response)
+                response = await client.request(**request_kwargs)
+                return await self._handle_response(response)
             finally:
                 if not pooled:
-                    await session.close()
+                    await client.aclose()
 
         # Use retry mechanism for non-streaming requests
         if not stream:
@@ -308,7 +313,7 @@ class OpenAIProvider(Provider):
 
         return normalized
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> dict[str, Any]:
+    async def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """
         Handle an API response.
 
@@ -324,19 +329,42 @@ class OpenAIProvider(Provider):
         response_data = await self._read_response_body(response)
 
         # Check for error status codes
-        if response.status != 200:
-            self._handle_error_response(response.status, response_data)
+        if response.status_code != 200:
+            self._handle_error_response(response.status_code, response_data)
 
         return response_data
 
+    async def _stream(
+        self,
+        client: httpx.AsyncClient,
+        pooled: bool,
+        request_kwargs: dict[str, Any],
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Open a streaming request and yield parsed SSE chunks.
+
+        Owns the lifecycle of ``client`` when it is not pooled - the
+        httpx stream context must stay open for the entire iteration,
+        and the ad-hoc client must be closed after the stream ends or
+        is interrupted.
+        """
+        try:
+            async with client.stream(**request_kwargs) as response:
+                async for chunk in self._handle_streaming_response(response):
+                    yield chunk
+        finally:
+            if not pooled:
+                await client.aclose()
+
     async def _handle_streaming_response(
-        self, response: aiohttp.ClientResponse
+        self, response: httpx.Response
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Handle a streaming API response.
 
         Args:
-            response: API response
+            response: httpx.Response from a ``client.stream()`` context.
+                Must be entered before this method is called - the
+                response body is iterated lazily via ``aiter_lines``.
 
         Yields:
             Parsed JSON chunks
@@ -345,15 +373,15 @@ class OpenAIProvider(Provider):
             OneLLMError: On API errors
         """
         # Check for error status codes
-        if response.status != 200:
+        if response.status_code != 200:
             error_data = await self._read_response_body(response)
-            self._handle_error_response(response.status, error_data)
+            self._handle_error_response(response.status_code, error_data)
 
-        # Process the stream line by line. aiohttp yields ``bytes`` for each
-        # line; we decode to ``str`` immediately via a separate name so mypy
-        # doesn't see one variable holding two types across the loop body.
-        async for raw_line in response.content:
-            line = raw_line.decode("utf-8").strip()
+        # httpx's ``aiter_lines`` decodes UTF-8 and strips line terminators
+        # for us; we still ``strip()`` to be tolerant of stray whitespace
+        # in upstream SSE framing.
+        async for line in response.aiter_lines():
+            line = line.strip()
             # OpenAI's streaming format prefixes each JSON chunk with "data: "
             if line.startswith("data: "):
                 line = line[6:]  # Remove 'data: ' prefix
@@ -818,7 +846,10 @@ class OpenAIProvider(Provider):
         )
 
     async def _execute_download_request(
-        self, url: str, headers: dict[str, str], timeout: aiohttp.ClientTimeout
+        self,
+        url: str,
+        headers: dict[str, str],
+        timeout: float | httpx.Timeout,
     ) -> bytes:
         """
         Execute the HTTP request for file download.
@@ -828,28 +859,21 @@ class OpenAIProvider(Provider):
         Args:
             url: URL to download from
             headers: HTTP headers
-            timeout: Request timeout
+            timeout: Request timeout (float seconds or httpx.Timeout)
 
         Returns:
             Bytes content of the file
         """
-        session, pooled = await get_session_safe("openai")
+        client, pooled = await get_session_safe("openai")
         try:
-            async with session.get(
-                url=url,
-                headers=headers,
-                timeout=timeout,
-            ) as response:
-                # Check for error status codes
-                if response.status != 200:
-                    error_data = await self._read_response_body(response)
-                    self._handle_error_response(response.status, error_data)
-
-                # Return the raw file content
-                return await response.read()
+            response = await client.get(url=url, headers=headers, timeout=timeout)
+            if response.status_code != 200:
+                error_data = await self._read_response_body(response)
+                self._handle_error_response(response.status_code, error_data)
+            return response.content
         finally:
             if not pooled:
-                await session.close()
+                await client.aclose()
 
     async def download_file(self, file_id: str, **kwargs) -> bytes:
         """
@@ -1143,28 +1167,27 @@ class OpenAIProvider(Provider):
         url = f"{self.api_base}/{path.lstrip('/')}"  # Ensure path starts without slash
         timeout = timeout or self.timeout  # Use provided timeout or default
         headers = self._get_headers()  # Get authentication and other headers
-        body = json.dumps(data) if data else None  # Serialize data to JSON if provided
 
         async def execute_request():
             """Inner function to execute the HTTP request with error handling"""
-            session, pooled = await get_session_safe("openai")
+            client, pooled = await get_session_safe("openai")
             try:
-                async with session.request(
+                response = await client.request(
                     method=method,
                     url=url,
                     headers=headers,
-                    data=body,
+                    json=data if data is not None else None,
                     timeout=timeout,
-                ) as response:
-                    if response.status != 200:
-                        error_data = await self._read_response_body(response)
-                        self._handle_error_response(response.status, error_data)
+                )
+                if response.status_code != 200:
+                    error_data = await self._read_response_body(response)
+                    self._handle_error_response(response.status_code, error_data)
 
-                    # Return the raw binary data
-                    return await response.read()
+                # Return the raw binary data (e.g. TTS audio)
+                return response.content
             finally:
                 if not pooled:
-                    await session.close()
+                    await client.aclose()
 
         # Use retry mechanism for resilience
         return await retry_async(execute_request, config=self.retry_config)
