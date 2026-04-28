@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.20260427.0 - HTTP/2-capable async client (httpx) replaces aiohttp
+## 0.20260428.0 - HTTP/2-capable async client (httpx) replaces aiohttp
 
 **Status**: Development Status :: 5 - Production/Stable
 
