@@ -63,11 +63,17 @@ cache = [
 # CUDA-only: Apple Silicon should use [cache] (CoreML EP auto-activates);
 # AMD/Intel GPUs and DirectML are not supported today (no matching FAISS
 # GPU wheel). See CHANGELOG 0.20260422.2.
+# Includes sentence-transformers so that installing [local-cuda] alone is
+# sufficient for the full GPU stack (ONNX GPU + PyTorch fallback backend).
+# Previously sentence-transformers was only in [local-pytorch], requiring
+# callers to specify [local-cuda,local-pytorch] together — which triggers a
+# pip backtracking-resolver conflict that silently skips sentence-transformers.
 local-cuda = [
     "onnxruntime-gpu>=1.20.0",
     "transformers>=4.44.0",
     "numpy>=1.26.0",
     "faiss-gpu-cu12>=1.13.0",
+    "sentence-transformers>=5.2.2",
 ]
 # Deprecated alias kept for back-compat. Resolves to [local-cuda] via the
 # transitive-extra mechanism, so pinning onellm[local-gpu] still works and
