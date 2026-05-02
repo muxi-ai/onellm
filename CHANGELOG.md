@@ -1,5 +1,60 @@
 # CHANGELOG
 
+## 0.20260502.0 - Persist CoreML compiled model across loads
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### CoreMLExecutionProvider now caches compiled `.mlmodelc` artifacts on disk
+
+Every `ort.InferenceSession()` constructed against an ONNX graph on Apple Silicon used to recompile that graph into a fresh Core ML `.mlmodelc` package on every load. Without `ModelCacheDirectory` set, ORT writes the compiled artifact to a per-session temp dir that disappears the moment the session is disposed. Long-running services that re-instantiated sessions per request (or test suites that constructed multiple sessions in one process) paid the full ~5-15 s compile cost every time and watched the process VSZ balloon by tens of GBs as ORT mapped per-input-shape specialization scratch.
+
+In one downstream tracer (MUXI Runtime's macOS `6_knowledge` end-to-end suite), this manifested as:
+
+- Peak RSS ~8.7 GB at t≈40 s
+- VSZ growing continuously to ~490 GB
+- macOS jetsam SIGKILLing the process at ~280 s, before any chat-side work ran
+
+`local/` ONNX backends now route through `_build_provider_list`, which rewrites every `CoreMLExecutionProvider` entry into a `(name, options)` tuple with three knobs:
+
+- `ModelCacheDirectory` -> `$HF_HOME/onellm-coreml/<sanitized_repo>/<revision>/` (or `~/.cache/huggingface/onellm-coreml` when `HF_HOME` is unset). First load pays the compile cost once; every subsequent load mmaps the prebuilt `.mlmodelc`.
+- `MLComputeUnits=ALL` keeps the existing ANE / GPU / CPU dispatch behavior. We are not narrowing performance, only persisting the compile artifact.
+- `SpecializationStrategy=FastPrediction` (ORT >= 1.20) reduces per-input-shape recompilation. Older runtimes log "unknown option" at INFO and proceed.
+
+Non-CoreML EPs (CUDA, ROCm, OpenVINO, plain CPU) pass through untouched - the rewrite is targeted.
+
+### Measured impact (downstream MUXI Runtime, macOS arm64, `6_knowledge` e2e)
+
+| Metric | Before | After (cold) | After (warm) |
+| ------ | ------ | ------------ | ------------ |
+| Peak RSS | 8.7 GB | 3.8 GB | 4.7 GB |
+| Wall time | 280 s + SIGKILL | 90 s | 72 s |
+| Cache footprint | n/a | ~14 MB / 3 models | ~14 MB / 3 models |
+
+The cache is effectively free: a few MB on disk per `(repo, revision)` pair, kept in the same parent as the HuggingFace weights cache so a single `rm -rf $HF_HOME` wipes both. VSZ stays large after the fix because the `.mlmodelc` is mmap'd into address space - that's expected and does not count against jetsam, which acts on RSS.
+
+### Operator knobs
+
+```bash
+# Recovery path: drop CoreML EP entirely (forces CPU/CUDA/etc.)
+export ONELLM_COREML_DISABLED=true
+
+# Override the cache root if $HF_HOME is read-only or you want a custom path
+export ONELLM_COREML_CACHE_DIR=/var/cache/onellm-coreml
+```
+
+The default cache path - derived from `HF_HOME` (or `~/.cache/huggingface/onellm-coreml` when unset) - co-locates compiled artifacts with the HuggingFace weights cache so a single `rm -rf $HF_HOME` wipes both. Cache sub-directories are scoped per `(sanitized_repo, revision)` so two formations pinning different revisions of the same repo never collide.
+
+### Compatibility
+
+The public API of `onellm` is unchanged - the rewrite happens entirely inside `_instantiate_onnx_backend`. Tests that mocked `ort.InferenceSession(onnx_path, providers=...)` keep working because `providers` is just a list with a different element type (string for non-CoreML, `(str, dict)` tuple for CoreML).
+
+`ModelCacheDirectory` requires onnxruntime >= 1.16 (CoreML EP options support landed there). `SpecializationStrategy` requires onnxruntime >= 1.20; older runtimes log an unknown-option notice and ignore it. We intentionally don't gate on a higher floor than the rest of the codebase already requires - the options graceful-degrade.
+
+### Tests
+
+Four new tests in `TestCoreMLCachePlumbing` pin the contract: CoreML EP gets options injected; `ONELLM_COREML_DISABLED=true` strips it from the provider list entirely; non-CoreML EPs pass through unmodified; revision-pinned cache dirs are kept separate. 122 -> 126 passing in `tests/unit/providers/test_local.py`.
+
+
 ## 0.20260428.0 - HTTP/2-capable async client (httpx) replaces aiohttp
 
 **Status**: Development Status :: 5 - Production/Stable
