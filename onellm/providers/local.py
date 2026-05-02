@@ -194,6 +194,26 @@ _TOKENIZER_SENTINEL_THRESHOLD = 1_000_000
 _DEFAULT_SAFETY_CEILING = 32_768
 _SAFETY_CEILING_ENV = "ONELLM_LOCAL_MAX_TOKEN_LENGTH"
 
+# CoreML compile-cache plumbing (macOS Apple Silicon).
+#
+# When ``onnxruntime`` registers ``CoreMLExecutionProvider`` (the default
+# on Darwin/arm64 wheels), instantiating an ``InferenceSession`` triggers
+# an ahead-of-time compile of the ONNX graph into an ``.mlmodelc``
+# package. That compile is what users observe as 5-10 GB of virtual
+# memory growth and a ~5-15 s cold-start spike per session - and
+# without ``ModelCacheDirectory`` set the artifact is recompiled from
+# scratch on every process invocation, because ORT's default cache
+# location is a per-session temp dir that disappears on session
+# disposal.
+#
+# Pointing ``ModelCacheDirectory`` at a stable, per-(repo, revision)
+# directory makes the first run pay the compile cost once and every
+# subsequent run mmap the prebuilt ``.mlmodelc`` - identical behavior
+# to other ONNX EPs that already cache compiled artifacts on disk.
+_COREML_DISABLED_ENV = "ONELLM_COREML_DISABLED"
+_COREML_CACHE_ROOT_ENV = "ONELLM_COREML_CACHE_DIR"
+_COREML_PROVIDER_NAME = "CoreMLExecutionProvider"
+
 
 # ---------------------------------------------------------------------------
 # Error normalization
@@ -832,6 +852,124 @@ def _try_download_onnx_weights(repo: str, revision: str | None = None) -> str | 
     return None
 
 
+def _coreml_cache_dir(repo: str, revision: str | None) -> str | None:
+    """Return a stable on-disk cache directory for CoreML compile artifacts.
+
+    Resolution order:
+
+    1. ``ONELLM_COREML_CACHE_DIR`` if set - operator override, used
+       verbatim as the root.
+    2. ``$HF_HOME/onellm-coreml`` - co-locates the compiled
+       ``.mlmodelc`` next to the ONNX weights HuggingFace already
+       cached, so a single ``rm -rf $HF_HOME`` wipes both.
+    3. ``~/.cache/huggingface/onellm-coreml`` - the default HF cache
+       parent on macOS/Linux when ``HF_HOME`` is unset.
+
+    The full path is then ``<root>/<sanitized_repo>/<revision>/`` so
+    different revisions of the same repo never collide.
+
+    Returns ``None`` if the directory cannot be created (read-only FS,
+    permission error). Callers fall back to the legacy "no cache dir"
+    behavior in that case - the EP still runs, it just recompiles every
+    invocation.
+    """
+    override = os.environ.get(_COREML_CACHE_ROOT_ENV)
+    if override:
+        root = override
+    elif os.environ.get("HF_HOME"):
+        root = os.path.join(os.environ["HF_HOME"], "onellm-coreml")
+    else:
+        root = os.path.expanduser("~/.cache/huggingface/onellm-coreml")
+
+    # ``repo`` is an arbitrary HF repo id (e.g. ``nomic-ai/nomic-embed-text-v1.5``).
+    # Replace path separators so the directory layout stays one level
+    # deep per repo and cannot escape ``root`` via ``..``.
+    sanitized_repo = repo.replace("/", "--").replace("\\", "--")
+    revision_segment = revision if revision else "main"
+    cache_dir = os.path.join(root, sanitized_repo, revision_segment)
+
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except OSError as exc:
+        logger.warning(
+            "[local/%s] Could not create CoreML cache dir %s (%s). "
+            "Falling back to ephemeral compile - first inference will be "
+            "slow on every run. Set %s to a writable path to fix.",
+            repo,
+            cache_dir,
+            exc,
+            _COREML_CACHE_ROOT_ENV,
+        )
+        return None
+    return cache_dir
+
+
+def _build_provider_list(
+    available_providers: list[str], repo: str, revision: str | None
+) -> list[Any]:
+    """Translate ``available_providers`` into ORT's typed provider list.
+
+    Pass-through for everything except ``CoreMLExecutionProvider``,
+    which is replaced with a ``(name, options)`` tuple so the EP picks
+    up our persistent ``.mlmodelc`` cache directory instead of
+    recompiling from scratch on every session construction.
+
+    The ``ONELLM_COREML_DISABLED=true`` kill switch drops the CoreML
+    entry entirely, leaving CPU (and any other registered EPs) in
+    place. This is the recovery path if a future ORT release breaks
+    the cache-on-disk contract; operators flip the env var and ship.
+
+    Other EPs (CUDA, ROCm, OpenVINO, etc.) are passed through
+    untouched - their cache plumbing is either irrelevant (CPU/CUDA)
+    or already on by default. Adding more EP-specific options here
+    later is a one-line addition next to the CoreML branch.
+    """
+    coreml_disabled = os.environ.get(_COREML_DISABLED_ENV, "").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+    out: list[Any] = []
+    for name in available_providers:
+        if name == _COREML_PROVIDER_NAME:
+            if coreml_disabled:
+                logger.info(
+                    "[local/%s] %s=true; dropping %s from provider list.",
+                    repo,
+                    _COREML_DISABLED_ENV,
+                    _COREML_PROVIDER_NAME,
+                )
+                continue
+            options: dict[str, str] = {
+                # ``"ALL"`` keeps ANE / GPU / CPU dispatch on; we are
+                # not narrowing performance, only persisting the
+                # compile artifact. Operators who want to pin to a
+                # subset can do so via a future env knob; today the
+                # priority is fixing the recompile-storm OOM.
+                "MLComputeUnits": "ALL",
+                # ``"FastPrediction"`` (ORT >= 1.20) tells the EP to
+                # prefer one compiled program over re-specializing per
+                # input shape, which is what created the tens-of-GB
+                # VSZ growth on the macOS 6_knowledge tests. Older
+                # runtimes silently ignore the option (they log
+                # "unknown option" at INFO and proceed), so this is
+                # safe to set unconditionally.
+                "SpecializationStrategy": "FastPrediction",
+            }
+            cache_dir = _coreml_cache_dir(repo, revision)
+            if cache_dir is not None:
+                # ``ModelCacheDirectory`` (ORT >= 1.16) is the per-EP
+                # option that turns ahead-of-time compile from
+                # "every-session ephemeral temp" into "compile once,
+                # mmap forever". This is the actual fix.
+                options["ModelCacheDirectory"] = cache_dir
+            out.append((name, options))
+        else:
+            out.append(name)
+    return out
+
+
 def _instantiate_onnx_backend(
     repo: str,
     onnx_path: str,
@@ -871,7 +1009,19 @@ def _instantiate_onnx_backend(
         # onellm[local-cuda]) pick up the CUDA EP automatically while
         # falling back to CPUExecutionProvider when no GPU wheel is
         # installed. The default CPU wheel reports only CPU.
-        session = ort.InferenceSession(onnx_path, providers=ort.get_available_providers())
+        #
+        # ``_build_provider_list`` rewrites this list so the macOS
+        # CoreML EP gets a per-(repo, revision) ``ModelCacheDirectory``
+        # injected (and ``ONELLM_COREML_DISABLED`` drops the EP
+        # entirely). Without that rewrite, every ``InferenceSession``
+        # construction recompiles the ONNX graph into a fresh
+        # ``.mlmodelc`` in a temp dir that vanishes on session
+        # disposal - the source of the 490 GB VSZ / 8 GB+ RSS spike
+        # that triggered macOS jetsam under load.
+        provider_list = _build_provider_list(
+            ort.get_available_providers(), repo, revision
+        )
+        session = ort.InferenceSession(onnx_path, providers=provider_list)
 
     # Observability: log which EP actually got selected, and warn when a
     # GPU wheel is installed but the session silently fell back to CPU

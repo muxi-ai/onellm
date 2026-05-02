@@ -27,6 +27,7 @@ so no model downloads or inference happen. Real model load tests live
 in ``tests/integration/test_local_provider.py`` behind a slow marker.
 """
 
+import os
 import sys
 import types
 from typing import Any
@@ -1693,6 +1694,189 @@ class TestExecutionProviderObservability:
 
         warnings = [rec.getMessage() for rec in caplog.records if rec.levelno == _logging.WARNING]
         assert not any("fell back to CPUExecutionProvider" in m for m in warnings)
+
+
+class TestCoreMLCachePlumbing:
+    """When ``onnxruntime`` registers ``CoreMLExecutionProvider`` (the
+    Apple Silicon default), a fresh ``InferenceSession`` recompiles the
+    ONNX graph into an ephemeral ``.mlmodelc`` package on every load -
+    the source of the 490 GB VSZ growth and ~8 GB RSS spike that
+    triggered macOS jetsam under the 6_knowledge tests in the
+    runtime e2e suite.
+
+    The fix is to inject a per-(repo, revision) ``ModelCacheDirectory``
+    into the CoreML EP options so the compile artifact persists across
+    process invocations. These tests pin that contract.
+    """
+
+    async def test_coreml_provider_gets_persistent_cache_dir(
+        self, fake_onnx_backend, monkeypatch, tmp_path
+    ):
+        """When CoreML is available, the provider must be passed as a
+        ``(name, options)`` tuple with ``ModelCacheDirectory`` set to a
+        per-(repo, revision) directory under the configured cache root.
+        """
+        import onnxruntime  # type: ignore[import-not-found]
+
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CoreMLExecutionProvider", "CPUExecutionProvider"],
+        )
+        monkeypatch.setenv("ONELLM_COREML_CACHE_DIR", str(tmp_path))
+        monkeypatch.delenv("ONELLM_COREML_DISABLED", raising=False)
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="any/repo")
+
+        call_args = onnxruntime.InferenceSession.call_args
+        providers_arg = call_args.kwargs.get("providers") or call_args.args[1]
+
+        assert len(providers_arg) == 2
+        coreml_entry = providers_arg[0]
+        assert isinstance(coreml_entry, tuple)
+        assert coreml_entry[0] == "CoreMLExecutionProvider"
+        options = coreml_entry[1]
+        # ModelCacheDirectory must point inside our configured root and
+        # contain the (sanitized repo, revision) path segments.
+        cache_dir = options["ModelCacheDirectory"]
+        assert cache_dir.startswith(str(tmp_path))
+        assert "any--repo" in cache_dir
+        # Default revision when caller passed None is 'main'.
+        assert cache_dir.endswith(os.path.join("any--repo", "main"))
+        # The directory must actually exist (mkdir succeeded).
+        assert os.path.isdir(cache_dir)
+        # FastPrediction + ALL stay on so we don't silently regress
+        # ANE/GPU/CPU dispatch.
+        assert options.get("MLComputeUnits") == "ALL"
+        assert options.get("SpecializationStrategy") == "FastPrediction"
+        # CPU EP passes through as a plain string.
+        assert providers_arg[1] == "CPUExecutionProvider"
+
+    async def test_coreml_disabled_env_strips_provider(
+        self, fake_onnx_backend, monkeypatch
+    ):
+        """``ONELLM_COREML_DISABLED=true`` must remove the CoreML entry
+        from the provider list entirely. This is the recovery path if a
+        future ORT release breaks the on-disk cache contract.
+        """
+        import onnxruntime  # type: ignore[import-not-found]
+
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CoreMLExecutionProvider", "CPUExecutionProvider"],
+        )
+
+        # Override the default CPU-only get_providers so the EP picked
+        # up by the session matches what we're asking ORT to load.
+        def cpu_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            sess.get_inputs.return_value = [inp, inp2]
+            sess.get_providers.return_value = ["CPUExecutionProvider"]
+
+            def _run(_names, inputs):
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = cpu_session
+
+        monkeypatch.setenv("ONELLM_COREML_DISABLED", "true")
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="any/repo")
+
+        call_args = onnxruntime.InferenceSession.call_args
+        providers_arg = call_args.kwargs.get("providers") or call_args.args[1]
+
+        # CoreML stripped, CPU survives.
+        names = [
+            entry if isinstance(entry, str) else entry[0] for entry in providers_arg
+        ]
+        assert "CoreMLExecutionProvider" not in names
+        assert "CPUExecutionProvider" in names
+
+    async def test_non_coreml_providers_pass_through_unchanged(
+        self, fake_onnx_backend, monkeypatch
+    ):
+        """CUDA / CPU / other EPs must not get rewritten - the
+        rewrite is targeted at CoreML only. This guards against
+        regressing the existing GPU acceleration path on Linux when
+        someone ships ``onellm[local-cuda]``.
+        """
+        import onnxruntime  # type: ignore[import-not-found]
+
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+
+        def gpu_session(_path, providers=None):
+            sess = MagicMock()
+            inp = MagicMock()
+            inp.name = "input_ids"
+            inp2 = MagicMock()
+            inp2.name = "attention_mask"
+            sess.get_inputs.return_value = [inp, inp2]
+            sess.get_providers.return_value = [
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider",
+            ]
+
+            def _run(_names, inputs):
+                batch, seq = inputs["input_ids"].shape
+                return [np.ones((batch, seq, 4), dtype=np.float32)]
+
+            sess.run.side_effect = _run
+            return sess
+
+        fake_onnx_backend["session_factory"] = gpu_session
+
+        provider = LocalProvider()
+        await provider.create_embedding(input="hi", model="any/repo")
+
+        call_args = onnxruntime.InferenceSession.call_args
+        providers_arg = call_args.kwargs.get("providers") or call_args.args[1]
+
+        # No tuples, no rewrites - identical strings, same order.
+        assert providers_arg == ["CUDAExecutionProvider", "CPUExecutionProvider"]
+
+    async def test_revision_pinned_cache_dir_is_separate(
+        self, fake_onnx_backend, monkeypatch, tmp_path
+    ):
+        """Two revisions of the same repo must land in separate cache
+        directories so different formations can pin different revisions
+        without invalidating each other's compiled ``.mlmodelc``.
+        """
+        import onnxruntime  # type: ignore[import-not-found]
+
+        monkeypatch.setattr(
+            onnxruntime,
+            "get_available_providers",
+            lambda: ["CoreMLExecutionProvider", "CPUExecutionProvider"],
+        )
+        monkeypatch.setenv("ONELLM_COREML_CACHE_DIR", str(tmp_path))
+        monkeypatch.delenv("ONELLM_COREML_DISABLED", raising=False)
+
+        provider = LocalProvider()
+        await provider.create_embedding(
+            input="hi", model="any/repo", revision="abc123"
+        )
+
+        call_args = onnxruntime.InferenceSession.call_args
+        providers_arg = call_args.kwargs.get("providers") or call_args.args[1]
+        coreml_options = providers_arg[0][1]
+        cache_dir = coreml_options["ModelCacheDirectory"]
+        assert cache_dir.endswith(os.path.join("any--repo", "abc123"))
+        assert os.path.isdir(cache_dir)
 
 
 class TestRevisionPlumbing:
