@@ -33,6 +33,10 @@ from urllib.parse import urlparse
 
 from .errors import InvalidRequestError
 
+# Compiled once: validate_model_name runs on every request (and once more
+# per fallback model)
+_PROVIDER_NAME_RE = re.compile(r"^[a-z0-9_-]+$")
+
 # Type variable for generic type validators
 T = TypeVar("T")
 
@@ -511,7 +515,7 @@ def validate_model_name(model: str) -> str:
     provider, model_name = model.split("/", 1)
 
     # Validate provider name format (lowercase letters, numbers, underscores, hyphens)
-    if not re.match(r"^[a-z0-9_-]+$", provider):
+    if not _PROVIDER_NAME_RE.match(provider):
         raise InvalidRequestError(
             f"Invalid provider name '{provider}'. Provider names should contain only "
             f"lowercase letters, numbers, underscores, and hyphens."
