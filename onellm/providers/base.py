@@ -321,6 +321,7 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
 
     Raises:
         ValueError: If the provider is not supported
+        ImportError: If the provider's optional dependency is not installed
     """
     # Look up the provider class in the registry, importing built-in
     # providers lazily on first use

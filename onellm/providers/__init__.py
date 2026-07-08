@@ -78,6 +78,7 @@ def __getattr__(name: str):
         # Preserve historical behavior for optional-dependency providers:
         # importing the name yields None instead of raising
         if name in ("BedrockProvider", "VertexAIProvider"):
+            globals()[name] = None  # cache so __getattr__ is not re-entered
             return None
         raise
 
