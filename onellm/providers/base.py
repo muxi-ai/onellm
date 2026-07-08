@@ -25,6 +25,7 @@ implementations must follow, as well as utility functions for
 working with providers.
 """
 
+import importlib
 import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
@@ -230,6 +231,64 @@ class Provider(ABC):
 # Registry of provider classes - stores mapping of provider names to their implementation classes
 _PROVIDER_REGISTRY: dict[str, type[Provider]] = {}
 
+# Built-in providers are loaded lazily: mapping of provider name to
+# "module:ClassName". The module is only imported the first time the
+# provider is requested via get_provider(), keeping `import onellm` fast
+# and avoiding optional dependencies for providers that are never used.
+_LAZY_PROVIDER_SPECS: dict[str, str] = {
+    "anthropic": "onellm.providers.anthropic:AnthropicProvider",
+    "anyscale": "onellm.providers.anyscale:AnyscaleProvider",
+    "azure": "onellm.providers.azure:AzureProvider",
+    "bedrock": "onellm.providers.bedrock:BedrockProvider",
+    "cohere": "onellm.providers.cohere:CohereProvider",
+    "deepseek": "onellm.providers.deepseek:DeepSeekProvider",
+    "fireworks": "onellm.providers.fireworks:FireworksProvider",
+    "glm": "onellm.providers.glm:GLMProvider",
+    "google": "onellm.providers.google:GoogleProvider",
+    "groq": "onellm.providers.groq:GroqProvider",
+    "llama_cpp": "onellm.providers.llama_cpp:LlamaCppProvider",
+    "local": "onellm.providers.local:LocalProvider",
+    "minimax": "onellm.providers.minimax:MinimaxProvider",
+    "mistral": "onellm.providers.mistral:MistralProvider",
+    "moonshot": "onellm.providers.moonshot:MoonshotProvider",
+    "ollama": "onellm.providers.ollama:OllamaProvider",
+    "openai": "onellm.providers.openai:OpenAIProvider",
+    "openrouter": "onellm.providers.openrouter:OpenRouterProvider",
+    "perplexity": "onellm.providers.perplexity:PerplexityProvider",
+    "together": "onellm.providers.together:TogetherProvider",
+    "vercel": "onellm.providers.vercel:VercelProvider",
+    "vertexai": "onellm.providers.vertexai:VertexAIProvider",
+    "xai": "onellm.providers.xai:XAIProvider",
+}
+
+
+def _load_lazy_provider(provider_name: str) -> type[Provider] | None:
+    """
+    Import and register a built-in provider on first use.
+
+    Returns the provider class, or None if the name has no lazy spec.
+
+    Raises:
+        ImportError: If the provider module has a missing optional dependency.
+    """
+    spec = _LAZY_PROVIDER_SPECS.get(provider_name)
+    if spec is None:
+        return None
+
+    module_path, class_name = spec.split(":")
+    try:
+        module = importlib.import_module(module_path)
+    except ImportError as e:
+        raise ImportError(
+            f"Provider '{provider_name}' requires an optional dependency "
+            f"that is not installed: {e}"
+        ) from e
+
+    provider_class = getattr(module, class_name)
+    # Cache in the registry so subsequent lookups skip the import machinery
+    _PROVIDER_REGISTRY[provider_name] = provider_class
+    return provider_class
+
 
 def register_provider(provider_name: str, provider_class: type[Provider]) -> None:
     """
@@ -262,12 +321,16 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
 
     Raises:
         ValueError: If the provider is not supported
+        ImportError: If the provider's optional dependency is not installed
     """
-    # Look up the provider class in the registry
+    # Look up the provider class in the registry, importing built-in
+    # providers lazily on first use
     provider_class = _PROVIDER_REGISTRY.get(provider_name)
     if provider_class is None:
+        provider_class = _load_lazy_provider(provider_name)
+    if provider_class is None:
         # If provider not found, generate a helpful error message with available options
-        supported = ", ".join(_PROVIDER_REGISTRY.keys())
+        supported = ", ".join(sorted(set(_PROVIDER_REGISTRY) | set(_LAZY_PROVIDER_SPECS)))
         raise ValueError(
             f"Provider '{provider_name}' is not supported. " f"Supported providers: {supported}"
         )
@@ -283,8 +346,8 @@ def list_providers() -> list[str]:
     Returns:
         List of provider names available in the registry
     """
-    # Return the keys from the provider registry
-    return list(_PROVIDER_REGISTRY.keys())
+    # Include built-in providers that haven't been imported yet
+    return sorted(set(_PROVIDER_REGISTRY) | set(_LAZY_PROVIDER_SPECS))
 
 
 def get_provider_with_fallbacks(

@@ -52,9 +52,18 @@ class TestOpenAIErrorHandling:
     def setup_method(self):
         """Set up the test environment."""
         # Use a patcher to completely mock get_provider_config
-        self.config_patcher = mock.patch("onellm.config.get_provider_config")
+        # Patch the name bound into the openai module (from ..config import
+        # get_provider_config), not the source in onellm.config - patching
+        # the source has no effect on the already-imported binding
+        self.config_patcher = mock.patch("onellm.providers.openai.get_provider_config")
         self.mock_get_config = self.config_patcher.start()
-        self.mock_get_config.return_value = {"api_key": "test-api-key"}
+        # Return a complete config: __init__ indexes api_base/timeout/max_retries directly
+        self.mock_get_config.return_value = {
+            "api_key": "test-api-key",
+            "api_base": "https://api.openai.com/v1",
+            "timeout": 30,
+            "max_retries": 3,
+        }
 
         # Create provider instance with mocked config
         self.provider = OpenAIProvider()

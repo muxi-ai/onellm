@@ -20,105 +20,77 @@
 """
 Provider implementations for OneLLM.
 
-This module imports all available provider implementations,
-ensuring they are registered with the provider registry.
+Built-in providers are loaded lazily: importing this package does NOT
+import every provider module. A provider module is only imported the
+first time it is used - either via get_provider("name") or by accessing
+its class here (e.g. ``from onellm.providers import OpenAIProvider``).
+This keeps ``import onellm`` fast and avoids pulling in optional
+dependencies for providers that are never used.
 
 The provider system is designed to be extensible, allowing new LLM providers
-to be added by implementing the Provider interface and registering them.
+to be added by implementing the Provider interface and registering them
+with register_provider().
 """
 
-from .anthropic import AnthropicProvider
-from .anyscale import AnyscaleProvider
-from .azure import AzureProvider
+import importlib
+
 from .base import get_provider, list_providers, parse_model_name, register_provider
 
-# Cloud provider integrations (lazy loaded - optional dependencies)
-try:
-    from .bedrock import BedrockProvider
-    _has_bedrock = True
-except ImportError:
-    BedrockProvider = None
-    _has_bedrock = False
+# Mapping of public class names to the submodule that defines them,
+# resolved on first attribute access (PEP 562)
+_PROVIDER_CLASS_MODULES: dict[str, str] = {
+    "AnthropicProvider": ".anthropic",
+    "AnyscaleProvider": ".anyscale",
+    "AzureProvider": ".azure",
+    "BedrockProvider": ".bedrock",
+    "CohereProvider": ".cohere",
+    "DeepSeekProvider": ".deepseek",
+    "FallbackProviderProxy": ".fallback",
+    "FireworksProvider": ".fireworks",
+    "GLMProvider": ".glm",
+    "GoogleProvider": ".google",
+    "GroqProvider": ".groq",
+    "LlamaCppProvider": ".llama_cpp",
+    "LocalProvider": ".local",
+    "MinimaxProvider": ".minimax",
+    "MistralProvider": ".mistral",
+    "MoonshotProvider": ".moonshot",
+    "OllamaProvider": ".ollama",
+    "OpenAIProvider": ".openai",
+    "OpenRouterProvider": ".openrouter",
+    "PerplexityProvider": ".perplexity",
+    "TogetherProvider": ".together",
+    "VercelProvider": ".vercel",
+    "VertexAIProvider": ".vertexai",
+    "XAIProvider": ".xai",
+}
 
-# Native API providers
-from .cohere import CohereProvider
-from .deepseek import DeepSeekProvider
-from .fallback import FallbackProviderProxy
-from .fireworks import FireworksProvider
-from .glm import GLMProvider
-from .google import GoogleProvider
 
-# OpenAI-compatible providers
-from .groq import GroqProvider
-from .llama_cpp import LlamaCppProvider
+def __getattr__(name: str):
+    """Resolve provider classes lazily on first access."""
+    module_path = _PROVIDER_CLASS_MODULES.get(name)
+    if module_path is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-# Local embedding provider (sentence-transformers backend)
-from .local import LocalProvider
+    try:
+        module = importlib.import_module(module_path, __name__)
+    except ImportError:
+        # Preserve historical behavior for optional-dependency providers:
+        # importing the name yields None instead of raising
+        if name in ("BedrockProvider", "VertexAIProvider"):
+            globals()[name] = None  # cache so __getattr__ is not re-entered
+            return None
+        raise
 
-# Anthropic-compatible providers
-from .minimax import MinimaxProvider
-from .mistral import MistralProvider
-from .moonshot import MoonshotProvider
+    provider_class = getattr(module, name)
+    # Cache on the package so __getattr__ is only hit once per class
+    globals()[name] = provider_class
+    return provider_class
 
-# Local providers
-from .ollama import OllamaProvider
 
-# Import provider implementations
-from .openai import OpenAIProvider
-from .openrouter import OpenRouterProvider
-from .perplexity import PerplexityProvider
-from .together import TogetherProvider
-from .vercel import VercelProvider
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_PROVIDER_CLASS_MODULES))
 
-# VertexAI requires google-cloud-aiplatform (optional dependency)
-try:
-    from .vertexai import VertexAIProvider
-    _has_vertexai = True
-except ImportError:
-    VertexAIProvider = None
-    _has_vertexai = False
-
-from .xai import XAIProvider
-
-# Register all provider implementations with the provider registry
-# This makes the providers available through the get_provider function
-
-# Original providers
-register_provider("openai", OpenAIProvider)
-register_provider("mistral", MistralProvider)
-register_provider("anthropic", AnthropicProvider)
-
-# Anthropic-compatible providers
-register_provider("minimax", MinimaxProvider)
-
-# OpenAI-compatible providers
-register_provider("groq", GroqProvider)
-register_provider("glm", GLMProvider)
-register_provider("xai", XAIProvider)
-register_provider("openrouter", OpenRouterProvider)
-register_provider("vercel", VercelProvider)
-register_provider("together", TogetherProvider)
-register_provider("fireworks", FireworksProvider)
-register_provider("perplexity", PerplexityProvider)
-register_provider("deepseek", DeepSeekProvider)
-register_provider("moonshot", MoonshotProvider)
-register_provider("google", GoogleProvider)
-register_provider("azure", AzureProvider)
-register_provider("anyscale", AnyscaleProvider)
-
-# Native API providers
-register_provider("cohere", CohereProvider)
-if _has_vertexai:
-    register_provider("vertexai", VertexAIProvider)
-
-# Local providers
-register_provider("ollama", OllamaProvider)
-register_provider("llama_cpp", LlamaCppProvider)
-register_provider("local", LocalProvider)
-
-# Cloud provider integrations
-if _has_bedrock:
-    register_provider("bedrock", BedrockProvider)
 
 # Convenience export - these symbols will be available when importing from onellm.providers
 # This allows users to access core provider functionality directly
