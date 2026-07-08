@@ -24,6 +24,7 @@ This module provides a ChatCompletion class that can be used to create chat
 completions from various providers in a manner compatible with OpenAI's API.
 """
 
+import copy
 import logging
 import warnings
 from collections.abc import AsyncGenerator
@@ -372,16 +373,19 @@ class ChatCompletion:
             for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
 
-        # Preserve original messages for cache operations (before _process_capabilities mutates them)
-        import copy
-        original_messages = copy.deepcopy(messages)
-
-        # Check cache first (use original unmutated messages)
         # Skip cache if caching=False is passed in kwargs
         use_cache = kwargs.pop("caching", True)
         from . import _cache
 
-        if _cache is not None and use_cache:
+        caching_active = _cache is not None and use_cache
+
+        # Preserve original messages for cache operations (before
+        # _process_capabilities mutates them); skip the copy entirely
+        # when caching is off - it's O(total message size)
+        original_messages = copy.deepcopy(messages) if caching_active else None
+
+        # Check cache first (use original unmutated messages)
+        if caching_active:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
@@ -425,7 +429,7 @@ class ChatCompletion:
         )
 
         # Cache the response (use original unmutated messages)
-        if _cache is not None and use_cache:
+        if caching_active:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._accumulate_and_cache_stream(
@@ -489,16 +493,19 @@ class ChatCompletion:
             for fallback_model in fallback_models:
                 validate_model_name(fallback_model)
 
-        # Preserve original messages for cache operations (before _process_capabilities mutates them)
-        import copy
-        original_messages = copy.deepcopy(messages)
-
-        # Check cache first (use original unmutated messages)
         # Skip cache if caching=False is passed in kwargs
         use_cache = kwargs.pop("caching", True)
         from . import _cache
 
-        if _cache is not None and use_cache:
+        caching_active = _cache is not None and use_cache
+
+        # Preserve original messages for cache operations (before
+        # _process_capabilities mutates them); skip the copy entirely
+        # when caching is off - it's O(total message size)
+        original_messages = copy.deepcopy(messages) if caching_active else None
+
+        # Check cache first (use original unmutated messages)
+        if caching_active:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
                 if stream:
@@ -539,7 +546,7 @@ class ChatCompletion:
         )
 
         # Cache the response (use original unmutated messages)
-        if _cache is not None and use_cache:
+        if caching_active:
             if stream:
                 # For streaming, accumulate chunks and cache the complete response
                 response = cls._aaccumulate_and_cache_stream(

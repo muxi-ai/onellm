@@ -491,6 +491,10 @@ class OpenAIProvider(Provider):
             # Handle streaming response
             async def chunk_generator() -> AsyncGenerator[ChatCompletionChunk, None]:
                 """Generator function to process streaming chunks"""
+                # Fallback timestamp computed once: .get() evaluates its
+                # default eagerly, so calling time.time() inline would run
+                # on every chunk even though "created" is always present
+                fallback_created = int(time.time())
                 async for chunk in await self._make_request(
                     method="POST", path="chat/completions", data=data, stream=True
                 ):
@@ -524,7 +528,7 @@ class OpenAIProvider(Provider):
                         chunk_resp = ChatCompletionChunk(
                             id=chunk.get("id", ""),
                             object=chunk.get("object", "chat.completion.chunk"),
-                            created=chunk.get("created", int(time.time())),
+                            created=chunk.get("created", fallback_created),
                             model=chunk.get("model", model),
                             choices=choices,
                             system_fingerprint=chunk.get("system_fingerprint"),

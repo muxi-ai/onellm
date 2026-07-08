@@ -105,12 +105,17 @@ class TestConfigSystem:
         # Create a nested update
         nested_update = {"advanced": {"retry_on_timeout": True, "retry_count": 3}}
 
-        # Update the config
-        provider_config = get_provider_config("openai")
-        _update_nested_dict(provider_config, nested_update)
+        # Update the global config through the live dict; the dict returned
+        # by get_provider_config() is a copy and must not write through
+        _update_nested_dict(config["providers"]["openai"], nested_update)
 
         # Get the configuration and verify nested values
         updated_config = get_provider_config("openai")
         assert "advanced" in updated_config
         assert updated_config["advanced"]["retry_on_timeout"] is True
         assert updated_config["advanced"]["retry_count"] == 3
+
+    def test_get_provider_config_returns_copy(self):
+        """Mutating the returned dict must not leak into global config."""
+        get_provider_config("openai")["api_key"] = "leaked"
+        assert config["providers"]["openai"].get("api_key") != "leaked"

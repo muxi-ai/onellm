@@ -174,6 +174,25 @@ DEFAULT_CONFIG = {
 # Global configuration dictionary that will be populated with settings
 config = copy.deepcopy(DEFAULT_CONFIG)
 
+# Monotonic counter bumped whenever provider config changes through the
+# public API (set_api_key, update_provider_config, _load_env_vars). Used
+# by the provider registry to invalidate cached provider instances.
+_config_version = 0
+
+
+def _bump_config_version() -> None:
+    global _config_version
+    _config_version += 1
+
+
+def config_version() -> int:
+    """Return the current configuration version.
+
+    Increments whenever provider configuration changes through the public
+    API. Callers can compare versions to detect config changes cheaply.
+    """
+    return _config_version
+
 # Environment variables prefixes
 ENV_PREFIX = "ONELLM_"  # Prefix for OneLLM specific environment variables
 PROVIDER_API_KEY_ENV_MAP = {
@@ -279,6 +298,8 @@ def _load_env_vars() -> None:
             "GOOGLE_APPLICATION_CREDENTIALS"
         ]
 
+    _bump_config_version()
+
 
 def _update_nested_dict(d: dict[str, Any], u: dict[str, Any]) -> dict[str, Any]:
     """
@@ -338,6 +359,7 @@ def set_api_key(api_key: str, provider: str) -> None:
         config["providers"][provider]["api_key"] = api_key
         # Set global variable for convenience and backward compatibility
         globals()[f"{provider}_api_key"] = api_key
+        _bump_config_version()
 
 
 def get_provider_config(provider: str) -> dict[str, Any]:
@@ -350,9 +372,14 @@ def get_provider_config(provider: str) -> dict[str, Any]:
     Returns:
         A dictionary containing the provider's configuration settings,
         or an empty dictionary if the provider is not found
+
+    Note:
+        Returns a copy: providers merge per-call kwargs into the returned
+        dict, which must not leak into the global configuration. Use
+        set_api_key() or update_provider_config() to change global config.
     """
     if provider in config["providers"]:
-        return config["providers"][provider]
+        return dict(config["providers"][provider])
     return {}
 
 
@@ -366,6 +393,7 @@ def update_provider_config(provider: str, **kwargs) -> None:
     """
     if provider in config["providers"]:
         config["providers"][provider].update(kwargs)
+        _bump_config_version()
 
 
 # Initialize global variables for all providers for easy access

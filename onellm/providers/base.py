@@ -33,6 +33,7 @@ from typing import Any
 
 import httpx
 
+from ..config import config_version
 from ..models import (
     ChatCompletionChunk,
     ChatCompletionResponse,
@@ -290,6 +291,24 @@ def _load_lazy_provider(provider_name: str) -> type[Provider] | None:
     return provider_class
 
 
+# Cache of default (no-kwargs) provider instances: name -> (config_version,
+# instance). Provider construction re-reads config and rebuilds retry state
+# on every call, so the default instance is memoized and invalidated when
+# the configuration version changes (set_api_key, update_provider_config).
+_PROVIDER_INSTANCE_CACHE: dict[str, tuple[int, Provider]] = {}
+
+
+def clear_provider_cache() -> None:
+    """Clear all cached provider instances.
+
+    Providers created via get_provider() with no arguments are cached and
+    reused. The cache invalidates automatically when configuration changes
+    through set_api_key()/update_provider_config(); call this if you mutate
+    provider configuration by other means.
+    """
+    _PROVIDER_INSTANCE_CACHE.clear()
+
+
 def register_provider(provider_name: str, provider_class: type[Provider]) -> None:
     """
     Register a provider class.
@@ -303,6 +322,8 @@ def register_provider(provider_name: str, provider_class: type[Provider]) -> Non
     """
     # Add the provider class to the registry with the given name as the key
     _PROVIDER_REGISTRY[provider_name] = provider_class
+    # Drop any cached instance built from a previously registered class
+    _PROVIDER_INSTANCE_CACHE.pop(provider_name, None)
 
 
 def get_provider(provider_name: str, **kwargs) -> Provider:
@@ -323,6 +344,15 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
         ValueError: If the provider is not supported
         ImportError: If the provider's optional dependency is not installed
     """
+    # Default instances (no constructor overrides) are memoized; the cache
+    # entry is keyed to the config version so set_api_key() and
+    # update_provider_config() transparently produce a fresh instance
+    if not kwargs:
+        version = config_version()
+        cached = _PROVIDER_INSTANCE_CACHE.get(provider_name)
+        if cached is not None and cached[0] == version:
+            return cached[1]
+
     # Look up the provider class in the registry, importing built-in
     # providers lazily on first use
     provider_class = _PROVIDER_REGISTRY.get(provider_name)
@@ -335,8 +365,11 @@ def get_provider(provider_name: str, **kwargs) -> Provider:
             f"Provider '{provider_name}' is not supported. " f"Supported providers: {supported}"
         )
 
-    # Instantiate and return the provider class with the provided kwargs
-    return provider_class(**kwargs)
+    # Instantiate the provider class with the provided kwargs
+    provider = provider_class(**kwargs)
+    if not kwargs:
+        _PROVIDER_INSTANCE_CACHE[provider_name] = (version, provider)
+    return provider
 
 
 def list_providers() -> list[str]:
