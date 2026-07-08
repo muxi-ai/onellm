@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 0.20260708.1 - Single-pass unicode cleaning on the streaming hot path
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### clean_unicode_artifacts rewritten around fast paths (#80)
+
+Profiling a mocked-network request cycle showed `clean_unicode_artifacts()` - which runs in `__post_init__` of every response object and every streaming chunk - accounted for ~70% of per-chunk streaming overhead. It rebuilt a 60-entry replacement dict on every call, applied it as 60 sequential full-string `str.replace` passes, and finished with an uncompiled `re.sub`. Two of the 60 mappings (en/em dash) were identity no-ops.
+
+The rewrite keeps output byte-identical (verified across 253 generated cases against the old implementation - every mapped character alone/embedded/repeated, adversarial artifact mixes, CRLF variants, Japanese text):
+
+- `text.isascii()` skips cleaning entirely; no mapped character is ASCII and most LLM output is. ~90 ns for a typical streaming delta.
+- Non-ASCII text is cleaned by one compiled character-class regex with a per-match replacement callback - a C-speed scan that pays only per match. (`str.translate` was benchmarked and loses: it does a table lookup per character.)
+- The trailing-whitespace regex only runs when cheap substring checks prove a match is possible.
+- The identity dash mappings were dropped; the replacement table, artifact regex, and trailing-ws regex are built once at module load.
+
+`validate_messages()` also hoists its valid-role set to a module-level frozenset (it was rebuilt per request).
+
+### Measured impact (mocked network)
+
+| Path | Before | After |
+| ---- | ------ | ----- |
+| Per streaming chunk | 6.7 µs | 1.5 µs (4.4×) |
+| Non-streaming request (20 messages) | 27.8 µs | 19.2 µs (−31%) |
+| 300-chunk streamed response, library CPU | ~2 ms | ~0.45 ms |
+
+### Known issue (not addressed here)
+
+`validate_messages()` contains an indentation bug that makes its multimodal content validation unreachable dead code. Fixing it enables validation that has never actually run and could reject currently-working multimodal requests, so it is tracked as its own change with an audit of accepted content-part types.
+
 ## 0.20260708.0 - Lazy provider loading, provider memoization, config-leak fix
 
 **Status**: Development Status :: 5 - Production/Stable

@@ -27,11 +27,14 @@ and AI detection tools. This module helps normalize text to safe ASCII equivalen
 
 import re
 
-# Single-character normalizations applied via str.translate - one C-level
-# pass over the text instead of one full string scan per replacement. This
-# runs in __post_init__ of every response object and every streaming chunk,
-# so it must stay cheap. (En/em dashes were dropped from the historical
-# table: they mapped to themselves.)
+# Single-character normalizations matched by a compiled character-class
+# regex (_ARTIFACT_RE) and replaced via callback - one C-level scan that
+# pays only per match, instead of one full-string scan per replacement.
+# Benchmarked against str.translate, which loses on real-world text: it
+# does a table lookup per character. This runs in __post_init__ of every
+# response object and every streaming chunk, so it must stay cheap.
+# (En/em dashes were dropped from the historical table: they mapped to
+# themselves.)
 _REPLACEMENTS = {
     # spaces
     '\u202f': ' ',   # Narrow no-break space → normal space
