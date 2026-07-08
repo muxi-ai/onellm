@@ -27,6 +27,90 @@ and AI detection tools. This module helps normalize text to safe ASCII equivalen
 
 import re
 
+# Single-character normalizations applied via str.translate - one C-level
+# pass over the text instead of one full string scan per replacement. This
+# runs in __post_init__ of every response object and every streaming chunk,
+# so it must stay cheap. (En/em dashes were dropped from the historical
+# table: they mapped to themselves.)
+_REPLACEMENTS = {
+    # spaces
+    '\u202f': ' ',   # Narrow no-break space → normal space
+    '\u00a0': ' ',   # Non-breaking space → normal space
+    '\u2003': ' ',   # Em space → normal space
+    '\u2009': ' ',   # Thin space → normal space
+    # invisible characters
+    '\u200B': '',   # Zero-width space
+    '\u200C': '',   # Zero-width non-joiner
+    '\u200D': '',   # Zero-width joiner
+    '\uFEFF': '',   # Byte order mark
+    '\u200A': '',   # Word joiner
+    '\u200E': '',   # Left-to-right mark
+    '\u200F': '',   # Right-to-left mark
+    '\u2028': '',   # Line separator
+    '\u2029': '',   # Paragraph separator
+    '\u202A': '',   # Left-to-right embedding
+    '\u202B': '',   # Right-to-left embedding
+    '\u202C': '',   # Pop directional formatting
+    '\u202D': '',   # Left-to-right override
+    '\u202E': '',   # Right-to-left override
+    '\u2060': '',   # Word joiner
+    '\u2061': '',   # Function application
+    '\u2062': '',   # Invisible times
+    '\u2063': '',   # Invisible separator
+    '\u2064': '',   # Invisible plus
+    '\u2065': '',   # Invisible separator
+    '\u2066': '',   # Left-to-right isolate
+    '\u2067': '',   # Right-to-left isolate
+    '\u2068': '',   # First strong isolate
+    '\u2069': '',   # Pop directional isolate
+    '\u206A': '',   # Inhibit symmetric swapping
+    '\u206B': '',   # Activate symmetric swapping
+    '\u206C': '',   # Inhibit Arabic form shaping
+    '\u206D': '',   # Activate Arabic form shaping
+    '\u206E': '',   # National digit shapes
+    '\u206F': '',   # Nominal digit shapes
+    '\u034F': '',   # Combining grapheme joiner
+    '\uFE00': '',   # Variation selector-1
+    '\uFE01': '',   # Variation selector-2
+    '\uFE02': '',   # Variation selector-3
+    '\uFE03': '',   # Variation selector-4
+    '\uFE04': '',   # Variation selector-5
+    '\uFE05': '',   # Variation selector-6
+    '\uFE06': '',   # Variation selector-7
+    '\uFE07': '',   # Variation selector-8
+    '\uFE08': '',   # Variation selector-9
+    '\uFE09': '',   # Variation selector-10
+    '\uFE0A': '',   # Variation selector-11
+    '\uFE0B': '',   # Variation selector-12
+    '\uFE0C': '',   # Variation selector-13
+    '\uFE0D': '',   # Variation selector-14
+    '\uFE0E': '',   # Variation selector-15
+    '\uFE0F': '',   # Variation selector-16
+    # quotes
+    '\u2018': "'",   # Left single quotation mark
+    '\u2019': "'",   # Right single quotation mark
+    '\u201C': '"',   # Left double quotation mark
+    '\u201D': '"',   # Right double quotation mark
+    '\u00AB': '"',   # French opening quote → normal quote
+    '\u00BB': '"',   # French closing quote → normal quote
+    # dashes
+    '\u2011': '-',   # Non-breaking hyphen → regular hyphen
+}
+
+# A character class matching every mapped character: the regex engine
+# scans at C speed and only pays the replacement callback per match,
+# which beats both chained str.replace (60 full scans) and str.translate
+# (a dict lookup per character) for real-world text
+_ARTIFACT_RE = re.compile("[" + "".join(map(re.escape, _REPLACEMENTS)) + "]")
+
+
+def _replace_artifact(match: re.Match) -> str:
+    return _REPLACEMENTS[match.group()]
+
+# Trailing whitespace before a newline; only relevant when text contains a
+# newline at all
+_TRAILING_WS_RE = re.compile(r'[ \t]+(\r?\n)')
+
 
 def clean_unicode_artifacts(text: str) -> str:
     """
@@ -45,92 +129,31 @@ def clean_unicode_artifacts(text: str) -> str:
         characters normalized, while preserving all legitimate content
 
     Examples:
-        >>> clean_unicode_artifacts('"Hello" — World\u200B')
+        >>> clean_unicode_artifacts('\u201cHello\u201d \u2014 World\u200B')
         '"Hello" — World'
 
         >>> clean_unicode_artifacts('Text with\u00a0spaces')
         'Text with spaces'
 
         >>> clean_unicode_artifacts('こんにちは\u200B世界')  # Japanese with zero-width space
-        'こんにちは 世界'
+        'こんにちは世界'
     """
     if not text:
         return text
 
-    # Normalize common typographic characters to ASCII equivalents
-    replacements = {
-        # spaces
-        '\u202f': " ",  # Narrow no-break space → normal space
-        '\u00a0': " ",  # Non-breaking space → normal space
-        '\u2003': " ",  # Em space → normal space
-        '\u2009': " ",  # Thin space → normal space
-        # invisible characters
-        '\u200B': '',   # Zero-width space
-        '\u200C': '',   # Zero-width non-joiner
-        '\u200D': '',   # Zero-width joiner
-        '\uFEFF': '',   # Byte order mark
-        '\u200A': '',   # Word joiner
-        '\u200E': '',   # Left-to-right mark
-        '\u200F': '',   # Right-to-left mark
-        '\u2028': '',   # Line separator
-        '\u2029': '',   # Paragraph separator
-        '\u202A': '',   # Left-to-right embedding
-        '\u202B': '',   # Right-to-left embedding
-        '\u202C': '',   # Pop directional formatting
-        '\u202D': '',   # Left-to-right override
-        '\u202E': '',   # Right-to-left override
-        '\u2060': '',   # Word joiner
-        '\u2061': '',   # Function application
-        '\u2062': '',   # Invisible times
-        '\u2063': '',   # Invisible separator
-        '\u2064': '',   # Invisible plus
-        '\u2065': '',   # Invisible separator
-        '\u2066': '',   # Left-to-right isolate
-        '\u2067': '',   # Right-to-left isolate
-        '\u2068': '',   # First strong isolate
-        '\u2069': '',   # Pop directional isolate
-        '\u206A': '',   # Inhibit symmetric swapping
-        '\u206B': '',   # Activate symmetric swapping
-        '\u206C': '',   # Inhibit Arabic form shaping
-        '\u206D': '',   # Activate Arabic form shaping
-        '\u206E': '',   # National digit shapes
-        '\u206F': '',   # Nominal digit shapes
-        '\u034F': '',   # Combining grapheme joiner
-        '\uFE00': '',   # Variation selector-1
-        '\uFE01': '',   # Variation selector-2
-        '\uFE02': '',   # Variation selector-3
-        '\uFE03': '',   # Variation selector-4
-        '\uFE04': '',   # Variation selector-5
-        '\uFE05': '',   # Variation selector-6
-        '\uFE06': '',   # Variation selector-7
-        '\uFE07': '',   # Variation selector-8
-        '\uFE08': '',   # Variation selector-9
-        '\uFE09': '',   # Variation selector-10
-        '\uFE0A': '',   # Variation selector-11
-        '\uFE0B': '',   # Variation selector-12
-        '\uFE0C': '',   # Variation selector-13
-        '\uFE0D': '',   # Variation selector-14
-        '\uFE0E': '',   # Variation selector-15
-        '\uFE0F': '',   # Variation selector-16
-        # quotes
-        '\u2018': "'",  # Left single quotation mark
-        '\u2019': "'",  # Right single quotation mark
-        '\u201C': '"',  # Left double quotation mark
-        '\u201D': '"',  # Right double quotation mark
-        '\u00AB': '"',  # French opening quote → normal quote
-        '\u00BB': '"',  # French closing quote → normal quote
-        # dashes
-        '\u2011': '-',  # Non-breaking hyphen → regular hyphen
-        '\u2013': '–',  # En dash
-        '\u2014': '—',  # Em dash
+    # Normalize typographic characters and strip invisible ones; skipped
+    # outright for ASCII-only text (isascii is a cheap C check and no
+    # mapped character is ASCII)
+    if not text.isascii():
+        text = _ARTIFACT_RE.sub(_replace_artifact, text)
 
-    }
-
-    for orig, repl in replacements.items():
-        text = text.replace(orig, repl)
-
-    # Remove trailing whitespace on every line
-    text = re.sub(r'[ \t]+(\r?\n)', r'\1', text)
+    # Remove trailing whitespace on every line. Any match ends with a
+    # space or tab directly before the (\r?)\n, so four C-level substring
+    # checks prove no-match without running the regex - the common case
+    # for both streaming deltas and clean multi-line responses
+    if '\n' in text and (
+        ' \n' in text or '\t\n' in text or ' \r' in text or '\t\r' in text
+    ):
+        text = _TRAILING_WS_RE.sub(r'\1', text)
 
     return text
-

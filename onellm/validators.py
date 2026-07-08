@@ -37,6 +37,9 @@ from .errors import InvalidRequestError
 # per fallback model)
 _PROVIDER_NAME_RE = re.compile(r"^[a-z0-9_-]+$")
 
+# Built once: validate_messages runs on every request over every message
+_VALID_ROLES = frozenset({"system", "user", "assistant", "tool", "function"})
+
 # Type variable for generic type validators
 T = TypeVar("T")
 
@@ -550,9 +553,6 @@ def validate_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not messages:
         raise InvalidRequestError("Messages list cannot be empty")
 
-    # Define valid roles for messages
-    valid_roles = {"system", "user", "assistant", "tool", "function"}
-
     # Validate each message in the list
     for i, message in enumerate(messages):
         if not isinstance(message, dict):
@@ -580,9 +580,10 @@ def validate_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 f"Message {i} role must be a string, got {type(role).__name__}"
             )
 
-        if role not in valid_roles:
+        if role not in _VALID_ROLES:
             raise InvalidRequestError(
-                f"Message {i} has invalid role '{role}'. Valid roles are: {', '.join(valid_roles)}"
+                f"Message {i} has invalid role '{role}'. "
+                f"Valid roles are: {', '.join(_VALID_ROLES)}"
             )
 
         # Validate content
