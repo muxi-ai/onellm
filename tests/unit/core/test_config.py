@@ -5,6 +5,7 @@ These tests verify that the configuration system works correctly,
 especially for edge cases and environment variable handling.
 """
 
+import copy
 import os
 
 import pytest
@@ -22,12 +23,10 @@ from onellm.config import (
 @pytest.fixture(autouse=True)
 def reset_config_after_test():
     """Reset configuration after each test."""
-    original_config = {}
-    for key, value in config.items():
-        if isinstance(value, dict):
-            original_config[key] = value.copy()
-        else:
-            original_config[key] = value
+    # Deep copy: a shallow copy shares the nested provider dicts, so
+    # mutations like set_api_key() would survive the restore and leak
+    # into every test that runs after this module
+    original_config = copy.deepcopy(config)
 
     yield
 
