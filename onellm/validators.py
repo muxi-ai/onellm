@@ -594,9 +594,9 @@ def validate_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     f"Message {i} content must be a string or list, got {type(content).__name__}"
                 )
 
-                # Validate multi-modal content
-                if isinstance(content, list):
-                    validate_multimodal_content(content, message_index=i)
+            # Validate multi-modal content
+            if isinstance(content, list):
+                validate_multimodal_content(content, message_index=i)
 
         # Validate function_call if present
         function_call = message.get("function_call")
@@ -656,6 +656,12 @@ def validate_multimodal_content(
     """
     Validate multi-modal content format.
 
+    Each content part must be a dictionary with a string 'type' field. The shape of
+    well-known types ('text', 'image_url', 'audio_url') is validated; other types
+    (e.g. 'image', 'audio', 'video', 'document', 'input_audio', 'file') are passed
+    through untouched, since providers and their underlying APIs accept different
+    part types and are responsible for rejecting ones they don't support.
+
     Args:
         content: List of content parts to validate
         message_index: Index of the message containing this content (for error messages)
@@ -666,9 +672,6 @@ def validate_multimodal_content(
     Raises:
         InvalidRequestError: If the content is invalid
     """
-    # Define valid content types for multi-modal messages
-    valid_types = {"text", "image_url", "image", "audio_url", "audio"}
-
     # Validate each content part
     for i, part in enumerate(content):
         if not isinstance(part, dict):
@@ -689,12 +692,6 @@ def validate_multimodal_content(
                 f"got {type(part_type).__name__}"
             )
 
-        if part_type not in valid_types:
-            raise InvalidRequestError(
-                f"Message {message_index} content part {i} has invalid type '{part_type}'. "
-                f"Valid types are: {', '.join(valid_types)}"
-            )
-
         # Validate type-specific fields
         if part_type == "text":
             # Text type requires a 'text' field with a string value
@@ -710,7 +707,9 @@ def validate_multimodal_content(
                 )
 
         elif part_type == "image_url":
-            # Image URL type requires 'image_url' field with a dictionary containing a 'url' field
+            # Image URL type requires an 'image_url' field: either a dictionary
+            # containing a 'url' string, or a plain URL string (some providers
+            # accept the string shorthand)
             if "image_url" not in part:
                 raise InvalidRequestError(
                     f"Message {message_index} content part {i} "
@@ -718,26 +717,27 @@ def validate_multimodal_content(
                 )
 
             image_url = part["image_url"]
-            if not isinstance(image_url, dict):
-                raise InvalidRequestError(
-                    f"Message {message_index} content part {i} image_url must be a dictionary, "
-                    f"got {type(image_url).__name__}"
-                )
+            if isinstance(image_url, dict):
+                if "url" not in image_url:
+                    raise InvalidRequestError(
+                        f"Message {message_index} content part {i} "
+                        f"image_url is missing required field 'url'"
+                    )
 
-            if "url" not in image_url:
+                if not isinstance(image_url["url"], str):
+                    raise InvalidRequestError(
+                        f"Message {message_index} content part {i} image_url.url must be a "
+                        f"string, got {type(image_url['url']).__name__}"
+                    )
+            elif not isinstance(image_url, str):
                 raise InvalidRequestError(
-                    f"Message {message_index} content part {i} "
-                    f"image_url is missing required field 'url'"
-                )
-
-            if not isinstance(image_url["url"], str):
-                raise InvalidRequestError(
-                    f"Message {message_index} content part {i} image_url.url must be a string, "
-                    f"got {type(image_url['url']).__name__}"
+                    f"Message {message_index} content part {i} image_url must be a dictionary "
+                    f"or a string, got {type(image_url).__name__}"
                 )
 
         elif part_type == "audio_url":
-            # Audio URL type requires 'audio_url' field with a dictionary containing a 'url' field
+            # Audio URL type requires an 'audio_url' field: either a dictionary
+            # containing a 'url' string, or a plain URL string
             if "audio_url" not in part:
                 raise InvalidRequestError(
                     f"Message {message_index} content part {i} "
@@ -745,22 +745,22 @@ def validate_multimodal_content(
                 )
 
             audio_url = part["audio_url"]
-            if not isinstance(audio_url, dict):
-                raise InvalidRequestError(
-                    f"Message {message_index} content part {i} audio_url must be a dictionary, "
-                    f"got {type(audio_url).__name__}"
-                )
+            if isinstance(audio_url, dict):
+                if "url" not in audio_url:
+                    raise InvalidRequestError(
+                        f"Message {message_index} content part {i} "
+                        f"audio_url is missing required field 'url'"
+                    )
 
-            if "url" not in audio_url:
+                if not isinstance(audio_url["url"], str):
+                    raise InvalidRequestError(
+                        f"Message {message_index} content part {i} audio_url.url must be a "
+                        f"string, got {type(audio_url['url']).__name__}"
+                    )
+            elif not isinstance(audio_url, str):
                 raise InvalidRequestError(
-                    f"Message {message_index} content part {i} "
-                    f"audio_url is missing required field 'url'"
-                )
-
-            if not isinstance(audio_url["url"], str):
-                raise InvalidRequestError(
-                    f"Message {message_index} content part {i} audio_url.url must be a string, "
-                    f"got {type(audio_url['url']).__name__}"
+                    f"Message {message_index} content part {i} audio_url must be a dictionary "
+                    f"or a string, got {type(audio_url).__name__}"
                 )
 
     return content

@@ -14,6 +14,7 @@ from onellm.validators import (
     validate_list,
     validate_messages,
     validate_model_name,
+    validate_multimodal_content,
     validate_number,
     validate_string,
     validate_type,
@@ -293,6 +294,118 @@ class TestChatCompletionValidation:
 
         with pytest.raises(InvalidRequestError, match="Message 0 has invalid role 'invalid'"):
             validate_messages([{"role": "invalid", "content": "Invalid role"}])
+
+    def test_validate_messages_multimodal_content(self):
+        # List content is validated as multi-modal content
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "What is in this image?"},
+                    {"type": "image_url", "image_url": {"url": "https://example.com/img.png"}},
+                ],
+            }
+        ]
+        assert validate_messages(messages) == messages
+
+        # Malformed parts inside list content are rejected
+        with pytest.raises(
+            InvalidRequestError, match="Message 0 content part 0 must be a dictionary"
+        ):
+            validate_messages([{"role": "user", "content": ["not a dict"]}])
+
+        with pytest.raises(
+            InvalidRequestError, match="Message 1 content part 0 is missing required field 'type'"
+        ):
+            validate_messages(
+                [
+                    {"role": "user", "content": "Hello"},
+                    {"role": "user", "content": [{"text": "no type field"}]},
+                ]
+            )
+
+    def test_validate_multimodal_content(self):
+        # Valid text part
+        content = [{"type": "text", "text": "Hello"}]
+        assert validate_multimodal_content(content) == content
+
+        # Valid image_url part (dict form)
+        content = [{"type": "image_url", "image_url": {"url": "https://example.com/img.png"}}]
+        assert validate_multimodal_content(content) == content
+
+        # Valid image_url part (string shorthand, accepted by some providers)
+        content = [{"type": "image_url", "image_url": "https://example.com/img.png"}]
+        assert validate_multimodal_content(content) == content
+
+        # Valid audio_url parts (dict and string forms)
+        content = [
+            {"type": "audio_url", "audio_url": {"url": "https://example.com/a.mp3"}},
+            {"type": "audio_url", "audio_url": "https://example.com/b.mp3"},
+        ]
+        assert validate_multimodal_content(content) == content
+
+        # Provider-specific and pass-through types are allowed (e.g. what the
+        # muxi runtime and OpenAI-compatible APIs send)
+        content = [
+            {"type": "image", "source": {"type": "base64", "data": "abc"}},
+            {"type": "audio", "data": "abc", "filename": "a.mp3", "mime_type": "audio/mpeg"},
+            {"type": "video", "data": "abc", "filename": "v.mp4", "mime_type": "video/mp4"},
+            {"type": "document", "data": "abc", "filename": "d.pdf", "mime_type": "application/pdf"},
+            {"type": "input_audio", "input_audio": {"data": "abc", "format": "wav"}},
+            {"type": "file", "file": {"file_id": "file-123"}},
+            {"type": "video_url", "video_url": {"url": "https://example.com/v.mp4"}},
+        ]
+        assert validate_multimodal_content(content) == content
+
+    def test_validate_multimodal_content_invalid(self):
+        # Part must be a dictionary
+        with pytest.raises(
+            InvalidRequestError, match="Message 2 content part 0 must be a dictionary"
+        ):
+            validate_multimodal_content(["not a dict"], message_index=2)
+
+        # Part requires a 'type' field
+        with pytest.raises(InvalidRequestError, match="missing required field 'type'"):
+            validate_multimodal_content([{"text": "Hello"}])
+
+        # 'type' must be a string
+        with pytest.raises(InvalidRequestError, match="type must be a string"):
+            validate_multimodal_content([{"type": 123}])
+
+        # Text part requires a string 'text' field
+        with pytest.raises(InvalidRequestError, match="missing required field 'text'"):
+            validate_multimodal_content([{"type": "text"}])
+
+        with pytest.raises(InvalidRequestError, match="text must be a string"):
+            validate_multimodal_content([{"type": "text", "text": 123}])
+
+        # image_url part requires the 'image_url' field
+        with pytest.raises(InvalidRequestError, match="missing required field 'image_url'"):
+            validate_multimodal_content([{"type": "image_url"}])
+
+        # image_url dict form requires a string 'url'
+        with pytest.raises(InvalidRequestError, match="image_url is missing required field 'url'"):
+            validate_multimodal_content([{"type": "image_url", "image_url": {}}])
+
+        with pytest.raises(InvalidRequestError, match="image_url.url must be a string"):
+            validate_multimodal_content([{"type": "image_url", "image_url": {"url": 123}}])
+
+        # image_url must be a dict or a string
+        with pytest.raises(InvalidRequestError, match="image_url must be a dictionary or a string"):
+            validate_multimodal_content([{"type": "image_url", "image_url": 123}])
+
+        # audio_url part requires the 'audio_url' field
+        with pytest.raises(InvalidRequestError, match="missing required field 'audio_url'"):
+            validate_multimodal_content([{"type": "audio_url"}])
+
+        with pytest.raises(InvalidRequestError, match="audio_url is missing required field 'url'"):
+            validate_multimodal_content([{"type": "audio_url", "audio_url": {}}])
+
+        with pytest.raises(InvalidRequestError, match="audio_url.url must be a string"):
+            validate_multimodal_content([{"type": "audio_url", "audio_url": {"url": 123}}])
+
+        with pytest.raises(InvalidRequestError, match="audio_url must be a dictionary or a string"):
+            validate_multimodal_content([{"type": "audio_url", "audio_url": 123}])
 
     @pytest.mark.asyncio
     async def test_chat_completion_validation(self, monkeypatch):
