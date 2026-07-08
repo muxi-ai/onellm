@@ -374,12 +374,13 @@ def get_provider_config(provider: str) -> dict[str, Any]:
         or an empty dictionary if the provider is not found
 
     Note:
-        Returns a copy: providers merge per-call kwargs into the returned
-        dict, which must not leak into the global configuration. Use
-        set_api_key() or update_provider_config() to change global config.
+        Returns a deep copy: providers merge per-call kwargs into the
+        returned dict (including nested values), which must not leak into
+        the global configuration. Use set_api_key() or
+        update_provider_config() to change global config.
     """
     if provider in config["providers"]:
-        return dict(config["providers"][provider])
+        return copy.deepcopy(config["providers"][provider])
     return {}
 
 

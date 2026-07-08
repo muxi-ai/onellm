@@ -119,3 +119,9 @@ class TestConfigSystem:
         """Mutating the returned dict must not leak into global config."""
         get_provider_config("openai")["api_key"] = "leaked"
         assert config["providers"]["openai"].get("api_key") != "leaked"
+
+    def test_get_provider_config_copy_is_deep(self):
+        """Nested dicts in the returned config must not be shared either."""
+        update_provider_config("openai", advanced={"retry_count": 3})
+        get_provider_config("openai")["advanced"]["retry_count"] = 99
+        assert config["providers"]["openai"]["advanced"]["retry_count"] == 3
