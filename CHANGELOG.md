@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## 0.20260708.0 - Lazy provider loading, provider memoization, config-leak fix
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Provider modules load lazily on first use (#77)
+
+`import onellm` no longer imports all 27 provider modules eagerly. Import time drops from ~190 ms to ~95-120 ms; the remaining cost is `httpx` itself. The biggest single win: `vertexai.py` no longer drags `google.auth` + `requests` + `rich` (~53 ms) into every process that never touches Vertex AI.
+
+Two mechanisms, both transparent to callers:
+
+- `get_provider("name")` resolves built-in providers through a lazy spec map in `providers/base.py` (`name -> "module:ClassName"`), importing the module on first request and caching the class in the registry.
+- `from onellm.providers import OpenAIProvider` still works via PEP 562 module `__getattr__`, which imports the submodule on first attribute access and caches the class on the package. Class identity is preserved (`onellm.providers.OpenAIProvider is onellm.providers.openai.OpenAIProvider`).
+
+Behavioral notes:
+
+- `list_providers()` now always includes every built-in (sorted), including `bedrock`/`vertexai` when their optional dependencies are missing. Previously those were silently omitted.
+- `get_provider()` on a provider whose optional dependency is truly missing raises `ImportError` naming the dependency, instead of `ValueError: not supported`. In practice unreachable today - both bedrock and vertexai guard their optional imports internally.
+- `register_provider()` for custom providers is unchanged and takes precedence over lazy specs.
+
+### Default provider instances are memoized (#78)
+
+`get_provider("openai")` previously constructed a fresh provider on every call - one config read plus a new `RetryConfig` per request, multiplied for fallback chains, which instantiate one provider per model per request. No-kwargs instances are now cached (~1.7 µs -> ~0.16 µs per resolution).
+
+Invalidation is automatic: the cache is keyed to a config version counter bumped by `set_api_key()`, `update_provider_config()`, and `_load_env_vars()`, so credential changes transparently produce a fresh instance. `register_provider()` invalidates the entry it replaces. Calls with kwargs (`get_provider("openai", api_key=...)`) bypass the cache entirely and behave exactly as before.
+
+Escape hatch: if you mutate `onellm.config.config` directly (not a public API), call the new `onellm.providers.base.clear_provider_cache()`.
+
+### Bug fix: per-call kwargs leaked into global config (#78)
+
+`get_provider_config()` returned the *live* nested config dict, and every provider `__init__` calls `.update(filtered_kwargs)` on it - so passing e.g. `timeout=5` to one provider instantiation permanently changed the global configuration for all subsequent requests. It now returns a deep copy; global writes go through `set_api_key()` / `update_provider_config()` as documented. This is also what makes memoized instances safe to share. Regression tests cover both top-level and nested key isolation.
+
+### Hot-path trims (#78)
+
+- `ChatCompletion.create/acreate` deep-copied all messages on every request to preserve them for cache bookkeeping, even with caching disabled (the default). The copy is now skipped unless a cache is active. Honest sizing: ~0.05 ms per 30-message request - `deepcopy` returns immutable strings as-is, so the cost scales with message *count*, not payload bytes.
+- The provider-name regex in `validate_model_name()` (runs once per request plus once per fallback model) is compiled once at module load.
+- OpenAI streaming computed `int(time.time())` per chunk as a `.get()` default (evaluated eagerly even though `created` is always present); the fallback timestamp is now computed once per stream.
+
+### Test-suite hardening (#77)
+
+Fixing the lazy loader surfaced three pre-existing test bugs that masked each other; all fixed:
+
+- `test_config.py`'s autouse reset fixture took a shallow copy of the config, so `set_api_key("test-key", ...)` mutations survived the restore and leaked a fake key into every test that ran after the module.
+- `test_openai_error_handling.py` / `test_openai_streaming.py` patched `onellm.config.get_provider_config`, which has no effect on the binding already imported into the openai provider module - the mock never applied, and the tests only passed because of the leaked key above. They now patch the provider module's binding and return a complete config.
+- A failed `setup_method` skipped `teardown_method`, leaving started patchers active and cascading failures into unrelated tests.
+
+`tests/unit/providers` in isolation went from 298 passed + 9 errors to 315 passed + 0 errors. Full suite: 534 passed.
+
+### Migration
+
+No action required - the public API is unchanged. Client code using `ChatCompletion`, `Embedding`, `set_api_key`, provider classes, or `get_provider()` works as before. The only callers affected are those relying on write-through mutation of the dict returned by `get_provider_config()` (which was the bug) or on `list_providers()` omitting providers with missing optional dependencies.
+
 ## 0.20260502.0 - Persist CoreML compiled model across loads
 
 **Status**: Development Status :: 5 - Production/Stable
