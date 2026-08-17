@@ -184,6 +184,20 @@ class InvalidConfigurationError(OneLLMError):
 
     pass
 
+class RoutingConfigurationError(InvalidConfigurationError):
+    """
+    Raised when the auto-routing map or its configuration is invalid.
+
+    This occurs at ``init_routing()`` time: a group missing its required
+    ``default``, a model string that doesn't parse as ``provider/model``,
+    an unknown provider, unresolvable credentials, a reserved key used as
+    a task label, or an ``env:VAR`` API-key reference to an unset
+    environment variable. Everything that can be checked at startup is
+    checked at startup, so misconfiguration never surfaces at request time.
+    """
+
+    pass
+
 class FallbackExhaustionError(OneLLMError):
     """
     Error raised when all fallback models have been tried and failed.

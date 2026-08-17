@@ -27,6 +27,7 @@ completions from various providers in a manner compatible with OpenAI's API.
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from .errors import InvalidConfigurationError, InvalidRequestError
 from .models import CompletionResponse
 from .providers.base import get_provider_with_fallbacks
 from .utils.async_helpers import run_async
@@ -78,6 +79,26 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
+        # Resolve auto routing before any validation: "auto" carries no
+        # provider prefix and would fail validate_model_name otherwise
+        routing_result = None
+        if isinstance(model, str) and (model == "auto" or model.startswith("auto/")):
+            from . import _routing
+
+            if _routing is None:
+                raise InvalidConfigurationError(
+                    "model='auto' requires onellm.init_routing(...) to be called "
+                    "first. Register a routing map at startup, e.g. "
+                    "onellm.init_routing({'default': 'openai/gpt-5'})."
+                )
+            routing_result = _routing.resolve(model, prompt=prompt)
+            model = routing_result.model
+            if routing_result.fallback_chain:
+                # The resolved chain leads; a caller-supplied list is appended after it
+                fallback_models = list(routing_result.fallback_chain) + list(
+                    fallback_models or []
+                )
+
         # Validate inputs
         validate_model_name(model)
         validate_prompt(prompt)
@@ -86,6 +107,11 @@ class Completion:
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
+                if fallback_model == "auto" or fallback_model.startswith("auto/"):
+                    raise InvalidRequestError(
+                        "'auto' cannot be used inside fallback_models; fallback "
+                        "entries must be concrete 'provider/model' strings"
+                    )
                 validate_model_name(fallback_model)
 
         # Process fallback configuration
@@ -114,11 +140,17 @@ class Completion:
 
         # Call the provider's method synchronously using our safe async runner
         # This handles edge cases like Jupyter notebooks, existing event loops, etc.
-        return run_async(
+        response = run_async(
             provider.create_completion(
                 prompt=prompt, model=model_name, stream=stream, **kwargs
             )
         )
+
+        if routing_result is not None and not stream:
+            # not-stream guarantees a response object, but mypy can't narrow the union
+            response.routing = routing_result.to_dict()  # type: ignore[union-attr]
+
+        return response
 
     @classmethod
     async def acreate(
@@ -162,6 +194,28 @@ class Completion:
             ... )
             >>> print(response.choices[0].text)
         """
+        # Resolve auto routing before any validation: "auto" carries no
+        # provider prefix and would fail validate_model_name otherwise
+        routing_result = None
+        if isinstance(model, str) and (model == "auto" or model.startswith("auto/")):
+            from . import _routing
+
+            if _routing is None:
+                raise InvalidConfigurationError(
+                    "model='auto' requires onellm.init_routing(...) to be called "
+                    "first. Register a routing map at startup, e.g. "
+                    "onellm.init_routing({'default': 'openai/gpt-5'})."
+                )
+            # aresolve runs embedding in a thread executor so the event
+            # loop is never blocked on ONNX inference
+            routing_result = await _routing.aresolve(model, prompt=prompt)
+            model = routing_result.model
+            if routing_result.fallback_chain:
+                # The resolved chain leads; a caller-supplied list is appended after it
+                fallback_models = list(routing_result.fallback_chain) + list(
+                    fallback_models or []
+                )
+
         # Validate inputs
         validate_model_name(model)
         validate_prompt(prompt)
@@ -170,6 +224,11 @@ class Completion:
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
+                if fallback_model == "auto" or fallback_model.startswith("auto/"):
+                    raise InvalidRequestError(
+                        "'auto' cannot be used inside fallback_models; fallback "
+                        "entries must be concrete 'provider/model' strings"
+                    )
                 validate_model_name(fallback_model)
 
         # Process fallback configuration
@@ -195,6 +254,12 @@ class Completion:
 
         # Call the provider's method asynchronously
         # Since this method is already async, we can directly await the result
-        return await provider.create_completion(
+        response = await provider.create_completion(
             prompt=prompt, model=model_name, stream=stream, **kwargs
         )
+
+        if routing_result is not None and not stream:
+            # not-stream guarantees a response object, but mypy can't narrow the union
+            response.routing = routing_result.to_dict()  # type: ignore[union-attr]
+
+        return response
