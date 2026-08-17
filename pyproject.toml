@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=83.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,7 +26,10 @@ dependencies = [
     # Transitive pins — minimum safe versions for known CVEs
     "urllib3>=2.6.3",
     "filelock>=3.20.3",
-    "pyasn1>=0.6.2",
+    "pyasn1>=0.6.4",
+    "cryptography>=50.0.0",
+    "httplib2>=0.32.0",
+    "h2>=4.4.1",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
