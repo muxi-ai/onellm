@@ -82,6 +82,14 @@ local-cuda = [
 local-gpu = [
     "onellm[local-cuda]",
 ]
+# Auto routing (model="auto"). Requires the same ONNX embedding stack as
+# the semantic cache, so it aliases [cache] via the transitive-extra
+# mechanism (same pattern as [local-gpu] -> [local-cuda]). The base
+# install stays unchanged: a user who never calls init_routing() pays
+# nothing.
+routing = [
+    "onellm[cache]",
+]
 # Fallback backend for repos that don't ship ONNX weights. Pulls torch +
 # sentence-transformers (~1 GB install). Use only when you're pinned to a
 # PyTorch-only repo; prefer ONNX-ready repos (e.g. nomic-ai/*) otherwise.

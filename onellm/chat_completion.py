@@ -30,6 +30,7 @@ import warnings
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from .errors import InvalidConfigurationError, InvalidRequestError
 from .models import ChatCompletionChunk, ChatCompletionResponse
 from .providers.base import get_provider_with_fallbacks
 from .utils.async_helpers import run_async
@@ -363,6 +364,30 @@ class ChatCompletion:
             ... )
             >>> print(response.choices[0].message["content"])
         """
+        # Resolve auto routing before any validation: "auto" carries no
+        # provider prefix and would fail validate_model_name otherwise
+        routing_result = None
+        if isinstance(model, str) and (model == "auto" or model.startswith("auto/")):
+            from . import _routing
+
+            if _routing is None:
+                raise InvalidConfigurationError(
+                    "model='auto' requires onellm.init_routing(...) to be called "
+                    "first. Register a routing map at startup, e.g. "
+                    "onellm.init_routing({'default': 'openai/gpt-5'}). If the "
+                    "routing stack is missing, install it with: "
+                    "pip install 'onellm[routing]'"
+                )
+            routing_result = _routing.resolve(
+                model, messages=messages, tools=kwargs.get("tools")
+            )
+            model = routing_result.model
+            if routing_result.fallback_chain:
+                # The resolved chain leads; a caller-supplied list is appended after it
+                fallback_models = list(routing_result.fallback_chain) + list(
+                    fallback_models or []
+                )
+
         # Validate inputs
         validate_model_name(model)
         validate_messages(messages)
@@ -371,6 +396,11 @@ class ChatCompletion:
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
+                if fallback_model == "auto" or fallback_model.startswith("auto/"):
+                    raise InvalidRequestError(
+                        "'auto' cannot be used inside fallback_models; fallback "
+                        "entries must be concrete 'provider/model' strings"
+                    )
                 validate_model_name(fallback_model)
 
         # Skip cache if caching=False is passed in kwargs
@@ -384,7 +414,8 @@ class ChatCompletion:
         # when caching is off - it's O(total message size)
         original_messages = copy.deepcopy(messages) if caching_active else None
 
-        # Check cache first (use original unmutated messages)
+        # Check cache first (use original unmutated messages); routing has
+        # already resolved, so the cache is keyed on the RESOLVED model
         if caching_active:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
@@ -392,6 +423,9 @@ class ChatCompletion:
                     # Return simulated streaming from cached response
                     return _cache.simulate_streaming(cached_response)
                 else:
+                    if routing_result is not None:
+                        # cache.get's dict annotation predates response objects
+                        cached_response.routing = routing_result.to_dict()  # type: ignore[union-attr]
                     return cached_response
 
         # Process fallback configuration
@@ -439,6 +473,12 @@ class ChatCompletion:
                 # For non-streaming, cache directly
                 _cache.set(model, original_messages, response, **kwargs)
 
+        # Streaming responses are generators and carry no routing attribute;
+        # use onellm.explain_route() for observability on streams
+        if routing_result is not None and not stream:
+            # not-stream guarantees a response object, but mypy can't narrow the union
+            response.routing = routing_result.to_dict()  # type: ignore[union-attr]
+
         return response
 
     @classmethod
@@ -483,6 +523,32 @@ class ChatCompletion:
             ... )
             >>> print(response.choices[0].message["content"])
         """
+        # Resolve auto routing before any validation: "auto" carries no
+        # provider prefix and would fail validate_model_name otherwise
+        routing_result = None
+        if isinstance(model, str) and (model == "auto" or model.startswith("auto/")):
+            from . import _routing
+
+            if _routing is None:
+                raise InvalidConfigurationError(
+                    "model='auto' requires onellm.init_routing(...) to be called "
+                    "first. Register a routing map at startup, e.g. "
+                    "onellm.init_routing({'default': 'openai/gpt-5'}). If the "
+                    "routing stack is missing, install it with: "
+                    "pip install 'onellm[routing]'"
+                )
+            # aresolve runs embedding in a thread executor so the event
+            # loop is never blocked on ONNX inference
+            routing_result = await _routing.aresolve(
+                model, messages=messages, tools=kwargs.get("tools")
+            )
+            model = routing_result.model
+            if routing_result.fallback_chain:
+                # The resolved chain leads; a caller-supplied list is appended after it
+                fallback_models = list(routing_result.fallback_chain) + list(
+                    fallback_models or []
+                )
+
         # Validate inputs
         validate_model_name(model)
         validate_messages(messages)
@@ -491,6 +557,11 @@ class ChatCompletion:
         # Validate fallback models if provided
         if fallback_models:
             for fallback_model in fallback_models:
+                if fallback_model == "auto" or fallback_model.startswith("auto/"):
+                    raise InvalidRequestError(
+                        "'auto' cannot be used inside fallback_models; fallback "
+                        "entries must be concrete 'provider/model' strings"
+                    )
                 validate_model_name(fallback_model)
 
         # Skip cache if caching=False is passed in kwargs
@@ -504,7 +575,8 @@ class ChatCompletion:
         # when caching is off - it's O(total message size)
         original_messages = copy.deepcopy(messages) if caching_active else None
 
-        # Check cache first (use original unmutated messages)
+        # Check cache first (use original unmutated messages); routing has
+        # already resolved, so the cache is keyed on the RESOLVED model
         if caching_active:
             cached_response = _cache.get(model, original_messages, **kwargs)
             if cached_response is not None:
@@ -512,6 +584,9 @@ class ChatCompletion:
                     # Return simulated streaming from cached response
                     return _cache.simulate_streaming(cached_response)
                 else:
+                    if routing_result is not None:
+                        # cache.get's dict annotation predates response objects
+                        cached_response.routing = routing_result.to_dict()  # type: ignore[union-attr]
                     return cached_response
 
         # Process fallback configuration
@@ -555,5 +630,11 @@ class ChatCompletion:
             else:
                 # For non-streaming, cache directly
                 _cache.set(model, original_messages, response, **kwargs)
+
+        # Streaming responses are generators and carry no routing attribute;
+        # use onellm.explain_route() for observability on streams
+        if routing_result is not None and not stream:
+            # not-stream guarantees a response object, but mypy can't narrow the union
+            response.routing = routing_result.to_dict()  # type: ignore[union-attr]
 
         return response

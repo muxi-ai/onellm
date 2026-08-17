@@ -189,6 +189,8 @@ class ChatCompletionResponse:
         choices: List of completion choices
         usage: Token usage information
         system_fingerprint: System identifier for the model version
+        routing: Routing decision details, populated when the request used
+            model="auto..." (None otherwise)
     """
 
     id: str
@@ -198,6 +200,7 @@ class ChatCompletionResponse:
     choices: list[Choice]
     usage: UsageInfo | None = None
     system_fingerprint: str | None = None
+    routing: dict | None = None
 
     def __init__(
         self,
@@ -324,6 +327,8 @@ class CompletionResponse:
         choices: List of completion choices
         usage: Token usage information
         system_fingerprint: System identifier for the model version
+        routing: Routing decision details, populated when the request used
+            model="auto..." (None otherwise)
     """
 
     id: str
@@ -333,6 +338,7 @@ class CompletionResponse:
     choices: list[CompletionChoice]
     usage: UsageInfo | None = None
     system_fingerprint: str | None = None
+    routing: dict | None = None
 
 @dataclass
 class EmbeddingData:
