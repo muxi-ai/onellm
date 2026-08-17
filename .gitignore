@@ -162,3 +162,6 @@ logs/
 .specstory/
 examples/frontmatter_template.py
 .claude/settings.local.json
+
+# Working design docs (kept local)
+onellm-auto-routing-prd.md

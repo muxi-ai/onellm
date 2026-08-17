@@ -61,7 +61,8 @@ class ChatCompletionsResource:
         """
         # Automatically add provider prefix if not present
         # This allows users to specify just "gpt-4" instead of "openai/gpt-4"
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -100,7 +101,8 @@ class ChatCompletionsResource:
             A chat completion response object or an async generator of completion chunks
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -151,7 +153,8 @@ class CompletionsResource:
             A completion response object or a stream of completion chunks
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -190,7 +193,8 @@ class CompletionsResource:
             A completion response object or an async generator of completion chunks
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -230,7 +234,8 @@ class EmbeddingsResource:
             An embedding response object containing vector representations
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -266,7 +271,8 @@ class EmbeddingsResource:
             An embedding response object containing vector representations
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
 
         # Copy to avoid mutating the caller's list, then add provider prefix
@@ -303,7 +309,8 @@ class ImagesResource:
             An image generation response object with URLs or base64 data
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         return Image.create(model=model, prompt=prompt, **kwargs)
 
@@ -325,7 +332,8 @@ class ImagesResource:
             An image generation response object with URLs or base64 data
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await Image.create(model=model, prompt=prompt, **kwargs)
@@ -361,7 +369,8 @@ class AudioTranscriptionsResource:
             A transcription response object containing the transcribed text
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         return AudioTranscription.create(model=model, file=file, **kwargs)
 
@@ -383,7 +392,8 @@ class AudioTranscriptionsResource:
             A transcription response object containing the transcribed text
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await AudioTranscription.create(model=model, file=file, **kwargs)
@@ -409,7 +419,8 @@ class AudioTranslationsResource:
             A translation response object containing the translated text
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         return AudioTranslation.create(model=model, file=file, **kwargs)
 
@@ -431,7 +442,8 @@ class AudioTranslationsResource:
             A translation response object containing the translated text
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await AudioTranslation.create(model=model, file=file, **kwargs)
@@ -459,7 +471,8 @@ class SpeechResource:
             A speech response object containing the audio data
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         return Speech.create(model=model, input=input, voice=voice, **kwargs)
 
@@ -483,7 +496,8 @@ class SpeechResource:
             A speech response object containing the audio data
         """
         # Automatically add provider prefix if not present
-        if "/" not in model:
+        # "auto" is the routing entry point, never an OpenAI model name
+        if "/" not in model and model != "auto":
             model = f"openai/{model}"
         # Use the same create method - it will return a coroutine when called from here
         return await Speech.create(model=model, input=input, voice=voice, **kwargs)

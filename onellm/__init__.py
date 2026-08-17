@@ -114,6 +114,13 @@ __all__ = [
     "clear_cache",     # Clear cache entries
     "cache_stats",     # Get cache statistics
 
+    # Auto routing
+    "init_routing",    # Register the routing map for model="auto"
+    "disable_routing",  # Disable auto routing
+    "routing_stats",   # Get routing statistics
+    "load_routing_map",  # Parse a routing map from an explicit path
+    "explain_route",   # Dry-run a routing decision (no provider call)
+
     # Connection pooling
     "init_pooling",    # Initialize HTTP connection pooling
     "close_pooling",   # Close all pooled connections
@@ -228,6 +235,205 @@ def cache_stats() -> dict:
     if _cache:
         return _cache.stats()
     return {"hits": 0, "misses": 0, "entries": 0}
+
+
+# Auto routing - global router instance
+_routing = None
+
+
+def init_routing(
+    routing_map: dict,
+    *,
+    api_keys: dict | None = None,
+    embedding_model: str | None = None,
+    min_margin: float = 0.05,
+    min_score: float | None = None,
+    max_depth: int = 3,
+    max_slice_tokens: int = 1500,
+    recent_user_turns: int = 3,
+    memo_size: int = 256,
+    validate_similarity: bool = True,
+):
+    """
+    Register the routing map that serves ``model="auto"`` requests.
+
+    A local embedding classifier reads each conversation, picks the
+    best-matching label from the map, and resolves it to a concrete
+    ``provider/model`` plus an optional fallback chain. The map is 100%
+    developer-authored; OneLLM ships no opinions about which model is
+    good at what.
+
+    Map schema: a node is a leaf (a ``"provider/model"`` string, a list of
+    them forming a fallback chain, or a dict with a ``models`` key plus
+    optional ``description``/``examples``) or a group (a dict of child
+    labels). Every group requires a ``default``.
+
+    Args:
+        routing_map: The routing map. Root must be a group with a ``default``.
+        api_keys: Optional provider credentials, applied through the same
+            paths as ``set_api_key()``. String values are keys (``env:VAR``
+            resolves an environment variable at init); dict values are
+            provider config for providers without plain keys (vertexai,
+            azure, bedrock).
+        embedding_model: ``local/<hf-repo>`` embedding model. Defaults to
+            the semantic cache's model so ``init_cache()`` +
+            ``init_routing()`` share one loaded backend.
+        min_margin: Descend into the top label only if it beats the
+            runner-up by this margin (default: 0.05).
+        min_score: Optional absolute floor on the top score.
+        max_depth: Maximum classification descent depth (default: 3).
+        max_slice_tokens: Cap on the assembled routing slice (default: 1500).
+        recent_user_turns: How many recent user turns enter the slice.
+        memo_size: Bounded LRU of slice-hash -> route memoizations.
+        validate_similarity: Warn at init about sibling labels the
+            embedding model can barely distinguish (never fatal).
+
+    Raises:
+        RoutingConfigurationError: On any invalid map, unknown provider,
+            unresolvable credentials, or missing routing dependencies
+            (install with ``pip install 'onellm[routing]'``).
+
+    Example:
+        >>> import onellm
+        >>> onellm.init_routing({
+        ...     "default": "openai/gpt-5",
+        ...     "code": {
+        ...         "default": "anthropic/claude-sonnet-4-5",
+        ...         "frontend": "google/gemini-2.5-pro",
+        ...     },
+        ... })
+        >>> response = ChatCompletion.create(model="auto/code", messages=[...])
+    """
+    global _routing
+
+    from .cache import _CACHE_MODEL_REPO
+    from .routing import Router, RoutingConfig
+
+    config = RoutingConfig(
+        embedding_model=embedding_model or f"local/{_CACHE_MODEL_REPO}",
+        min_margin=min_margin,
+        min_score=min_score,
+        max_depth=max_depth,
+        max_slice_tokens=max_slice_tokens,
+        recent_user_turns=recent_user_turns,
+        memo_size=memo_size,
+        validate_similarity=validate_similarity,
+    )
+    # Clear first so a failed re-init never leaves a stale router serving
+    # requests, and any concurrent create() sees either old-or-none, not
+    # a half-built instance
+    _routing = None
+    _routing = Router(routing_map, config, api_keys=api_keys)
+
+
+def disable_routing():
+    """
+    Disable auto routing. Also clears the routing memo.
+
+    Example:
+        >>> import onellm
+        >>> onellm.disable_routing()
+    """
+    global _routing
+    _routing = None
+
+
+def routing_stats() -> dict:
+    """
+    Get routing statistics.
+
+    Returns:
+        Dictionary with classified, memo_hits, explicit,
+        fell_back_to_default counts and avg_latency_ms.
+
+    Example:
+        >>> import onellm
+        >>> onellm.routing_stats()
+        {'classified': 12, 'memo_hits': 40, 'explicit': 3,
+         'fell_back_to_default': 1, 'avg_latency_ms': 3.9}
+    """
+    if _routing:
+        return _routing.stats()
+    return {
+        "classified": 0,
+        "memo_hits": 0,
+        "explicit": 0,
+        "fell_back_to_default": 0,
+        "avg_latency_ms": 0.0,
+    }
+
+
+def load_routing_map(path: str) -> dict:
+    """
+    Parse a routing map from an explicit path (YAML or JSON).
+
+    This parses, it does not discover: there is no default location, no
+    environment lookup, no walking up the directory tree. The caller
+    passes the returned dict to ``init_routing()`` themselves. Files may
+    carry a top-level ``api_keys`` section; use ``env:VAR`` indirection
+    there rather than literal secrets.
+
+    Args:
+        path: Path to a ``.yaml``/``.yml`` or ``.json`` routing map file.
+
+    Returns:
+        The parsed routing map dict.
+
+    Example:
+        >>> import onellm
+        >>> onellm.init_routing(onellm.load_routing_map("./routing.yaml"))
+    """
+    import json
+
+    from .errors import RoutingConfigurationError
+
+    with open(path, encoding="utf-8") as f:
+        raw = f.read()
+
+    if path.endswith((".yaml", ".yml")):
+        import yaml  # type: ignore[import-untyped]
+
+        parsed = yaml.safe_load(raw)
+    elif path.endswith(".json"):
+        parsed = json.loads(raw)
+    else:
+        raise RoutingConfigurationError(
+            f"load_routing_map({path!r}): unsupported file type; "
+            "use .yaml, .yml, or .json"
+        )
+    if not isinstance(parsed, dict):
+        raise RoutingConfigurationError(
+            f"load_routing_map({path!r}): expected a mapping at the top level, "
+            f"got {type(parsed).__name__}"
+        )
+    return parsed
+
+
+def explain_route(
+    messages: list | None = None,
+    tools: list | None = None,
+    entry: str = "auto",
+    prompt: str | None = None,
+) -> dict:
+    """
+    Dry-run a routing decision without making a provider call.
+
+    Returns the same dict that ``response.routing`` carries. Useful for
+    testing a routing map in CI and answering "what did the classifier
+    actually see" when a route looks wrong (pair with
+    ``ONELLM_ROUTING_DEBUG=1`` to log the assembled slice).
+
+    Example:
+        >>> onellm.explain_route(messages=[...], entry="auto/code")
+        {'entry': 'auto/code', 'resolved_path': 'code/frontend', ...}
+    """
+    from .errors import InvalidConfigurationError
+
+    if _routing is None:
+        raise InvalidConfigurationError(
+            "explain_route() requires onellm.init_routing(...) to be called first."
+        )
+    return _routing.resolve(entry, messages=messages, tools=tools, prompt=prompt).to_dict()
 
 
 # Connection pooling management
