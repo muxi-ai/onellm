@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 0.20260817.0 - Auto routing: model="auto" picks the right model per request
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### New: auto routing via a local embedding classifier
+
+Register a developer-authored routing map once at startup, then call any completion API with `model="auto"` (or `model="auto/<label>"` to pin a subtree). A local embedding classifier - the same multilingual model and ONNX stack the semantic cache uses, shared through `LocalProvider`'s class-level LRU - reads a deterministic slice of the conversation, scores it against each label's example phrases, and resolves to a concrete `provider/model` plus fallback chain. No API calls, no conversation data leaves the process.
+
+```python
+onellm.init_routing({
+    "default": "openai/gpt-5-mini",
+    "code": {
+        "examples": ["fix this function", "why does this test fail?"],
+        "models": ["anthropic/claude-sonnet-4-5", "openai/gpt-5"],
+    },
+})
+response = ChatCompletion.create(model="auto", messages=[...])
+response.routing  # {"resolved_path": "code", "model": "...", "scores": {...}, ...}
+```
+
+Design guarantees:
+
+- **Strictly additive.** Nothing changes unless `init_routing()` is called; `model="auto"` without it raises `InvalidConfigurationError`. Concrete `provider/model` strings behave exactly as before.
+- **Never fails to route.** Every group in the map (including the root) requires a `default`; low-confidence requests fall back to it deterministically instead of erroring. Confusable sibling labels produce an advisory warning at init, never a hard error.
+- **Fail-fast configuration.** `init_routing()` validates the map schema, every referenced provider, and credential presence up front, and can apply credentials itself (`api_keys={"openai": "env:OPENAI_API_KEY", ...}`) through the same paths as `set_api_key()` - there is no routing-scoped credential store.
+- **Fast.** Classification costs a few ms; a memo LRU keyed on the conversation slice makes repeated calls on an unchanged conversation ~µs. `acreate()` classifies in a thread executor so the event loop never blocks on inference.
+- **Observable.** Non-streaming responses carry `response.routing` (resolved path, per-label scores, margin, source, latency); `onellm.explain_route()` dry-runs a decision without a provider call; `onellm.routing_stats()` aggregates counters; `ONELLM_ROUTING_DEBUG=1` logs what the classifier saw.
+
+Also ships: `onellm.load_routing_map("routing.yaml")` for maps kept in version control, a `pip install "onellm[routing]"` extra (aliases `[cache]` - if you already use the semantic cache, routing adds no new dependencies), and `response.routing` declared on both response models (always present, `None` unless routed).
+
+Interactions: routing resolves before the cache, so cached entries are keyed on the resolved model; the resolved fallback chain leads any caller-supplied `fallback_models`; `"auto"` is rejected inside `fallback_models`; the OpenAI-compatible client exempts `auto` from automatic `openai/` prefixing.
+
+See [docs/routing.md](docs/routing.md) for the full map schema and tuning options.
+
 ## 0.20260708.1 - Single-pass unicode cleaning on the streaming hot path
 
 **Status**: Development Status :: 5 - Production/Stable

@@ -28,6 +28,7 @@ the margin-based fallback to a group's default).
 """
 
 import asyncio
+import logging
 import threading
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -174,7 +175,7 @@ class TestMapCompilation:
             _compile_map(
                 {
                     "default": "openai/gpt-4",
-                    "code": {"default": "openai/gpt-4", "api_keys": "openai/gpt-4"},
+                    "code": {"default": "openai/gpt-4", "api_keys": {}},
                 }
             )
 
@@ -879,3 +880,98 @@ class TestApiIntegration:
         assert response.routing["resolved_path"] == "code/frontend"
         # The cache was consulted with the RESOLVED model, not "auto/code"
         assert fake_cache.get.call_args.args[0] == "google/gemini-pro"
+
+
+# ---------------------------------------------------------------------------
+# Validation and runtime edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestEdgeCases:
+    def test_leaf_invalid_type(self):
+        with pytest.raises(RoutingConfigurationError, match="expected a model string"):
+            _compile_map({"default": "openai/gpt-4", "code": 42})
+
+    def test_fallback_chain_rejects_non_strings(self):
+        with pytest.raises(RoutingConfigurationError, match="only strings"):
+            _compile_map({"default": "openai/gpt-4", "code": ["openai/gpt-4", 5]})
+
+    def test_description_must_be_string(self):
+        with pytest.raises(RoutingConfigurationError, match="description"):
+            _compile_map(
+                {"default": "openai/gpt-4", "code": {"models": "openai/gpt-4", "description": 5}}
+            )
+
+    def test_examples_must_be_list_of_strings(self):
+        with pytest.raises(RoutingConfigurationError, match="examples"):
+            _compile_map(
+                {"default": "openai/gpt-4", "code": {"models": "openai/gpt-4", "examples": [1]}}
+            )
+
+    def test_api_keys_must_be_dict(self):
+        with pytest.raises(RoutingConfigurationError, match="must be a dict"):
+            _apply_api_keys(["openai"])
+
+    def test_credentials_skip_provider_without_config_schema(self):
+        # Custom-registered providers may have no config schema entry;
+        # only registry membership is checked for them
+        root = _compile_map({"default": "custom/model-x"})
+        with (
+            patch("onellm.providers.list_providers", return_value=["custom"]),
+            patch("onellm.config.get_provider_config", return_value={}),
+        ):
+            routing_mod._validate_credentials(root)  # must not raise
+
+    def test_load_backend_rejects_non_local_model(self):
+        router = Router.__new__(Router)
+        router.config = RoutingConfig(embedding_model="openai/text-embedding-3-small")
+        with pytest.raises(RoutingConfigurationError, match="local/"):
+            router._load_backend()
+
+    def test_load_backend_wraps_loader_failures(self):
+        router = Router.__new__(Router)
+        router.config = RoutingConfig(embedding_model="local/fake/repo")
+        with patch(
+            "onellm.providers.local.LocalProvider._load_model",
+            side_effect=RuntimeError("weights corrupted"),
+        ):
+            with pytest.raises(RoutingConfigurationError, match="weights corrupted"):
+                router._load_backend()
+
+    def test_default_repo_uses_training_window(self, monkeypatch):
+        # The shared cache model accepts 512 tokens but was trained on 128;
+        # chunking must use the effective window for that repo
+        from onellm.cache import _CACHE_MODEL_REPO
+
+        backend = FakeBackend()
+        backend.model_max_length = 512
+        monkeypatch.setattr(Router, "_load_backend", lambda self: (np, backend))
+        monkeypatch.setattr(routing_mod, "_validate_credentials", lambda root: None)
+        router = Router(REFERENCE_MAP, RoutingConfig(embedding_model=f"local/{_CACHE_MODEL_REPO}"))
+        assert router._chunk_tokens == 128
+
+    def test_slice_truncated_to_cap(self, monkeypatch):
+        router = make_router(monkeypatch, max_slice_tokens=10)
+        long_text = "code " + " ".join(f"word{i}" for i in range(200))
+        result = router.resolve("auto", messages=[_user(long_text)])
+        assert result.slice_tokens <= 10
+
+    def test_debug_env_logs_slice(self, monkeypatch, caplog):
+        router = make_router(monkeypatch)
+        monkeypatch.setenv("ONELLM_ROUTING_DEBUG", "1")
+        with caplog.at_level(logging.DEBUG, logger="onellm.routing"):
+            router.resolve("auto", messages=[_user("fix this code")])
+        assert "Routing slice" in caplog.text
+
+    def test_mild_sibling_warning(self, monkeypatch, caplog):
+        # Exemplar pair with cosine ~0.91 in the fake space: above the 0.90
+        # advisory threshold, below the 0.98 strong threshold
+        routing_map = {
+            "default": "openai/gpt-4",
+            "code": {"models": "openai/gpt-4", "examples": ["code code"]},
+            "research": {"models": "openai/gpt-4", "examples": ["code code research"]},
+        }
+        with caplog.at_level(logging.WARNING, logger="onellm.routing"):
+            make_router(monkeypatch, routing_map=routing_map)
+        assert "may be hard to distinguish" in caplog.text
+        assert "effectively indistinguishable" not in caplog.text

@@ -678,6 +678,50 @@ onellm.disable_cache()  # Disable caching
 
 See [examples/cache_example.py](./examples/cache_example.py) and [docs/caching.md](./docs/caching.md) for complete documentation.
 
+### Auto Routing (Optional)
+
+Let OneLLM pick the right model per request. Register a routing map once, then use `model="auto"` — a **local embedding classifier** (no API calls, same model as the semantic cache) reads each conversation and resolves it to a concrete model plus fallback chain:
+
+```python
+import onellm
+from onellm import ChatCompletion
+
+# Register your routing map once at startup (100% developer-authored)
+onellm.init_routing({
+    "default": "openai/gpt-5-mini",
+    "code": {
+        "description": "Programming, debugging, code review",
+        "examples": ["fix this function", "why does this test fail?"],
+        "models": ["anthropic/claude-sonnet-4-5", "openai/gpt-5"],
+    },
+    "research": {
+        "description": "Deep analysis and long documents",
+        "examples": ["compare these papers", "summarize this report in depth"],
+        "models": "openai/gpt-5",
+    },
+})
+
+# Classifier picks the label, label resolves to a model (+ fallbacks)
+response = ChatCompletion.create(
+    model="auto",
+    messages=[{"role": "user", "content": "Why does this test fail intermittently?"}],
+)
+print(response.routing)  # {"resolved_path": "code", "model": "anthropic/claude-sonnet-4-5", ...}
+
+# Pin a subtree, dry-run decisions, watch aggregate stats
+response = ChatCompletion.create(model="auto/code", messages=[...])
+onellm.explain_route(messages=[...])  # decision record without a provider call
+onellm.routing_stats()                # classified / memo_hits / fell_back_to_default / ...
+```
+
+**How it works:**
+- **Developer-authored map** - you define labels with example phrases; OneLLM ships no opinions about which model is good at what
+- **Local classification** - conversation slice scored against your exemplars in-process (a few ms; ~µs on memo hits for unchanged conversations)
+- **Never fails to route** - every group requires a `default`; low-confidence requests fall back to it instead of erroring
+- **Strictly additive** - nothing changes unless you call `init_routing()`; requires `pip install "onellm[routing]"`
+
+See [examples/auto_routing_example.py](./examples/auto_routing_example.py) and [docs/routing.md](./docs/routing.md) for the full map schema, YAML loading, credentials, and tuning options.
+
 ### HTTP Connection Pooling (Optional)
 
 For workflows with multiple sequential LLM calls, OneLLM supports HTTP connection pooling to reduce latency:
