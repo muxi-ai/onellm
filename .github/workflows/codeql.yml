@@ -24,15 +24,30 @@ jobs:
         language: [python]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
+        with:
+          python-version: "3.11"
+
+      # Python needs no build, so there is nothing for autobuild to do; an
+      # installed package just lets the extractor resolve imports instead of
+      # reporting them as unknown. Keep this lean: pulling in heavy optional
+      # extras would let a dependency resolution failure take down the scan.
+      - name: Install package for import resolution
+        run: |
+          python -m pip install --require-hashes -r requirements/pip.txt
+          pip install -e .
+
+      # Every codeql-action step must stay on one version; mixing them makes
+      # the run fail with "Loaded a configuration file for version X, but
+      # running version Y". Bump init, analyze, and scorecard.yml's
+      # upload-sarif together.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v3
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v3
-
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v3
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
