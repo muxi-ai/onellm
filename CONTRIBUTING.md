@@ -32,7 +32,7 @@ Configuration lives in `pyproject.toml` — do not duplicate settings elsewhere.
 
 ### Python Style
 
-- **Target**: Python 3.10+ (use `X | Y` union syntax, not `Union[X, Y]`)
+- **Target**: Python 3.11+ (use `X | Y` union syntax, not `Union[X, Y]`)
 - **Line length**: 100 characters
 - **Type annotations**: Required on all public function signatures and return values
 - **Docstrings**: Google style on all public functions, classes, and methods

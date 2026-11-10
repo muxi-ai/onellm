@@ -1,6 +1,6 @@
 # OneLLM
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.python.org/pypi/onellm)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://pypi.python.org/pypi/onellm)
 [![Version](https://img.shields.io/pypi/v/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![Status](https://img.shields.io/pypi/status/onellm.svg?maxAge=60)](https://pypi.python.org/pypi/onellm)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

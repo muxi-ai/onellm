@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 0.20261110.0 - Python 3.11+ required; filelock and setuptools security floors
+
+**Status**: Development Status :: 5 - Production/Stable
+
+### Breaking: Python 3.10 is no longer supported
+
+`requires-python` is now `>=3.11`. `filelock` 4.1.1 and later require Python 3.11, so raising the `filelock` floor to a patched release meant dropping 3.10. Users on Python 3.10 should pin `onellm<0.20261110.0`; pip on 3.10 will keep resolving to 0.20260922.0 automatically.
+
+CI, RC, and release workflows now test on 3.11 only, and ruff/black target `py311`. The ruff upgrade rules replaced `asyncio.TimeoutError` with the builtin `TimeoutError` (the same class on 3.11+), so timeout handling in streaming and Bedrock is unchanged.
+
+### Dependency floors
+
+- `filelock>=4.2.1` (was `>=3.20.3`), in the transitive security pins.
+- `setuptools>=84.1.0` added to the transitive security pins. `torch` (pulled by `[local-pytorch]`, `[local-cuda]`, and `[all]`) depends on it at runtime.
+- Build backend: `build-system.requires` raised to `setuptools>=84.1.0` (was `>=83.0.0`).
+
+### Locked and tooling updates
+
+These refresh `uv.lock`, dev tooling, and CI; they don't change what `pip install onellm` requires.
+
+- Locked: `urllib3` 2.8.0, `certifi` 2026.10.18, `pyasn1` 0.6.5, `fsspec` 2026.6.0, `sentence-transformers` 5.6.0, `tomli` 2.5.0, `black` 26.10.1, `pip` 26.3.
+- CI: `github/codeql-action` (init, analyze, upload-sarif) 4.38.3, bumped together so CodeQL stays on one version; `ossf/scorecard-action` 2.5.0; `actions/upload-artifact` 7.0.2.
 ## 0.20260817.0 - Auto routing: model="auto" picks the right model per request
 
 **Status**: Development Status :: 5 - Production/Stable
