@@ -662,7 +662,7 @@ class BedrockProvider(Provider):
                         try:
                             # Wait for worker to complete (with timeout to prevent hanging)
                             await asyncio.wait_for(future, timeout=5.0)
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             # Worker is stuck - thread will be cleaned up by executor
                             pass
                         except Exception:

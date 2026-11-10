@@ -39,7 +39,7 @@ class TestTimeoutHandling:
             nonlocal call_count
             call_count += 1
             if call_count > 1:  # Let the first item through, timeout on the second
-                raise asyncio.TimeoutError("Test timeout")
+                raise TimeoutError("Test timeout")
             return await original_wait_for(*args, **kwargs)
 
         # Create a simple source generator with multiple items
@@ -64,7 +64,7 @@ class TestTimeoutHandling:
         """Test that timeout is passed through json_stream_generator."""
         # Mock wait_for to raise TimeoutError
         async def mock_wait_for(*args, **kwargs):
-            raise asyncio.TimeoutError("Test timeout")
+            raise TimeoutError("Test timeout")
 
         # Create a source with JSON strings
         source = async_generator(['{"key": "value"}'])
@@ -84,7 +84,7 @@ class TestTimeoutHandling:
         """Test that timeout is passed through line_stream_generator."""
         # Mock wait_for to raise TimeoutError
         async def mock_wait_for(*args, **kwargs):
-            raise asyncio.TimeoutError("Test timeout")
+            raise TimeoutError("Test timeout")
 
         # Create a source with lines
         source = async_generator(["line1", "line2"])
