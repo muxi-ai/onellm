@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Unreleased - Python 3.11+ required; setuptools and filelock floors raised
+
+### Breaking: Python 3.10 is no longer supported
+
+`requires-python` is now `>=3.11`. `filelock` 4.1.1 and later require Python 3.11, so raising the `filelock` floor to a patched release meant dropping 3.10. CI, RC, and release workflows now test on 3.11 only. Users on 3.10 should stay on the previous onellm release.
+
+### Dependency floors
+
+- `filelock>=4.2.1` (was `>=3.20.3`), in the transitive security pins.
+- `setuptools>=84.1.0` added to the transitive security pins; `torch` (via `[local-pytorch]`, `[local-cuda]`, `[all]`) depends on it at runtime.
+- Build backend: `build-system.requires` raised to `setuptools>=84.1.0` (was `>=83.0.0`).
+
 ## 0.20260817.0 - Auto routing: model="auto" picks the right model per request
 
 **Status**: Development Status :: 5 - Production/Stable
